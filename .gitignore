@@ -44,3 +44,7 @@ yarn-error.log*
 
 # idea files
 .idea
+
+
+# Mis archivos locales
+.hidden/
