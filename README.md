@@ -1,3 +1,12 @@
+# Clean Base
+Este repo incluye una rama `clean-base` que guarda la versión mínima del proyecto:
+- Sin dummy data de T3.
+- Con mocks listos para empezar a trabajar diseño o features.
+- Con `.gitignore` limpio y carpeta `/notes` excluida.
+
+Usar esta rama como referencia si se requiere volver a un estado inicial sólido.
+
+
 # Create T3 App
 
 This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
