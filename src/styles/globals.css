@@ -1,6 +1,42 @@
 @import "tailwindcss";
+@import "tailwindcss/preflight";
+@import "tailwindcss/utilities";
 
+/* 🎨 Definición de theme global */
 @theme {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
+  --color-light: #e6e5dd;
+  --color-dark: #181618;
+
+  --color-background-light: #e6e5dd;
+  --color-background-dark: #181618;
+
+  --color-text-light: #181618;
+  --color-text-dark: #e6e5dd;
+
+  --font-sans: Inter, Lato, HK Guise, ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+/* Aplicar estilos globales */
+html {
+  font-family: var(--font-sans);
+}
+
+/* 🎨 Variables por defecto (modo claro) */
+:root {
+  --color-background: var(--color-background-light);
+  --color-text: var(--color-text-light);
+}
+
+/* 🎨 Variables para modo oscuro */
+.dark {
+  --color-background: var(--color-background-dark);
+  --color-text: var(--color-text-dark);
+}
+
+/* body siempre usa las variables dinámicas */
+body {
+  background-color: var(--color-background);
+  color: var(--color-text);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
