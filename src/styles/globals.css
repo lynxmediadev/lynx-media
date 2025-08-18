@@ -1,6 +1,7 @@
 @import "tailwindcss";
-@import "tailwindcss/preflight";
-@import "tailwindcss/utilities";
+/* @import "tailwindcss/preflight"; */
+/* @import "tailwindcss/utilities"; */
+/* @import "tailwindcss/typography"; */
 
 /* 🎨 Definición de theme global */
 @theme {
@@ -39,4 +40,29 @@ body {
   background-color: var(--color-background);
   color: var(--color-text);
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.theme-toggle {
+  background-color: var(--color-light);
+  color: var(--color-dark);
+  border: 1px solid var(--color-dark);
+  transition: all 0.3s ease;
+}
+
+.theme-toggle:hover {
+  background-color: var(--color-dark);
+  color: var(--color-light);
+  border-color: var(--color-light);
+}
+
+.dark .theme-toggle {
+  background-color: var(--color-dark);
+  color: var(--color-light);
+  border: 1px solid var(--color-light);
+}
+
+.dark .theme-toggle:hover {
+  background-color: var(--color-light);
+  color: var(--color-dark);
+  border-color: var(--color-dark);
 }
