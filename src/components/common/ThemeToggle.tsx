@@ -46,7 +46,7 @@ export default function ThemeToggle() {
     <button
       type="button"
       onClick={toggleTheme}
-      className="theme-toggle fixed top-4 right-4 px-4 py-2 rounded-md border select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-current"
+      className="theme-toggle fixed top-4 right-4 z-50 px-4 py-2 rounded-md border select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-current"
       aria-pressed={isDark}
       aria-label={label}
       title={label}

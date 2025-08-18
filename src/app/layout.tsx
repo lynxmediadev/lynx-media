@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 
 // Fuentes globales (ajusta según tu src/app/fonts.ts)
-import { inter, lato, hankenGrotesk /* , hkGuise */ } from "./fonts";
+import { inter, lato, hankenGrotesk, dancingScript, anton} from "./fonts";
 
 // Wrapper cliente para renderizar el toggle sólo en cliente (evita SSR del botón)
 import ClientOnly from "@/components/common/ClientOnly";
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   // Opción A (por defecto): cuerpo con Hanken Grotesk
-  const fontVars = `${inter.variable} ${lato.variable} ${hankenGrotesk.variable}`;
+  const fontVars = `${inter.variable} ${lato.variable} ${hankenGrotesk.variable} ${dancingScript.variable} ${anton.variable}`;
   // Opción B (si usas HK Guise):
   // const fontVars = `${inter.variable} ${lato.variable} ${hkGuise.variable}`;
 

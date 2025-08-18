@@ -22,6 +22,9 @@
   /* Opción B (si usas HK Guise, sustituye la línea anterior por:) */
   /* --font-body: var(--font-hk-guise); */
 
+  --font-elegant: var(--font-dancing-script);
+  --font-cinema-title: var(--font-anton);
+
   /* Fallbacks sans */
   --font-sans-fallbacks: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
     Roboto, Arial, "Helvetica Neue", "Noto Sans", "Liberation Sans", sans-serif,

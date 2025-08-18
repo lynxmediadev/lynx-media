@@ -1,5 +1,11 @@
 // src/app/fonts.ts
-import { Inter, Lato, Hanken_Grotesk as HankenGrotesk } from "next/font/google";
+import {
+  Inter,
+  Lato,
+  Hanken_Grotesk as HankenGrotesk,
+  Dancing_Script,
+  Anton,
+} from "next/font/google";
 import localFont from "next/font/local";
 
 /** INTER — títulos/menú (variable + italic) */
@@ -23,31 +29,22 @@ export const lato = Lato({
 export const hankenGrotesk = HankenGrotesk({
   subsets: ["latin"],
   style: ["normal", "italic"],
-  weight: ["100","200","300","400","500","600","700","800","900"],
+  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
   display: "swap",
   variable: "--font-hanken-grotesk",
 });
 
-/** OPCIÓN B (si adquieres HK Guise en MyFonts): descomenta y sube .woff2 a /public/fonts/hk-guise/ */
-// export const hkGuise = localFont({
-//   variable: "--font-hk-guise",
-//   display: "swap",
-//   src: [
-//     { path: "/fonts/hk-guise/HKGuise-Hairline.woff2", weight: "100", style: "normal" },
-//     { path: "/fonts/hk-guise/HKGuise-HairlineItalic.woff2", weight: "100", style: "italic" },
-//     { path: "/fonts/hk-guise/HKGuise-Thin.woff2", weight: "200", style: "normal" },
-//     { path: "/fonts/hk-guise/HKGuise-ThinItalic.woff2", weight: "200", style: "italic" },
-//     { path: "/fonts/hk-guise/HKGuise-ExtraLight.woff2", weight: "200", style: "normal" },
-//     { path: "/fonts/hk-guise/HKGuise-ExtraLightItalic.woff2", weight: "200", style: "italic" },
-//     { path: "/fonts/hk-guise/HKGuise-Light.woff2", weight: "300", style: "normal" },
-//     { path: "/fonts/hk-guise/HKGuise-LightItalic.woff2", weight: "300", style: "italic" },
-//     { path: "/fonts/hk-guise/HKGuise-Regular.woff2", weight: "400", style: "normal" },
-//     { path: "/fonts/hk-guise/HKGuise-Italic.woff2", weight: "400", style: "italic" },
-//     { path: "/fonts/hk-guise/HKGuise-Medium.woff2", weight: "500", style: "normal" },
-//     { path: "/fonts/hk-guise/HKGuise-MediumItalic.woff2", weight: "500", style: "italic" },
-//     { path: "/fonts/hk-guise/HKGuise-SemiBold.woff2", weight: "600", style: "normal" },
-//     { path: "/fonts/hk-guise/HKGuise-SemiBoldItalic.woff2", weight: "600", style: "italic" },
-//     { path: "/fonts/hk-guise/HKGuise-Bold.woff2", weight: "700", style: "normal" },
-//     { path: "/fonts/hk-guise/HKGuise-BoldItalic.woff2", weight: "700", style: "italic" },
-//   ],
-// });
+export const dancingScript = Dancing_Script({
+  subsets: ["latin"],
+  style: ["normal"], // no hay italic explícito, ya es script
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-dancing-script",
+});
+
+export const anton = Anton({
+  subsets: ["latin"],   // puedes agregar "latin-ext" si necesitas soporte extendido
+  weight: "400",        // único peso disponible
+  variable: "--font-anton", // lo registras como variable CSS para usar en Tailwind
+  display: "swap",      // buena práctica para evitar FOUT
+});
