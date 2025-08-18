@@ -1,6 +1,15 @@
 @import "tailwindcss";
+@import "tailwindcss/preflight";
+@import "tailwindcss/utilities";
 
-@theme {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+/* 🎨 Definición base (modo claro) */
+:root {
+  --color-background: #e6e5dd; /* fondo claro */
+  --color-text: #181618;       /* texto oscuro */
+}
+
+/* 🎨 Overrides cuando <html> tiene la clase .dark */
+html.dark {
+  --color-background: #181618; /* fondo oscuro */
+  --color-text: #e6e5dd;       /* texto claro */
 }
