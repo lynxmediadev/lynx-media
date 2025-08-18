@@ -1,7 +1,8 @@
+/* src/styles/globals.css */
 @import "tailwindcss";
 
 /* ===========================
-   PALETA OFICIAL (TU DEFINICIÓN)
+   PALETA OFICIAL (tu definición)
    =========================== */
 @theme {
   --color-light: #e6e5dd;
@@ -13,24 +14,27 @@
   --color-text-light: #181618;
   --color-text-dark: #e6e5dd;
 
-  /* Tipografía base (opcional: Geist ya inyecta --font-geist-sans desde next/font) */
-  --font-sans: var(--font-geist-sans, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Helvetica Neue", "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji");
+  /* TIPOGRAFÍA: variables inyectadas por next/font en <html> */
+  --font-inter: var(--font-inter);
+  --font-lato: var(--font-lato);
+  /* Opción A (por defecto: Hanken Grotesk para párrafos) */
+  --font-body: var(--font-hanken-grotesk);
+  /* Opción B (si usas HK Guise, sustituye la línea anterior por:) */
+  /* --font-body: var(--font-hk-guise); */
+
+  /* Fallbacks sans */
+  --font-sans-fallbacks: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, Arial, "Helvetica Neue", "Noto Sans", "Liberation Sans", sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji";
 }
 
-/* ===========================
-   ESTADO GLOBAL LIGHT / DARK
-   =========================== */
-
-/* LIGHT por defecto */
+/* ============ Estado global LIGHT / DARK ============ */
 :root {
   background-color: var(--color-background-light);
   color: var(--color-text-light);
-  font-family: var(--font-sans);
 
-  /* Derivados para controles/bordes/enlaces: TODOS desde tu paleta */
-  --color-surface: var(--color-light);
-  --color-ink: var(--color-text-light);
-  --color-border: var(--color-text-light);
+  /* Por defecto, todo el sitio usa la fuente de cuerpo como "sans" */
+  --font-sans: var(--font-body), var(--font-sans-fallbacks);
 
   /* Botón ThemeToggle (base → hover) en LIGHT */
   --btn-bg: var(--color-light);
@@ -42,14 +46,11 @@
   --btn-border-hover: var(--color-light);
 }
 
-/* DARK activado por .dark en <html> */
 .dark {
   background-color: var(--color-background-dark);
   color: var(--color-text-dark);
 
-  --color-surface: var(--color-dark);
-  --color-ink: var(--color-text-dark);
-  --color-border: var(--color-text-dark);
+  --font-sans: var(--font-body), var(--font-sans-fallbacks);
 
   /* Botón ThemeToggle (base → hover) en DARK */
   --btn-bg: var(--color-dark);
@@ -61,13 +62,14 @@
   --btn-border-hover: var(--color-dark);
 }
 
-/* Transiciones globales (preferentemente en color/fondo) */
+/* Transiciones globales */
 html, body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Fondo/cuerpo explícitos (evita FOUC en algunos navegadores) */
+/* Aplicar sans por defecto al body */
 body {
+  font-family: var(--font-sans);
   background-color: var(--color-background-light);
   color: var(--color-text-light);
   transition: background-color 0.3s ease, color 0.3s ease;
@@ -78,50 +80,44 @@ body {
 }
 
 /* ===========================
-   REGLAS BASE (OPCIONALES, SI QUIERES EXTENDER)
+   UTILIDADES TIPOGRÁFICAS
    =========================== */
-
-/* Enlaces heredan el color de texto del tema (sin azules por defecto) */
-a {
-  color: currentColor;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+.font-display { /* Inter: títulos/menú */
+  font-family: var(--font-inter), var(--font-sans-fallbacks);
 }
-
-/* Bordes por defecto (si usas .border de Tailwind, esto fija su color por defecto) */
-*,
-*::before,
-*::after {
-  border-color: var(--color-border);
+.font-ui {      /* Lato: subtítulos/botones */
+  font-family: var(--font-lato), var(--font-sans-fallbacks);
 }
+.font-body {    /* Párrafos (Hanken Grotesk por defecto / HK Guise si licencia) */
+  font-family: var(--font-body), var(--font-sans-fallbacks);
+}
+/* Pesos: usar utilidades Tailwind (font-light, font-medium, font-semibold, etc.) */
 
 /* ===========================
-   THEME TOGGLE (usa sólo tus tokens)
+   THEME TOGGLE
    =========================== */
-
 .theme-toggle {
   background-color: var(--btn-bg);
   color: var(--btn-fg);
   border: 1px solid var(--btn-border);
   transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
-
 .theme-toggle:hover {
   background-color: var(--btn-bg-hover);
   color: var(--btn-fg-hover);
   border-color: var(--btn-border-hover);
 }
-
-/* Accesibilidad (foco visible coherente con la paleta) */
 .theme-toggle:focus-visible {
   outline: none;
-  /* Doble halo: primero el bg actual para separar, luego el color de texto para contraste */
   box-shadow: 0 0 0 2px var(--btn-bg), 0 0 0 4px var(--btn-fg);
 }
 
-/* Respeta preferencia de usuario */
+/* Respeta reduced-motion */
 @media (prefers-reduced-motion: reduce) {
-  html, body, .theme-toggle {
-    transition: none !important;
-  }
+  html, body, .theme-toggle { transition: none !important; }
 }
+
+/* Bordes coherentes con la paleta */
+*,
+*::before,
+*::after { border-color: currentColor; }

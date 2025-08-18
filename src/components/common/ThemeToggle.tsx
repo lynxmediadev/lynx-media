@@ -1,19 +1,30 @@
+// src/components/common/ThemeToggle.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 
 type Theme = "light" | "dark";
 
-function getInitialTheme(): Theme {
-  if (typeof window === "undefined") return "light";
-  const stored = window.localStorage.getItem("theme");
-  if (stored === "dark" || stored === "light") return stored as Theme;
-  const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
-  return prefersDark ? "dark" : "light";
+function getPreferredTheme(): Theme {
+  try {
+    const stored = window.localStorage.getItem("theme");
+    if (stored === "dark" || stored === "light") return stored as Theme;
+    const prefersDark =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+    return prefersDark ? "dark" : "light";
+  } catch {
+    return "light";
+  }
 }
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>(getInitialTheme());
+  // Estado inicial neutro; se sincroniza en cliente
+  const [theme, setTheme] = useState<Theme>("light");
+
+  useEffect(() => {
+    setTheme(getPreferredTheme());
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -27,6 +38,7 @@ export default function ThemeToggle() {
   }, [theme]);
 
   const toggleTheme = () => setTheme((t) => (t === "light" ? "dark" : "light"));
+
   const isDark = theme === "dark";
   const label = isDark ? "Cambiar a tema claro" : "Cambiar a tema oscuro";
 
@@ -40,9 +52,8 @@ export default function ThemeToggle() {
       title={label}
     >
       <span className="inline-flex items-center gap-2">
-        {/* Ícono hereda el color del texto del botón (currentColor) */}
         {isDark ? (
-          /* En modo oscuro activo, la acción es pasar a claro → sol */
+          // Sol → pasar a claro
           <svg
             aria-hidden="true"
             width="18"
@@ -54,7 +65,7 @@ export default function ThemeToggle() {
             <path d="M6.76 4.84 4.97 3.05 3.55 4.47l1.79 1.79 1.42-1.42zM1 13h3v-2H1v2zm10-9h2V1h-2v3zm7.07 1.21 1.79-1.79-1.42-1.42-1.79 1.79 1.42 1.42zM17 13h3v-2h-3v2zM11 23h2v-3h-2v3zM4.22 19.78l1.79-1.79-1.42-1.42-1.79 1.79 1.42 1.42zM18.36 19.78l1.79-1.79-1.42-1.42-1.79 1.79 1.42 1.42zM12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" />
           </svg>
         ) : (
-          /* En modo claro activo, la acción es pasar a oscuro → luna */
+          // Luna → pasar a oscuro
           <svg
             aria-hidden="true"
             width="18"
