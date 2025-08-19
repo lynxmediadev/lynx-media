@@ -50,26 +50,40 @@ export default function Hero(props: HeroProps) {
       aria-label="Hero principal de Lynx Media"
       className="relative min-h-screen w-full overflow-hidden"
     >
-      {/* Fondo */}
       <div
-        aria-hidden="true"
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url('${backgroundImageUrl}')` }}
-      />
-      {/* Overlay */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 bg-[var(--color-dark)] opacity-40 mix-blend-multiply dark:opacity-25"
-      />
+        className="absolute inset-0 z-0"
+        style={{
+          WebkitMaskImage:
+            "linear-gradient(to bottom, white 0%, transparent 100%)",
+          maskImage: "linear-gradient(to bottom, white 0%, transparent 100%)",
+        }}
+      >
+        {/* Fondo */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url('${backgroundImageUrl}')` }}
+        />
+        {/* Overlay */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 mix-blend-multiply"
+          style={{
+            background:
+              "linear-gradient(to bottom, color-mix(in srgb, var(--color-dark) 0%, transparent) 0%, color-mix(in srgb, var(--color-dark) 60%, transparent) 100%)",
+          }}
+        />
+      </div>
+
       {/* Gradiente inferior */}
-      <div
+      {/* <div
         aria-hidden="true"
         className="absolute inset-x-0 bottom-0 h-40"
         style={{
           background:
-            "linear-gradient(180deg, color-mix(in srgb, transparent 0%, transparent), color-mix(in srgb, var(--color-light) 65%, transparent))",
+            "linear-gradient(180deg, color-mix(in srgb, transparent 0%, transparent), color-mix(in srgb, var(--color-dark) 65%, transparent))",
         }}
-      />
+      /> */}
 
       {/* Contenido */}
       <div className="relative z-10 mx-auto grid min-h-screen max-w-screen grid-cols-12 items-end px-6 pb-8 md:px-8 md:pb-12">
@@ -91,11 +105,11 @@ export default function Hero(props: HeroProps) {
           </div>
 
           {/* Línea 1 */}
-          <div className="flex items-baseline pr-2 justify-center gap-3 md:gap-2">
+          <div className="flex items-baseline justify-center gap-3 pr-2 md:gap-2">
             <span className="font-elegant text-2xl leading-none text-[var(--color-light)]/85 italic md:text-3xl lg:text-4xl">
               {slantLeft}
             </span>
-            <h1 className="font-cinema-title font-black tracking-wide text-t-1 leading-[0.95] text-[var(--color-light)] md:text-6xl lg:text-7xl">
+            <h1 className="font-cinema-title text-t-1 leading-[0.95] font-black tracking-wide text-[var(--color-light)] md:text-6xl lg:text-7xl">
               {headlineMain}
             </h1>
             <span className="font-elegant text-2xl leading-none text-[var(--color-light)]/85 italic md:text-3xl lg:text-4xl">
@@ -104,12 +118,12 @@ export default function Hero(props: HeroProps) {
           </div>
 
           {/* Línea 2 */}
-          <h2 className="font-cinema-title font-black tracking-wide mt-1 text-5xl leading-[0.95] text-[var(--color-light)] md:text-6xl lg:text-7xl">
+          <h2 className="font-cinema-title mt-1 text-5xl leading-[0.95] font-black tracking-wide text-[var(--color-light)] md:text-6xl lg:text-7xl">
             {headlineSub}
           </h2>
 
           {/* Descripción */}
-          <p className="font-ui mt-4 max-w-full text-xs text-justify-center leading-[0.625rem] text-[var(--color-light)]/90 md:text-[0.6rem] uppercase">
+          <p className="font-ui text-justify-center mt-4 max-w-full text-xs leading-[0.625rem] text-[var(--color-light)]/90 uppercase md:text-[0.6rem]">
             {description}
           </p>
         </div>
@@ -118,7 +132,7 @@ export default function Hero(props: HeroProps) {
         <div className="col-span-6 flex items-end justify-end md:col-span-3">
           <a
             href={ctaHref}
-            className="font-ui font-bold inline-flex items-center gap-3 rounded-md border border-[var(--color-light)] px-5 py-3 text-[0.625rem] tracking-wide text-[var(--color-light)] uppercase transition hover:bg-[var(--color-light)] hover:text-[var(--color-dark)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-light)] focus-visible:ring-offset-2"
+            className="font-ui inline-flex items-center gap-3 rounded-md border border-[var(--color-light)] px-5 py-3 text-[0.625rem] font-bold tracking-wide text-[var(--color-light)] uppercase transition hover:bg-[var(--color-light)] hover:text-[var(--color-dark)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-light)] focus-visible:ring-offset-2"
           >
             <span>{ctaText}</span>
             <svg
