@@ -5,9 +5,16 @@ import type { Metadata } from "next";
 // Fuentes globales (según tu src/app/fonts.ts)
 import { inter, lato, hankenGrotesk, dancingScript, anton } from "./fonts";
 
+import SmoothScroll from "@/components/common/SmoothScroll"; // Smooth scrolling
+
 // Proveedor pasante (si en el futuro agregas uno real, reemplázalo 1:1)
 function AppThemeProvider({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return (
+    <>
+      <SmoothScroll />
+      {children}
+    </>
+  );
 }
 
 export const metadata: Metadata = {
@@ -16,16 +23,18 @@ export const metadata: Metadata = {
   icons: { icon: "/favicon.ico" },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   // Carga de variables de fuente (coinciden con tus nombres reales)
   const fontVars = `${inter.variable} ${lato.variable} ${hankenGrotesk.variable} ${dancingScript.variable} ${anton.variable}`;
 
   return (
     <html lang="es" className={`${fontVars} dark`} suppressHydrationWarning>
       <body className="antialiased">
-        <AppThemeProvider>
-          {children}
-        </AppThemeProvider>
+        <AppThemeProvider>{children}</AppThemeProvider>
       </body>
     </html>
   );

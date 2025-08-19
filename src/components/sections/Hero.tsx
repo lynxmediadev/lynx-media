@@ -50,40 +50,36 @@ export default function Hero(props: HeroProps) {
       aria-label="Hero principal de Lynx Media"
       className="relative min-h-screen w-full overflow-hidden"
     >
-      <div
-        className="absolute inset-0 z-0"
-        style={{
-          WebkitMaskImage:
-            "linear-gradient(to bottom, white 0%, transparent 100%)",
-          maskImage: "linear-gradient(to bottom, white 0%, transparent 100%)",
-        }}
-      >
-        {/* Fondo */}
+      {/* Fondo + overlays (sin máscara) */}
+      <div className="absolute inset-0 z-0" aria-hidden="true">
+        {/* Fondo (imagen) */}
         <div
           aria-hidden="true"
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url('${backgroundImageUrl}')` }}
         />
-        {/* Overlay */}
+
+        {/* Overlay 1: unifica tono, oscurece sutil con multiply */}
         <div
-          aria-hidden="true"
-          className="absolute inset-0 mix-blend-multiply"
+          className="absolute inset-0"
           style={{
+            mixBlendMode: "multiply",
+            // Ajusta 30–45% según gusto; no toques el tramo final
             background:
-              "linear-gradient(to bottom, color-mix(in srgb, var(--color-dark) 0%, transparent) 0%, color-mix(in srgb, var(--color-dark) 60%, transparent) 100%)",
+              "color-mix(in srgb, var(--color-dark) 38%, transparent)",
+          }}
+        />
+
+        {/* Overlay 2 (clave): FADE A SÓLIDO var(--color-dark) en el borde inferior */}
+        <div
+          className="absolute inset-0"
+          style={{
+            // Gradiente normal (sin blend): en el último tramo se vuelve 100% var(--color-dark)
+            background:
+              "linear-gradient(to bottom, color-mix(in srgb, var(--color-dark) 0%, transparent) 0%, color-mix(in srgb, var(--color-dark) 100%, transparent) 100%)",
           }}
         />
       </div>
-
-      {/* Gradiente inferior */}
-      {/* <div
-        aria-hidden="true"
-        className="absolute inset-x-0 bottom-0 h-40"
-        style={{
-          background:
-            "linear-gradient(180deg, color-mix(in srgb, transparent 0%, transparent), color-mix(in srgb, var(--color-dark) 65%, transparent))",
-        }}
-      /> */}
 
       {/* Contenido */}
       <div className="relative z-10 mx-auto grid min-h-screen max-w-screen grid-cols-12 items-end px-6 pb-8 md:px-8 md:pb-12">
@@ -106,7 +102,7 @@ export default function Hero(props: HeroProps) {
 
           {/* Línea 1 */}
           <div className="flex items-baseline justify-center gap-3 pr-2 md:gap-2">
-            <span className="font-elegant text-2xl leading-none text-[var(--color-light)]/85 italic md:text-3xl lg:text-4xl ">
+            <span className="font-elegant text-2xl leading-none text-[var(--color-light)]/85 italic md:text-3xl lg:text-4xl">
               {slantLeft}
             </span>
             <h1 className="font-cinema-title text-t-1 leading-[0.95] font-black tracking-wide text-[var(--color-light)] md:text-6xl lg:text-7xl">
