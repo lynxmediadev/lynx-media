@@ -106,7 +106,7 @@ export default function Hero(props: HeroProps) {
 
           {/* Línea 1 */}
           <div className="flex items-baseline justify-center gap-3 pr-2 md:gap-2">
-            <span className="font-elegant text-2xl leading-none text-[var(--color-light)]/85 italic md:text-3xl lg:text-4xl">
+            <span className="font-elegant text-2xl leading-none text-[var(--color-light)]/85 italic md:text-3xl lg:text-4xl ">
               {slantLeft}
             </span>
             <h1 className="font-cinema-title text-t-1 leading-[0.95] font-black tracking-wide text-[var(--color-light)] md:text-6xl lg:text-7xl">
