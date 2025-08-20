@@ -1,4 +1,6 @@
 import Hero from "@/components/sections/Hero";
+import Gallery from "@/components/sections/Gallery";
+
 
 export default function Home() {
   return (
@@ -25,9 +27,12 @@ export default function Home() {
       // ctaHref="/projects"
       // backgroundImageUrl="/images/hero/lynx-hero.jpg"
       />
-      <section className="min-h-screen w-full py-10">
+      <Gallery />
+
+
+      {/* <section className="min-h-screen w-full py-10">
         <p className="">New block</p>
-      </section>
+      </section> */}
       {/* <section className="bg-light min-h-screen w-full pt-5">
         <p className="text-dark">dsaadsdas</p>
       </section> */}
