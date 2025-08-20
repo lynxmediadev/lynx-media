@@ -1,6 +1,239 @@
+/* src/styles/globals.css */
 @import "tailwindcss";
+@import "tw-animate-css";
 
+@custom-variant dark (&:is(.dark *));
+
+/* ===========================
+   PALETA OFICIAL (tu definición)
+   =========================== */
 @theme {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --color-light: #e6e5dd;
+  --color-dark: #181618;
+
+  --color-background-light: #e6e5dd;
+  --color-background-dark: #181618;
+
+  --color-text-light: #181618;
+  --color-text-dark: #e6e5dd;
+
+  /* TIPOGRAFÍA: variables inyectadas por next/font en <html> */
+  --font-inter: var(--font-inter);
+  --font-lato: var(--font-lato);
+  /* Opción A (por defecto: Hanken Grotesk para párrafos) */
+  --font-body: var(--font-hanken-grotesk);
+  /* Opción B (si usas HK Guise, sustituye la línea anterior por:) */
+  /* --font-body: var(--font-hk-guise); */
+
+  --font-elegant: var(--font-dancing-script);
+  --font-cinema-title: var(--font-anton);
+
+  /* Fallbacks sans */
+  --font-sans-fallbacks: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, Arial, "Helvetica Neue", "Noto Sans", "Liberation Sans", sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+/* ============ Estado global LIGHT / DARK ============ */
+:root {
+  background-color: var(--color-background-light);
+  color: var(--color-text-light);
+
+  /* Por defecto, todo el sitio usa la fuente de cuerpo como "sans" */
+  --font-sans: var(--font-body), var(--font-sans-fallbacks);
+
+  /* Botón ThemeToggle (base → hover) en LIGHT */
+  --btn-bg: var(--color-light);
+  --btn-fg: var(--color-dark);
+  --btn-border: var(--color-dark);
+
+  --btn-bg-hover: var(--color-dark);
+  --btn-fg-hover: var(--color-light);
+  --btn-border-hover: var(--color-light);
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  background-color: var(--color-background-dark);
+  color: var(--color-text-dark);
+
+  --font-sans: var(--font-body), var(--font-sans-fallbacks);
+
+  /* Botón ThemeToggle (base → hover) en DARK */
+  --btn-bg: var(--color-dark);
+  --btn-fg: var(--color-light);
+  --btn-border: var(--color-light);
+
+  --btn-bg-hover: var(--color-light);
+  --btn-fg-hover: var(--color-dark);
+  --btn-border-hover: var(--color-dark);
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* Transiciones globales */
+html, body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Aplicar sans por defecto al body */
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background-light);
+  color: var(--color-text-light);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+.dark body {
+  background-color: var(--color-background-dark);
+  color: var(--color-text-dark);
+}
+
+/* ===========================
+   UTILIDADES TIPOGRÁFICAS
+   =========================== */
+.font-display { /* Inter: títulos/menú */
+  font-family: var(--font-inter), var(--font-sans-fallbacks);
+}
+.font-ui {      /* Lato: subtítulos/botones */
+  font-family: var(--font-lato), var(--font-sans-fallbacks);
+}
+.font-body {    /* Párrafos (Hanken Grotesk por defecto / HK Guise si licencia) */
+  font-family: var(--font-body), var(--font-sans-fallbacks);
+}
+/* Pesos: usar utilidades Tailwind (font-light, font-medium, font-semibold, etc.) */
+
+/* ===========================
+   THEME TOGGLE
+   =========================== */
+.theme-toggle {
+  background-color: var(--btn-bg);
+  color: var(--btn-fg);
+  border: 1px solid var(--btn-border);
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.theme-toggle:hover {
+  background-color: var(--btn-bg-hover);
+  color: var(--btn-fg-hover);
+  border-color: var(--btn-border-hover);
+}
+.theme-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--btn-bg), 0 0 0 4px var(--btn-fg);
+}
+
+/* Respeta reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  html, body, .theme-toggle { transition: none !important; }
+}
+
+/* Bordes coherentes con la paleta */
+*,
+*::before,
+*::after { border-color: currentColor; }
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }
