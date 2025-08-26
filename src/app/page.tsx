@@ -27,8 +27,7 @@ export default function Home() {
       // ctaHref="/projects"
       // backgroundImageUrl="/images/hero/lynx-hero.jpg"
       />
-      <Gallery />
-
+      {/* <Gallery /> */}
 
       {/* <section className="min-h-screen w-full py-10">
         <p className="">New block</p>
