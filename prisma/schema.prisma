@@ -1,20 +1,68 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// ================================================
+// File: prisma/schema.prisma
+// Título: Esquema Prisma (agrega Track para Fase B)
+// Descripción: Define el modelo Track para guardar metadatos y el asset.
+// Qué hace: Permite crear/listar tracks reales desde Postgres.
+// Peras y manzanas: “Una fila por canción con su info y dónde está el archivo.”
+// ================================================
 
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
+  provider  = "postgresql"
+// Usa el pooler en runtime (DATABASE_URL) y el directo para migraciones (DIRECT_URL).
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    @@index([name])
+  @@index([name])
+}
+
+model Track {
+  id               String   @id @default(cuid())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  title            String
+  artist           String
+  audioUrl         String
+  coverUrl         String?
+  moods            String[] // requiere Postgres
+  uses             String[]
+
+  // Identificadores / derechos (MVP)
+  isrc             String?
+  iswc             String?
+  upc              String?
+  master           String?
+  publishingSplit  String?
+  licenseType      String?
+  territories      String?
+  term             String?
+  mediaBuy         String?
+  mfn              Boolean?
+  restrictions     String[]
+  contentIdEnrolled  Boolean?
+  contentIdAdmin     String?
+  contentIdWhitelist String?
+
+  // Info del asset subido
+  assetKey         String   @default("") // "external://..." si es URL directa
+  assetMime        String   @default("")
+  assetSize        Int      @default(0)
+
+  // Campos técnicos (Fase C)
+  durationSec      Float?
+  loudnessLufs     Float?
+
+  @@index([artist])
+  @@index([title])
 }

@@ -1,3 +1,7 @@
+// ================================================
+// File: src/schema/track.ts
+// Zod schemas: validación en runtime del DTO
+// ================================================
 import { z } from "zod";
 
 export const playerIdentifiersSchema = z.object({
@@ -27,8 +31,7 @@ export const playerTrackSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   artist: z.string().min(1),
-  // permitimos rutas relativas (no exigimos URL absoluta):
-  audioUrl: z.string().min(1),
+  audioUrl: z.string().min(1),          // Permitimos ruta relativa (public/*)
   coverUrl: z.string().min(1).optional(),
   moods: z.array(z.string().min(1)).optional(),
   uses: z.array(z.string().min(1)).optional(),
@@ -37,4 +40,5 @@ export const playerTrackSchema = z.object({
   rights: playerRightsSchema.optional(),
   identifiers: playerIdentifiersSchema.optional(),
 });
+
 export type PlayerTrackDTO = z.infer<typeof playerTrackSchema>;
