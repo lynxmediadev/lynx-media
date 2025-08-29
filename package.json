@@ -18,9 +18,16 @@
     "lint:fix": "next lint --fix",
     "preview": "next build && next start",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:seed": "prisma db seed",
+    "db:seed:reset": "cross-env RESET_CONFIRM=YES tsx prisma/seed.reset.ts",
+    "db:seed:bulk": "tsx prisma/seed.bulk.ts",
+    "test": "vitest run -c vitest.config.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.878.0",
+    "@aws-sdk/s3-presigned-post": "^3.878.0",
+    "@aws-sdk/s3-request-presigner": "^3.878.0",
     "@prisma/client": "^6.14.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-checkbox": "^1.3.3",
@@ -41,6 +48,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.540.0",
+    "mime-types": "^3.0.1",
     "next": "^15.2.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -52,10 +60,13 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
     "@tailwindcss/postcss": "^4.1.12",
-    "@types/node": "^20.14.10",
+    "@types/mime-types": "^3.0.1",
+    "@types/node": "^20.19.11",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.21",
+    "cross-env": "^10.0.0",
+    "dotenv": "^17.2.1",
     "eslint": "^9.23.0",
     "eslint-config-next": "^15.2.3",
     "postcss": "^8.5.6",
@@ -63,9 +74,11 @@
     "prettier-plugin-tailwindcss": "^0.6.11",
     "prisma": "^6.14.0",
     "tailwindcss": "^4.1.12",
+    "tsx": "^4.20.5",
     "tw-animate-css": "^1.3.7",
     "typescript": "^5.8.2",
-    "typescript-eslint": "^8.27.0"
+    "typescript-eslint": "^8.27.0",
+    "vitest": "^3.2.4"
   },
   "ct3aMetadata": {
     "initVersion": "7.39.3"

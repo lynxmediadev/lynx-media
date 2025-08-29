@@ -1,46 +1,109 @@
-// // ================================================
-// // File: src/app/api/uploads/sign/route.ts
-// // Título: API para firmar subidas (POST /api/uploads/sign)
-// // Descripción: Recibe {fileName, contentType} y devuelve URL firmada para subir directo al bucket.
-// // Qué hace: Permite que el front suba un archivo sin pasar por el servidor (solo firmamos).
-// // Peras y manzanas: “Te doy un papel que dice ‘puedes subir este archivo aquí’ por 5 minutos.”
-// // ================================================
-// import { type NextRequest, NextResponse } from "next/server";
-// import { z } from "zod";
-// import { signUpload } from "@/lib/storage/s3";
+/**
+ * ┌─────────────────────────────────────────────────────────────────────────────┐
+ * │ Título: API firma de subida (R2 · Presigned PUT)                            │
+ * ├─────────────────────────────────────────────────────────────────────────────┤
+ * │ Descripción                                                                 │
+ * │ Genera una URL firmada (método PUT) para subir directo a R2 desde el       │
+ * │ navegador, sin pasar por el servidor.                                       │
+ * ├─────────────────────────────────────────────────────────────────────────────┤
+ * │ Qué hace                                                                    │
+ * │ - Valida { fileName, mime, size, dir } con Zod                              │
+ * │ - Construye un key estable (fecha/uuid/slug + extensión correcta)           │
+ * │ - Firma un PUT con getSignedUrl (Content-Type forzado)                      │
+ * │ - Devuelve { url, method: 'PUT', headers: {'Content-Type': mime},           │
+ * │             publicUrl, assetKey, expiresIn }                                │
+ * ├─────────────────────────────────────────────────────────────────────────────┤
+ * │ Peras y manzanas                                                            │
+ * │ 1) Cliente pide /api/uploads/sign                                           │
+ * │ 2) Hace fetch( url, { method:'PUT', headers:{'Content-Type':mime}, body })  │
+ * │ 3) Si 200/201/204 → usar publicUrl en el track                              │
+ * └─────────────────────────────────────────────────────────────────────────────┘
+ */
+import { type NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { getS3, getS3PublicUrl, getUploadConfig } from "@/lib/storage/s3";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { extension as extFromMime } from "mime-types";
 
-// const inputSchema = z.object({
-//   fileName: z.string().min(1),
-//   contentType: z.string().min(1),
-//   prefix: z.string().min(1).optional(),
-// });
+export const dynamic = "force-dynamic";
 
-// export async function POST(req: NextRequest) {
-//   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-//   const json = await req.json();
-//   const parsed = inputSchema.safeParse(json);
-//   if (!parsed.success) {
-//     return NextResponse.json({ error: "Invalid input", issues: parsed.error.issues }, { status: 400 });
-//   }
-//   const { fileName, contentType, prefix } = parsed.data;
-//   const signed = await signUpload({ fileName, contentType, prefix });
-//   return NextResponse.json(signed, { status: 200 });
-// }
+const payloadSchema = z.object({
+  fileName: z.string().min(1),
+  mime: z.string().min(3),
+  size: z.number().int().positive(),
+  dir: z.string().optional().default("audio"),
+});
 
+function slugifyBase(name: string) {
+  return name
+    .toLowerCase()
+    .replace(/\.[a-z0-9]+$/, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
 
-// ================================================
-// File: src/app/api/uploads/sign/route.ts
-// Título: Stub de firma de subida (desactivado en Fase B)
-// Descripción: Devuelve 501 Not Implemented mientras no tengamos S3/R2 configurado.
-// Qué hace: Evita que Next compile dependencias de AWS y rompa la app.
-// Peras y manzanas: “La puerta de la bodega está cerrada por ahora,
-//                    pero el resto del edificio funciona perfecto.”
-// ================================================
-import { NextResponse } from "next/server";
+// Forzamos .mp3 si viene audio/mpeg (evita .mpga)
+function ensureExt(mime: string, fileName: string) {
+  const overrides: Record<string, string> = { "audio/mpeg": "mp3" };
+  const byMime = overrides[mime] ?? (extFromMime(mime) || "");
+  if (byMime) return `.${byMime}`;
+  const m = fileName.match(/\.([a-z0-9]+)$/i);
+  return m ? `.${m[1].toLowerCase()}` : "";
+}
 
-export async function POST() {
-  return NextResponse.json(
-    { error: "Not Implemented: storage signing disabled in Phase B" },
-    { status: 501 }
-  );
+export async function POST(req: NextRequest) {
+  const cfg = getUploadConfig();
+  if (!cfg.ok) {
+    return NextResponse.json({ error: "Uploads no configurado", missing: cfg.missing }, { status: 501 });
+  }
+
+  try {
+    const body = await req.json();
+    const { fileName, mime, size, dir } = payloadSchema.parse(body);
+
+    if (!cfg.allowedMimes.includes(mime)) {
+      return NextResponse.json({ error: "MIME no permitido", allowed: cfg.allowedMimes }, { status: 400 });
+    }
+    if (size > cfg.maxBytes) {
+      return NextResponse.json({ error: "Archivo excede el límite", maxBytes: cfg.maxBytes }, { status: 400 });
+    }
+
+    // key: dir/YYYY/MM/DD/uuid-base.ext
+    const now = new Date();
+    const yyyy = String(now.getUTCFullYear());
+    const mm = String(now.getUTCMonth() + 1).padStart(2, "0");
+    const dd = String(now.getUTCDate()).padStart(2, "0");
+    const base = slugifyBase(fileName) || "upload";
+    const ext = ensureExt(mime, fileName);
+    const key = `${dir}/${yyyy}/${mm}/${dd}/${crypto.randomUUID()}-${base}${ext}`;
+
+    const s3 = getS3();
+    const cmd = new PutObjectCommand({
+      Bucket: cfg.bucket,
+      Key: key,
+      ContentType: mime, // IMPORTANT: lo firmamos para que el browser lo envíe igual
+    });
+
+    const url = await getSignedUrl(s3, cmd, { expiresIn: 60 });
+
+    return NextResponse.json(
+      {
+        url,
+        method: "PUT",
+        headers: { "Content-Type": mime },
+        assetKey: key,
+        publicUrl: getS3PublicUrl(key),
+        expiresIn: 60,
+      },
+      { status: 200 }
+    );
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return NextResponse.json({ error: "Payload inválido", issues: err.issues }, { status: 400 });
+    }
+    console.error("POST /api/uploads/sign error:", err);
+    return NextResponse.json({ error: "Error generando firma" }, { status: 500 });
+  }
 }

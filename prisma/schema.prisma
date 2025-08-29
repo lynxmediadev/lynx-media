@@ -12,7 +12,7 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-// Usa el pooler en runtime (DATABASE_URL) y el directo para migraciones (DIRECT_URL).
+  // Usa el pooler en runtime (DATABASE_URL) y el directo para migraciones (DIRECT_URL).
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
@@ -27,42 +27,45 @@ model Post {
 }
 
 model Track {
-  id               String   @id @default(cuid())
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  title            String
-  artist           String
-  audioUrl         String
-  coverUrl         String?
-  moods            String[] // requiere Postgres
-  uses             String[]
+  title    String
+  artist   String
+  audioUrl String
+  coverUrl String?
+  moods    String[] // requiere Postgres
+  uses     String[]
 
   // Identificadores / derechos (MVP)
-  isrc             String?
-  iswc             String?
-  upc              String?
-  master           String?
-  publishingSplit  String?
-  licenseType      String?
-  territories      String?
-  term             String?
-  mediaBuy         String?
-  mfn              Boolean?
-  restrictions     String[]
+  isrc               String?
+  iswc               String?
+  upc                String?
+  master             String?
+  publishingSplit    String?
+  licenseType        String?
+  territories        String?
+  term               String?
+  mediaBuy           String?
+  mfn                Boolean?
+  restrictions       String[]
   contentIdEnrolled  Boolean?
   contentIdAdmin     String?
   contentIdWhitelist String?
 
   // Info del asset subido
-  assetKey         String   @default("") // "external://..." si es URL directa
-  assetMime        String   @default("")
-  assetSize        Int      @default(0)
+  assetKey  String @default("") // "external://..." si es URL directa
+  assetMime String @default("")
+  assetSize Int    @default(0)
 
   // Campos técnicos (Fase C)
-  durationSec      Float?
-  loudnessLufs     Float?
+  durationSec  Float?
+  loudnessLufs Float?
 
   @@index([artist])
   @@index([title])
+  @@index([createdAt, id]) // ← nuevo
+  @@index([moods], type: Gin) // ← nuevo
+  @@index([uses], type: Gin) // ← nuevo
 }

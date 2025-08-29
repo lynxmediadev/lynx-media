@@ -1,195 +1,181 @@
-// ================================================
-// File: src/app/admin/tracks/new/page.tsx
-// Título: Formulario Admin (crear track + subir audio)
-// Descripción: (1) Firma y sube el archivo al bucket; (2) envía metadata + claves a /api/tracks (POST).
-// Qué hace: Permite crear nuevos tracks sin tocar código.
-// Peras y manzanas: “Consigo un link para subir la canción → la subo → guardo su ficha en la base.”
-// ================================================
+/**
+ * ┌─────────────────────────────────────────────────────────────────────────────┐
+ * │ Título: Admin mínimo · Crear Track                                         │
+ * ├─────────────────────────────────────────────────────────────────────────────┤
+ * │ Qué hace                                                                   │
+ * │ - Formulario simple para crear un track llamando a POST /api/tracks.       │
+ * │ - Campos: title, artist, audio.url, coverUrl, moods CSV, uses CSV.         │
+ * │ - Transforma CSV -> string[] y muestra el ID creado.                       │
+ * ├─────────────────────────────────────────────────────────────────────────────┤
+ * │ Peras y manzanas                                                           │
+ * │ - Accede con /admin/tracks/new?key=TU_CLAVE (solo la primera vez).         │
+ * │ - Completa campos mínimos y “Crear”.                                       │
+ * │ - Verás el ID y un resumen del payload enviado.                            │
+ * └─────────────────────────────────────────────────────────────────────────────┘
+ */
 "use client";
 
-import * as React from "react";
-import { z } from "zod";
-import { useRouter } from "next/navigation";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { createTrackInput } from "@/schema/track-input";
+import { useState } from "react";
 
-const signSchema = z.object({
-  key: z.string(),
-  uploadUrl: z.string().url(),
-  publicUrl: z.string().url(),
-});
-type Signed = z.infer<typeof signSchema>;
+type Created = { id: string };
 
-export default function NewTrackPage() {
-  const router = useRouter();
-  const [busy, setBusy] = React.useState(false);
-  const [audioSigned, setAudioSigned] = React.useState<Signed | null>(null);
-  const [audioFile, setAudioFile] = React.useState<File | null>(null);
-  const [coverUrl, setCoverUrl] = React.useState<string>("");
+function parseCSV(input: string): string[] {
+  return input
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
 
-  async function signAndUpload(file: File, prefix = "tracks"): Promise<Signed> {
-    // 1) pedir URL firmada
-    const res = await fetch("/api/uploads/sign", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fileName: file.name, contentType: file.type, prefix }),
-    });
-    if (!res.ok) throw new Error("No se pudo firmar la subida");
-    const signed = signSchema.parse(await res.json());
+export default function AdminCreateTrackPage() {
+  const [title, setTitle] = useState("");
+  const [artist, setArtist] = useState("");
+  const [audioUrl, setAudioUrl] = useState("/audio/demo.mp3");
+  const [coverUrl, setCoverUrl] = useState("/images/hero/hero-bg-1.png");
+  const [moodsCSV, setMoodsCSV] = useState("Epic,Emotional,Elegant");
+  const [usesCSV, setUsesCSV] = useState("TV,Cine,Publicidad");
 
-    // 2) subir directo al bucket (PUT)
-    const put = await fetch(signed.uploadUrl, { method: "PUT", body: file });
-    if (!put.ok) throw new Error("Fallo la subida al bucket");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [created, setCreated] = useState<Created | null>(null);
+  const [echo, setEcho] = useState<any>(null);
 
-    return signed;
-  }
-
-  async function onAudioSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0] ?? null;
-    setAudioFile(f);
-    if (!f) return;
-    setBusy(true);
-    try {
-      const signed = await signAndUpload(f, "tracks");
-      setAudioSigned(signed);
-    } catch (err) {
-      console.error(err);
-      alert("Error subiendo el audio");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!audioFile || !audioSigned) {
-      alert("Primero sube el audio");
-      return;
-    }
-    const fd = new FormData(e.currentTarget);
-    const moods = (fd.get("moods")?.toString() || "")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const uses = (fd.get("uses")?.toString() || "")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
+    setIsSubmitting(true);
+    setError(null);
+    setCreated(null);
 
     const payload = {
-      title: fd.get("title")?.toString() || "",
-      artist: fd.get("artist")?.toString() || "",
-      audio: {
-        key: audioSigned.key,
-        url: audioSigned.publicUrl,
-        size: audioFile.size,
-        mime: audioFile.type,
-      },
-      coverUrl: coverUrl || undefined,
-      moods,
-      uses,
-      // derechos básicos opcionales:
-      rights: {
-        licenseType: fd.get("licenseType")?.toString() || undefined,
-        territories: fd.get("territories")?.toString() || undefined,
-      },
-      isrc: fd.get("isrc")?.toString() || undefined,
+      title: title.trim(),
+      artist: artist.trim(),
+      audio: { url: audioUrl.trim() }, // ← coincide con trackCreateSchema
+      coverUrl: coverUrl.trim() || null,
+      moods: parseCSV(moodsCSV),
+      uses: parseCSV(usesCSV),
     };
 
-    const parsed = createTrackInput.safeParse(payload);
-    if (!parsed.success) {
-      console.error(parsed.error.format());
-      alert("Revisa los campos obligatorios");
-      return;
-    }
+    setEcho(payload);
 
-    setBusy(true);
     try {
       const res = await fetch("/api/tracks", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(parsed.data),
+        headers: { "content-type": "application/json", accept: "application/json" },
+        body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("No se pudo crear el track");
-      // Si quieres, puedes leer el id: const { id } = await res.json();
-      router.push(`/player/api-demo`); // o a una página de detalle
+      const json = (await res.json()) as Created | { error: string; issues?: unknown };
+      if (!res.ok) {
+        const msg =
+          (json as any)?.error ||
+          `HTTP ${res.status} ${res.statusText}`;
+        throw new Error(msg);
+      }
+      setCreated(json as Created);
+      // Limpia mínimos si quieres seguir cargando
+      // setTitle(""); setArtist("");
     } catch (err) {
-      console.error(err);
-      alert("Error guardando el track");
+      setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
-      setBusy(false);
+      setIsSubmitting(false);
     }
   }
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-3 py-6 sm:px-6 lg:px-10 xl:px-14">
-      <h1 className="mb-4 text-[20px] font-bold tracking-tight md:text-[22px]">Nuevo Track</h1>
+    <main className="max-w-3xl mx-auto p-6 space-y-6">
+      <h1 className="text-2xl font-bold">Admin · Crear Track</h1>
+      <p className="text-sm opacity-80">
+        Primera vez: entra con <code>?key=TU_CLAVE</code> en la URL para habilitar el acceso.
+      </p>
 
-      <form className="grid gap-4" onSubmit={onSubmit}>
-        <div className="grid gap-2">
-          <Label htmlFor="title">Título *</Label>
-          <Input id="title" name="title" required placeholder="Golden Horizon (Demo)" />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="artist">Artista *</Label>
-          <Input id="artist" name="artist" required placeholder="Lynx Music Collective" />
-        </div>
-
-        <Separator />
-
-        <div className="grid gap-2">
-          <Label>Archivo de audio *</Label>
-          <Input type="file" accept="audio/*" onChange={onAudioSelect} disabled={busy} />
-          {audioSigned ? (
-            <p className="text-[13px] text-green-600">Audio subido ✔ ({audioSigned.publicUrl})</p>
-          ) : (
-            <p className="text-[13px] text-muted-foreground">Aún no subido</p>
-          )}
-        </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor="coverUrl">Cover (URL pública)</Label>
-          <Input
-            id="coverUrl"
-            name="coverUrl"
-            placeholder="https://cdn.tu-cdn.com/covers/hero-bg-01.jpg"
-            value={coverUrl}
-            onChange={(e) => setCoverUrl(e.target.value)}
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
+        <div>
+          <label className="text-sm font-medium">Title *</label>
+          <input
+            className="mt-1 w-full rounded-md border px-3 py-2 bg-transparent"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Epic Orchestral"
+            required
           />
         </div>
 
-        <div className="grid gap-2">
-          <Label htmlFor="moods">Moods (separados por coma)</Label>
-          <Input id="moods" name="moods" placeholder="Epic, Emotional, Elegant" />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="uses">Usos (separados por coma)</Label>
-          <Input id="uses" name="uses" placeholder="TV, Cine, Publicidad" />
-        </div>
-
-        <Separator />
-
-        <div className="grid gap-2">
-          <Label htmlFor="licenseType">Tipo de licencia (opcional)</Label>
-          <Input id="licenseType" name="licenseType" placeholder="No exclusiva / Exclusiva / One-stop" />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="territories">Territorios (opcional)</Label>
-          <Input id="territories" name="territories" placeholder="Worldwide" />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="isrc">ISRC (opcional)</Label>
-          <Input id="isrc" name="isrc" placeholder="CL-XYZ-25-00001" />
+        <div>
+          <label className="text-sm font-medium">Artist *</label>
+          <input
+            className="mt-1 w-full rounded-md border px-3 py-2 bg-transparent"
+            value={artist}
+            onChange={(e) => setArtist(e.target.value)}
+            placeholder="Lynx Music Collective"
+            required
+          />
         </div>
 
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="submit" disabled={busy}>Crear</Button>
+        <div>
+          <label className="text-sm font-medium">Audio URL *</label>
+          <input
+            className="mt-1 w-full rounded-md border px-3 py-2 bg-transparent"
+            value={audioUrl}
+            onChange={(e) => setAudioUrl(e.target.value)}
+            placeholder="/audio/demo.mp3"
+            required
+          />
+          <p className="text-xs opacity-70">Se envía como <code>{`{ audio: { url } }`}</code>.</p>
+        </div>
+
+        <div>
+          <label className="text-sm font-medium">Cover URL</label>
+          <input
+            className="mt-1 w-full rounded-md border px-3 py-2 bg-transparent"
+            value={coverUrl}
+            onChange={(e) => setCoverUrl(e.target.value)}
+            placeholder="/images/cover.png"
+          />
+        </div>
+
+        <div>
+          <label className="text-sm font-medium">Moods (CSV)</label>
+          <input
+            className="mt-1 w-full rounded-md border px-3 py-2 bg-transparent"
+            value={moodsCSV}
+            onChange={(e) => setMoodsCSV(e.target.value)}
+            placeholder="Epic,Emotional,Elegant"
+          />
+        </div>
+
+        <div>
+          <label className="text-sm font-medium">Uses (CSV)</label>
+          <input
+            className="mt-1 w-full rounded-md border px-3 py-2 bg-transparent"
+            value={usesCSV}
+            onChange={(e) => setUsesCSV(e.target.value)}
+            placeholder="TV,Cine,Publicidad"
+          />
+        </div>
+
+        <div className="pt-2">
+          <button
+            type="submit"
+            className="rounded-md border px-4 py-2"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Creando…" : "Crear"}
+          </button>
         </div>
       </form>
+
+      {error ? <p className="text-sm text-red-500">Error: {error}</p> : null}
+
+      {created ? (
+        <div className="rounded-md border p-4">
+          <p className="text-sm"><strong>Creado ID:</strong> {created.id}</p>
+        </div>
+      ) : null}
+
+      {echo ? (
+        <details className="rounded-md border p-4">
+          <summary className="cursor-pointer text-sm font-medium">Payload enviado</summary>
+          <pre className="mt-2 text-xs overflow-auto">{JSON.stringify(echo, null, 2)}</pre>
+        </details>
+      ) : null}
     </main>
   );
 }
