@@ -1,6 +1,21 @@
-// src/lib/audio/analyze.ts
-// Descarga, ffprobe (dur, SR, ch, bitrate) y ebur128 (I, LRA, low/high, TP).
-// Guarda en Prisma y devuelve resultado + warnings + debug (en dev).
+/**
+ * ┌─────────────────────────────────────────────────────────────────────────────┐
+ * │ Título: src/lib/audio/analyze.ts                                            │
+ * ├─────────────────────────────────────────────────────────────────────────────┤
+ * │ Qué hace                                                                    │
+ * │ - Descarga el audio a /tmp (fetch + arrayBuffer).                           │
+ * │ - ffprobe → duration, sampleRate, channels, bitrate.                        │
+ * │ - ebur128 (EBU R128) → I, LRA, LRA low/high, True Peak.                     │
+ * │ - Fallback loudnorm (JSON) si ebur128 luce inválido.                        │
+ * │ - Waveform → decodifica a PCM mono 8 kHz y resume a 256 puntos (Float32).   │
+ * │ - Guarda todo en Prisma (incluye waveform como Bytes).                      │
+ * ├─────────────────────────────────────────────────────────────────────────────┤
+ * │ Peras y manzanas                                                            │
+ * │ 1) Este módulo NO toca assetKey/MIME/Size (eso es C3/normalize).            │
+ * │ 2) Requiere runtime nodejs por FS/child_process.                            │
+ * │ 3) Si falla una parte no crítica, devolvemos warning pero OK 200.           │
+ * └─────────────────────────────────────────────────────────────────────────────┘
+ */
 
 import { db } from "@/server/db";
 import { spawn } from "node:child_process";
@@ -8,8 +23,8 @@ import { tmpdir } from "node:os";
 import { promises as fsp } from "node:fs";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
-import { measureEbuLoudnessFromLocalPath } from "./lufs";
-import { resolveFfprobePath, resolveFfmpegPath } from "./paths";
+import { measureEbuLoudnessFromLocalPath, probeLoudnormFromLocalPath } from "./lufs";
+import { getFfprobePath, getFfmpegPath } from "./paths"; // ← FIX: nombres reales
 
 type ProbeResult = {
   durationSec: number | null;
@@ -19,94 +34,133 @@ type ProbeResult = {
   raw?: string;
 };
 
-async function downloadToTemp(url: string): Promise<string> {
+/** Descarga la URL pública a un archivo temporal. */
+async function downloadToTemp(url: string, extGuess = "mp3"): Promise<string> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to download: ${res.status} ${res.statusText}`);
   const buf = Buffer.from(await res.arrayBuffer());
-  const tmp = join(tmpdir(), `lynx-${randomUUID()}.mp3`);
+  const ext = (url.split("?")[0].match(/\.([a-z0-9]+)$/i)?.[1] ?? extGuess).toLowerCase();
+  const tmp = join(tmpdir(), `lynx-${randomUUID()}.${ext}`);
   await fsp.writeFile(tmp, buf);
   return tmp;
 }
 
+/** Ejecuta ffprobe y devuelve métricas “básicas” del stream de audio. */
 function runFfprobeJson(filePath: string): Promise<ProbeResult> {
   return new Promise((resolve, reject) => {
-    const bin = resolveFfprobePath();
+    const bin = getFfprobePath(); // ← FIX: tu helper real
     const args = ["-v", "error", "-of", "json", "-show_format", "-show_streams", filePath];
     const child = spawn(bin, args);
-    let out = "";
-    let err = "";
+    let out = ""; let err = "";
 
     child.stdout.on("data", (d) => (out += d.toString()));
     child.stderr.on("data", (d) => (err += d.toString()));
+
     child.on("error", (e) => {
-      reject(Object.assign(new Error(`ffprobe spawn failed: ${e.message}`), { ffprobePath: bin }));
+      reject(Object.assign(new Error(`ffprobe spawn failed: ${e.message}`), {
+        ffprobePath: bin, stdoutPreview: out.slice(0, 600), stderrPreview: err.slice(0, 600)
+      }));
     });
+
     child.on("close", () => {
       try {
-        const j = JSON.parse(out);
-        const aStream = (j.streams || []).find((s: any) => s.codec_type === "audio") || {};
-        const fmt = j.format || {};
-        const durationSec = fmt.duration ? Math.round(Number(fmt.duration)) : null;
-        const sampleRateHz = aStream.sample_rate ? Number(aStream.sample_rate) : null;
-        const channels = Number.isFinite(Number(aStream.channels)) ? Number(aStream.channels) : null;
-        const bitrateKbps = aStream.bit_rate
-          ? Math.round(Number(aStream.bit_rate) / 1000)
-          : fmt.bit_rate
-          ? Math.round(Number(fmt.bit_rate) / 1000)
-          : null;
+        const json = JSON.parse(out);
+        const stream = (json.streams || []).find((s: any) => s.codec_type === "audio") ?? {};
+        const fmt = json.format ?? {};
+        const durationSec = stream.duration ? Number(stream.duration)
+                         : fmt.duration ? Number(fmt.duration)
+                         : null;
+        const sampleRateHz = stream.sample_rate ? Number(stream.sample_rate) : null;
+        const channels     = stream.channels ? Number(stream.channels) : null;
+        const bitrateKbps  = stream.bit_rate ? Math.round(Number(stream.bit_rate) / 1000)
+                         : fmt.bit_rate ? Math.round(Number(fmt.bit_rate) / 1000)
+                         : null;
 
         resolve({ durationSec, sampleRateHz, channels, bitrateKbps, raw: out });
       } catch (e: any) {
-        reject(
-          Object.assign(new Error(`ffprobe parse error: ${e.message}`), {
-            stdoutPreview: out.slice(-1200),
-            stderrPreview: err.slice(-1200),
-          })
-        );
+        reject(Object.assign(new Error(`ffprobe parse failed: ${e.message}`), {
+          ffprobePath: bin, stdoutPreview: out.slice(0, 600), stderrPreview: err.slice(0, 600)
+        }));
       }
     });
   });
 }
 
-export type AnalyzeOutcome = {
-  updated: {
-    id: string;
-    durationSec: number | null;
-    loudnessLufs: number | null;
-    loudnessRangeLu: number | null;
-    lraLowLufs: number | null;
-    lraHighLufs: number | null;
-    truePeakDbfs: number | null;
-    sampleRateHz: number | null;
-    channels: number | null;
-    bitrateKbps: number | null;
-    analysisAt: Date;
-  };
+/**
+ * Decodifica a PCM s16le mono, 8 kHz, y resume a `points` picos absolutos.
+ * Devuelve Buffer de Float32Array (Bytes para Prisma).
+ */
+async function computeWaveformBytes(filePath: string, points = 256): Promise<{ bytes: Buffer; pointCount: number }> {
+  const ffmpeg = getFfmpegPath(); // ← FIX
+  const args = [
+    "-hide_banner", "-nostats",
+    "-i", filePath,
+    "-ac", "1",    // mono
+    "-ar", "8000", // 8 kHz (ligero)
+    "-f", "s16le", // PCM 16-bit LE
+    "-"            // stdout
+  ];
+
+  return await new Promise((resolve, reject) => {
+    const child = spawn(ffmpeg, args);
+    const chunks: Buffer[] = [];
+    let err = "";
+
+    child.stdout.on("data", (d) => chunks.push(Buffer.from(d)));
+    child.stderr.on("data", (d) => { err += d.toString(); });
+    child.on("error", (e) => reject(new Error(`ffmpeg waveform spawn failed: ${e.message}`)));
+
+    child.on("close", () => {
+      try {
+        const pcm = Buffer.concat(chunks);
+        const samples = new Int16Array(Math.floor(pcm.length / 2));
+        for (let i = 0; i < samples.length; i++) samples[i] = pcm.readInt16LE(i * 2);
+
+        const window = Math.max(1, Math.floor(samples.length / points));
+        const out = new Float32Array(points);
+        for (let i = 0; i < points; i++) {
+          const start = i * window;
+          const end   = (i + 1 === points) ? samples.length : (i + 1) * window;
+          let peak = 0;
+          for (let j = start; j < end; j++) {
+            const v = Math.abs(samples[j]);
+            if (v > peak) peak = v;
+          }
+          out[i] = peak / 32768.0; // normaliza 0..1
+        }
+        resolve({ bytes: Buffer.from(out.buffer), pointCount: points });
+      } catch (e: any) {
+        reject(new Error(`waveform build failed: ${e.message}\n${err.slice(0, 600)}`));
+      }
+    });
+  });
+}
+
+/** Sanity-check para decidir si un set ebur128 es creíble. */
+function isEbu128Sane(i: number | null, lra: number | null, tp: number | null): boolean {
+  if (i == null || i <= -60 || i >= -1) return false;     // I típico [-60..-5]
+  if (lra == null || lra < 0.1 || lra > 35) return false; // LRA positivo y razonable
+  if (tp == null || tp < -40 || tp > 6) return false;     // True Peak razonable
+  return true;
+}
+
+/** Punto de entrada principal: analiza y guarda los resultados en la fila Track. */
+export async function analyzeTrackById(id: string): Promise<{
+  updated: any;
   warnings: string[];
   debug?: any;
-};
-
-export async function analyzeTrackById(trackId: string): Promise<AnalyzeOutcome> {
-  const warnings: string[] = [];
-
-  const track = await db.track.findUnique({ where: { id: trackId } });
+}> {
+  const track = await db.track.findUnique({ where: { id } });
   if (!track) throw new Error("Track not found");
+  if (!track.audioUrl) throw new Error("Track has no audioUrl"); // mantenemos audioUrl como fuente
 
-  const audioUrl =
-    track.audioUrl ??
-    (track.assetKey
-      ? `${process.env.R2_PUBLIC_BASE_URL?.replace(/\/+$/, "")}/${track.assetKey}`
-      : null);
-
-  if (!audioUrl) throw new Error("Track has no audioUrl nor assetKey to build a public URL");
-
+  const warnings: string[] = [];
+  const debug: any = {};
   let tmpFile: string | null = null;
-  let ffprobeDebug: any = null;
-  let ebuDebug: any = null;
 
   try {
-    // 0) Descargar
-    tmpFile = await downloadToTemp(audioUrl);
+    // 0) Descargar a /tmp
+    tmpFile = await downloadToTemp(track.audioUrl);
 
     // 1) ffprobe
     let durationSec: number | null = null;
@@ -116,14 +170,14 @@ export async function analyzeTrackById(trackId: string): Promise<AnalyzeOutcome>
 
     try {
       const meta = await runFfprobeJson(tmpFile);
-      ffprobeDebug = { code: 0, stdoutPreview: meta.raw?.slice(0, 600) ?? "", stderrPreview: "" };
-      durationSec = meta.durationSec;
+      debug.ffprobe = { code: 0, stdoutPreview: meta.raw?.slice(0, 600) ?? "", stderrPreview: "" };
+      durationSec  = meta.durationSec;
       sampleRateHz = meta.sampleRateHz;
-      channels = meta.channels;
-      bitrateKbps = meta.bitrateKbps;
+      channels     = meta.channels;
+      bitrateKbps  = meta.bitrateKbps;
     } catch (e: any) {
       warnings.push("ffprobe failed");
-      ffprobeDebug = {
+      debug.ffprobe = {
         error: e.message,
         ffprobePath: e.ffprobePath,
         stdoutPreview: e.stdoutPreview,
@@ -131,42 +185,100 @@ export async function analyzeTrackById(trackId: string): Promise<AnalyzeOutcome>
       };
     }
 
-    // 2) ebur128
-    let loudnessLufs: number | null = null;
-    let loudnessRangeLu: number | null = null;
-    let lraLowLufs: number | null = null;
-    let lraHighLufs: number | null = null;
-    let truePeakDbfs: number | null = null;
+    // 2) ebur128 → fallback loudnorm si luce inválido
+    let iLufs: number | null = null;
+    let lraLu: number | null = null;
+    let lraLow: number | null = null;
+    let lraHigh: number | null = null;
+    let truePeak: number | null = null;
+    let lufsSource: "ebur128" | "loudnorm" | "skipped" = "skipped";
 
     try {
       const ebu = await measureEbuLoudnessFromLocalPath(tmpFile);
-      loudnessLufs = ebu.integratedLufs;
-      loudnessRangeLu = ebu.loudnessRangeLu;
-      lraLowLufs = ebu.lraLowLufs;
-      lraHighLufs = ebu.lraHighLufs;
-      truePeakDbfs = ebu.truePeakDbfs;
-      ebuDebug = { summaryPreview: ebu.rawSummary.slice(0, 800), ffmpegPath: resolveFfmpegPath() };
-      if (loudnessLufs == null) warnings.push("lufs failed");
-    } catch (e: any) {
-      warnings.push("lufs failed");
-      ebuDebug = { error: e.message, ffmpegPath: resolveFfmpegPath() };
+      debug.ebur128 = { summaryPreview: ebu.rawSummary.slice(0, 800), ffmpegPath: getFfmpegPath() };
+
+      iLufs   = ebu.integratedLufs;
+      lraLu   = ebu.loudnessRangeLu;
+      lraLow  = ebu.lraLowLufs;
+      lraHigh = ebu.lraHighLufs;
+      truePeak= ebu.truePeakDbfs;
+
+      if (!isEbu128Sane(iLufs, lraLu, truePeak)) {
+        // Fallback a loudnorm (JSON por stdout/err)
+        const ln = await probeLoudnormFromLocalPath(tmpFile);
+        debug.loudnorm = { previewJson: (ln.rawJson || "").slice(0, 800), source: ln.source };
+
+        if (ln.integratedLufs != null && ln.loudnessRangeLu != null && ln.truePeakDbfs != null) {
+          iLufs = ln.integratedLufs;
+          lraLu = ln.loudnessRangeLu;
+          truePeak = ln.truePeakDbfs;
+          lufsSource = "loudnorm";
+        } else {
+          lufsSource = "skipped";
+          if (!warnings.includes("lufs skipped (out-of-range)")) warnings.push("lufs skipped (out-of-range)");
+        }
+      } else {
+        lufsSource = "ebur128";
+      }
+    } catch {
+      // Si ebur128 falla duro, intentamos loudnorm directo
+      try {
+        const ln = await probeLoudnormFromLocalPath(tmpFile);
+        debug.loudnorm = { previewJson: (ln.rawJson || "").slice(0, 800), source: ln.source };
+
+        if (ln.integratedLufs != null && ln.loudnessRangeLu != null && ln.truePeakDbfs != null) {
+          iLufs = ln.integratedLufs;
+          lraLu = ln.loudnessRangeLu;
+          truePeak = ln.truePeakDbfs;
+          lufsSource = "loudnorm";
+        } else {
+          lufsSource = "skipped";
+          warnings.push("lufs failed");
+        }
+      } catch {
+        lufsSource = "skipped";
+        warnings.push("lufs failed");
+      }
     }
 
-    // 3) Persistir
+    // 3) Waveform → Bytes (Float32)
+    let waveformBytes: Buffer | null = null;
+    let waveformPoints = 0;
+    try {
+      const wf = await computeWaveformBytes(tmpFile, 256);
+      waveformBytes = wf.bytes;
+      waveformPoints = wf.pointCount;
+      debug.waveform = { computed: true, points: waveformPoints, bytesLen: waveformBytes.length };
+    } catch (e: any) {
+      debug.waveform = { computed: false, error: e?.message ?? "failed" };
+      warnings.push("waveform failed");
+    }
+
+    // Debug extra
+    debug.ffprobePath = getFfprobePath();
+    debug.ffmpegPath  = getFfmpegPath();
+    debug.audioUrl = track.audioUrl;
+    debug.tmpFile  = tmpFile;
+    debug.lufsSource = lufsSource;
+
+    // 4) Guardado en Prisma (idempotente: solo escribimos valores válidos)
+    const data: any = { analysisAt: new Date() };
+    if (durationSec  != null) data.durationSec      = durationSec;
+    if (sampleRateHz != null) data.sampleRateHz     = sampleRateHz;
+    if (channels     != null) data.channels         = channels;
+    if (bitrateKbps  != null) data.bitrateKbps      = bitrateKbps;
+
+    if (iLufs        != null) data.loudnessLufs     = iLufs;
+    if (lraLu        != null) data.loudnessRangeLu  = lraLu;
+    if (lraLow       != null) data.lraLowLufs       = lraLow;
+    if (lraHigh      != null) data.lraHighLufs      = lraHigh;
+    if (truePeak     != null) data.truePeakDbfs     = truePeak;
+
+    if (waveformBytes && waveformBytes.length > 0) data.waveform = { set: waveformBytes }; // Bytes
+
     const updated = await db.track.update({
-      where: { id: trackId },
-      data: {
-        durationSec: durationSec ?? null,
-        sampleRateHz: sampleRateHz ?? null,
-        channels: channels ?? null,
-        bitrateKbps: bitrateKbps ?? null,
-        loudnessLufs,
-        loudnessRangeLu,
-        lraLowLufs,
-        lraHighLufs,
-        truePeakDbfs,
-        analysisAt: new Date(),
-      },
+      where: { id },
+      data,
       select: {
         id: true,
         durationSec: true,
@@ -182,26 +294,9 @@ export async function analyzeTrackById(trackId: string): Promise<AnalyzeOutcome>
       },
     });
 
-    const debug =
-      process.env.NODE_ENV !== "production"
-        ? {
-            ffprobePath: resolveFfprobePath(),
-            ffmpegPath: resolveFfmpegPath(),
-            audioUrl,
-            tmpFile,
-            ffprobe: ffprobeDebug,
-            ebur128: ebuDebug,
-          }
-        : undefined;
-
     return { updated, warnings, debug };
   } finally {
-    if (tmpFile) {
-      try {
-        await fsp.unlink(tmpFile);
-      } catch {
-        // ignore
-      }
-    }
+    // 5) Limpieza del tmp
+    if (tmpFile) { try { await fsp.unlink(tmpFile); } catch {} }
   }
 }
