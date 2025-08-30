@@ -1,10 +1,27 @@
 /**
- * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially useful
- * for Docker builds.
+ * ┌─────────────────────────────────────────────────────────────────────────────┐
+ * │ Título: next.config.js (ESM) — externals para ffmpeg/ffprobe                │
+ * ├─────────────────────────────────────────────────────────────────────────────┤
+ * │ Descripción                                                                 │
+ * │ Evita que Turbopack/Webpack intenten empaquetar los binarios de             │
+ * │ ffmpeg-static y ffprobe-static. En runtime se resuelven desde node_modules. │
+ * ├─────────────────────────────────────────────────────────────────────────────┤
+ * │ Peras y manzanas                                                            │
+ * │ 1) Mantiene la carga de env.js                                              │
+ * │ 2) Marca ffmpeg-static y ffprobe-static como "externals" del servidor       │
+ * │ 3) Después de guardar, limpia .next y reinicia el dev server                │
+ * └─────────────────────────────────────────────────────────────────────────────┘
+ */
+
+/**
+ * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation.
  */
 import "./src/env.js";
 
 /** @type {import("next").NextConfig} */
-const config = {};
+const config = {
+  // Evita warnings por opciones experimentales inválidas.
+  // No declares experimental.serverExternalPackages / serverComponentsExternalPackages.
+};
 
 export default config;

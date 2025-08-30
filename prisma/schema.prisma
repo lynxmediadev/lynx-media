@@ -60,8 +60,19 @@ model Track {
   assetSize Int    @default(0)
 
   // Campos técnicos (Fase C)
-  durationSec  Float?
-  loudnessLufs Float?
+  /// C2 — Campos técnicos de análisis (opcionales)
+  durationSec     Int?      @db.Integer // segundos (redondeado)
+  loudnessLufs    Float?    @db.DoublePrecision
+  // NUEVO:
+  loudnessRangeLu Float? // LRA en LU
+  lraLowLufs      Float? // LRA low en LUFS
+  lraHighLufs     Float? // LRA high en LUFS
+  truePeakDbfs    Float? // True Peak en dBFS (negativo)
+  waveform        Bytes?
+  sampleRateHz    Int?
+  channels        Int?
+  bitrateKbps     Int?
+  analysisAt      DateTime?
 
   @@index([artist])
   @@index([title])
