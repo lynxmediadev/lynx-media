@@ -3,17 +3,15 @@
  * │ Archivo: src/app/track/[id]/page.tsx                                        │
  * ├─────────────────────────────────────────────────────────────────────────────┤
  * │ Objetivo                                                                    │
- * │ - Página pública de un track con estética “cine”: minimal, clara y elegante.│
- * │ - Columna izquierda compacta con Player + waveform; derecha con metadatos.  │
- * │ - “Similar tracks” con un criterio simple (mood en común o recientes).      │
+ * │ - Página pública del track con estética sobria y clara.                     │
+ * │ - El Server Component sólo prepara datos; la interacción (click-to-seek)    │
+ * │   vive en el Client Component `PublicAudioBar`.                              │
  * ├─────────────────────────────────────────────────────────────────────────────┤
  * │ Peras y manzanas                                                            │
- * │ - Es Server Component (no hooks de cliente aquí).                            │
- * │ - Soporta que Next 15 entregue `params` como Promise → lo **await**eamos.    │
- * │ - Busca el track, arma la URL pública (assetKey→S3_PUBLIC_BASE_URL o audioUrl│
- * │   de fallback), convierte waveform (Bytes) a base64 para el componente de    │
- * │   cliente.                                                                   │
- * │ - No dependemos de cover/hero: mostramos un fondo sutil y tipografía fuerte. │
+ * │ - Next 15 puede entregar `params` como Promise → lo resolvemos con `await`. │
+ * │ - Convertimos `waveform` (Bytes en BD) a base64 para el canvas en cliente.  │
+ * │ - Pasamos `interactive` al reproductor para habilitar el click-to-seek.     │
+ * │   (Si tu prop se llama distinto, cámbialo aquí: p.ej. `enableSeek`.)        │
  * └─────────────────────────────────────────────────────────────────────────────┘
  */
 
@@ -21,7 +19,6 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/server/db";
 import PublicAudioBar from "@/components/public/PublicAudioBar";
-// Si ya tienes esta utilidad, úsala; si no, usamos fallback más abajo.
 import { getS3PublicUrl } from "@/lib/storage/s3";
 
 export const dynamic = "force-dynamic";
@@ -30,13 +27,13 @@ type PageProps = {
   params: Promise<{ id: string }> | { id: string };
 };
 
-/** Helper “peras y manzanas”: convierte Buffer (Bytes) → base64 para el cliente */
+/** Buffer(Bytes) → base64 para entregar al canvas del cliente */
 function bytesToBase64(buf: Buffer | null): string | null {
   if (!buf) return null;
   return Buffer.from(buf).toString("base64");
 }
 
-/** Helper: arma URL pública del asset con preferencia por assetKey → R2 */
+/** Prefiere assetKey→R2; si no, usa audioUrl como fallback */
 function publicAudioUrl(input: {
   assetKey: string | null;
   audioUrl: string | null;
@@ -45,7 +42,7 @@ function publicAudioUrl(input: {
   return input.audioUrl ?? null;
 }
 
-/** Helper: mm:ss (clásico) */
+/** mm:ss para duración */
 function fmtDuration(sec: number | null): string {
   if (sec == null || !isFinite(sec)) return "—";
   const s = Math.max(0, Math.floor(sec));
@@ -54,7 +51,7 @@ function fmtDuration(sec: number | null): string {
   return `${m}:${String(r).padStart(2, "0")}`;
 }
 
-/** Pill simple para tags (moods/uses/restrictions) */
+/** Pill visual para moods/uses/restrictions */
 function Pill({ children }: { children: React.ReactNode }) {
   return (
     <span className="inline-flex items-center rounded-full border border-zinc-800/80 bg-zinc-900/50 px-2 py-0.5 text-xs text-zinc-200">
@@ -64,11 +61,13 @@ function Pill({ children }: { children: React.ReactNode }) {
 }
 
 export default async function TrackPublicPage({ params }: PageProps) {
-  // ⬇️ Next 15 puede pasar params como Promise → lo resolvemos
+  // ✅ Next 15: `params` puede venir como Promise → lo resolvemos.
   const { id } =
-    "then" in (params as any) ? await (params as Promise<{ id: string }>) : (params as { id: string });
+    "then" in (params as any)
+      ? await (params as Promise<{ id: string }>)
+      : (params as { id: string });
 
-  // 1) Cargamos datos del track necesarios para la página pública
+  // 1) Datos del track (sólo lo necesario para la pública)
   const track = await db.track.findUnique({
     where: { id },
     select: {
@@ -82,74 +81,53 @@ export default async function TrackPublicPage({ params }: PageProps) {
       loudnessLufs: true,
       loudnessRangeLu: true,
       truePeakDbfs: true,
-      moods: true,          // String[] | null
-      uses: true,           // String[] | null
-      restrictions: true,   // String[] | null
+      moods: true,
+      uses: true,
+      restrictions: true,
       updatedAt: true,
     },
   });
-
   if (!track) notFound();
 
-  const src = publicAudioUrl({
-    assetKey: track.assetKey,
-    audioUrl: track.audioUrl,
-  });
+  // 2) Preparar src público + waveform en base64 para el canvas
+  const src = publicAudioUrl({ assetKey: track.assetKey, audioUrl: track.audioUrl });
   const waveformB64 = bytesToBase64(track.waveform as unknown as Buffer | null);
 
-  // 2) “Similar tracks”: intentamos por 1er mood; si no hay, recientes
+  // 3) Similar por primer mood; si no hay, recientes
   let similar = await db.track.findMany({
     where: track.moods?.length
-      ? {
-          id: { not: track.id },
-          moods: { hasSome: [track.moods[0]!] },
-        }
+      ? { id: { not: track.id }, moods: { hasSome: [track.moods[0]!] } }
       : { id: { not: track.id } },
     orderBy: { updatedAt: "desc" },
     take: 6,
-    select: {
-      id: true,
-      title: true,
-      artist: true,
-      loudnessLufs: true,
-      durationSec: true,
-    },
+    select: { id: true, title: true, artist: true, loudnessLufs: true, durationSec: true },
   });
-
-  // Fallback si quedara vacío
   if (!similar.length) {
     similar = await db.track.findMany({
       where: { id: { not: track.id } },
       orderBy: { updatedAt: "desc" },
       take: 6,
-      select: {
-        id: true,
-        title: true,
-        artist: true,
-        loudnessLufs: true,
-        durationSec: true,
-      },
+      select: { id: true, title: true, artist: true, loudnessLufs: true, durationSec: true },
     });
   }
 
   return (
     <div className="min-h-[100dvh] bg-gradient-to-b from-black via-zinc-950 to-black text-zinc-100">
-      {/* Banda superior minimal */}
+      {/* Header minimal */}
       <header className="mx-auto w-full max-w-6xl px-4 py-6">
         <div className="flex items-center justify-between">
           <Link href="/" className="text-sm text-zinc-400 hover:text-zinc-200">
             ← Volver
           </Link>
           <div className="text-[11px] text-zinc-500">
-            Última actualización ·{" "}
-            {new Date(track.updatedAt).toLocaleString()}
+            Última actualización · {new Date(track.updatedAt).toLocaleString()}
           </div>
         </div>
       </header>
 
-      {/* Cuerpo: dos columnas; izquierda (player compacto), derecha (info) */}
+      {/* Dos columnas: izquierda (player compacto), derecha (info) */}
       <main className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 px-4 pb-16 md:grid-cols-[minmax(280px,380px),1fr]">
-        {/* Columna izquierda (compact hero + player) */}
+        {/* Izquierda: título, artista y reproductor */}
         <section
           className="rounded-2xl border border-zinc-800/80 bg-zinc-950/50 p-4 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.6)] backdrop-blur"
           aria-labelledby="track-hero"
@@ -159,14 +137,21 @@ export default async function TrackPublicPage({ params }: PageProps) {
           </h1>
           <p className="mb-3 text-sm text-zinc-400">{track.artist ?? "Artista desconocido"}</p>
 
-          {/* Player minimal + waveform (client) */}
+          {/* ⬇️ Aquí va el reproductor de cliente con click-to-seek habilitado */}
           <PublicAudioBar
+            // Fuente de audio lista para <audio>
             src={src}
+            // Para mapear X→tiempo (seek)
             durationSec={track.durationSec ?? 0}
+            // Waveform codificado en base64 (Bytes Float32 de la BD)
             waveformB64={waveformB64}
+            // ✨ Esta bandera enciende el click-to-seek dentro del componente cliente
+            interactive
+            // (Opcional) colores del waveform: puedes personalizarlos cuando quieras
+            // waveformColors={{ base: "rgba(255,255,255,0.25)", progress: "#fff" }}
           />
 
-          {/* Métricas rápidas (sólo lectura) */}
+          {/* Métricas rápidas */}
           <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
             <div className="rounded-md border border-zinc-800/60 bg-zinc-900/40 p-2">
               <div className="text-zinc-400">Duración</div>
@@ -183,15 +168,14 @@ export default async function TrackPublicPage({ params }: PageProps) {
             <div className="rounded-md border border-zinc-800/60 bg-zinc-900/40 p-2">
               <div className="text-zinc-400">True Peak</div>
               <div className="font-medium text-zinc-100">
-                {track.truePeakDbfs == null ? "—" : track.truePeakDbfs.toFixed(2)} dBFS
+                {track.truePeakDbfs == null ? "—" : `${track.truePeakDbfs.toFixed(2)} dBFS`}
               </div>
             </div>
           </div>
         </section>
 
-        {/* Columna derecha (info clara para el cliente) */}
+        {/* Derecha: info para el cliente */}
         <section className="space-y-6">
-          {/* Bloque: información creativa/uso */}
           <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/40 p-4">
             <h2 className="mb-3 text-lg font-medium">Descripción</h2>
             <dl className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
@@ -222,13 +206,13 @@ export default async function TrackPublicPage({ params }: PageProps) {
             </dl>
           </div>
 
-          {/* Bloque: licencias / CTA sencillo */}
+          {/* CTA licencia */}
           <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/40 p-4">
             <h2 className="mb-3 text-lg font-medium">Licencias / contacto</h2>
             <p className="mb-3 text-sm text-zinc-400">
               ¿Te interesa usar esta pieza en un proyecto audiovisual? Hablemos.
-              Cuéntame el **uso**, **territorios** y **plazos**, y te respondo con
-              la licencia adecuada.
+              Cuéntame el <strong>uso</strong>, <strong>territorios</strong> y <strong>plazos</strong>,
+              y te respondo con la licencia adecuada.
             </p>
             <Link
               href={`/contact?track=${encodeURIComponent(track.id)}`}
@@ -238,7 +222,7 @@ export default async function TrackPublicPage({ params }: PageProps) {
             </Link>
           </div>
 
-          {/* Similar tracks */}
+          {/* Sugerencias */}
           <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/40 p-4">
             <h2 className="mb-3 text-lg font-medium">Piezas similares</h2>
             {similar.length === 0 ? (
@@ -260,9 +244,7 @@ export default async function TrackPublicPage({ params }: PageProps) {
                       <div className="mt-1 flex items-center gap-3 text-[11px] text-zinc-500">
                         <span>{fmtDuration(s.durationSec ?? 0)}</span>
                         <span>·</span>
-                        <span>
-                          {s.loudnessLufs == null ? "—" : `${s.loudnessLufs.toFixed(1)} LUFS`}
-                        </span>
+                        <span>{s.loudnessLufs == null ? "—" : `${s.loudnessLufs.toFixed(1)} LUFS`}</span>
                       </div>
                     </Link>
                   </li>

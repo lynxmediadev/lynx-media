@@ -4,104 +4,150 @@
  * │ Archivo: src/components/public/PublicAudioBar.tsx                           │
  * ├─────────────────────────────────────────────────────────────────────────────┤
  * │ Objetivo                                                                    │
- * │ - Player minimal (play/pause + tiempo) + integración **estable** con        │
- * │   WaveformScrubber (click-seek).                                            │
+ * │ - Reproductor compacto: botón play/pause + tiempo + forma de onda clickable │
+ * │   que además **auto-reproduce** si estaba en pausa al hacer click en la onda│
  * ├─────────────────────────────────────────────────────────────────────────────┤
  * │ Peras y manzanas                                                            │
- * │ - Es Client Component.                                                       │
- * │ - Mantiene el audio nativo (<audio>) para máxima compatibilidad.            │
- * │ - WaveformScrubber sólo dibuja y permite click-to-seek (sin tooltip).       │
+ * │ - Usamos un <audio> oculto y lo controlamos con refs.                       │
+ * │ - El estado `isPlaying` se actualiza SOLO por eventos del <audio>           │
+ * │   (play/pause/ended), no al “dedo”; así evitamos el warning de play/pause.  │
+ * │ - En `onSeek`: movemos currentTime y, si estaba pausado, llamamos a play(). │
+ * │ - Pasamos `progress` (0..1) al WaveformScrubber para colorear el avance.    │
  * └─────────────────────────────────────────────────────────────────────────────┘
  */
 
 import * as React from "react";
-import WaveformScrubber from "@/components/public/WaveformScrubber";
+import WaveformScrubber from "./WaveformScrubber";
 
 type Props = {
   src: string | null;
-  durationSec: number;
+  durationSec?: number; // fallback de duración (si no hay metadata del audio aún)
   waveformB64: string | null;
+  interactive?: boolean;
+  waveformColors?: { base?: string; progress?: string };
 };
 
-function fmtTime(t: number) {
-  if (!isFinite(t) || t < 0) return "0:00";
-  const s = Math.floor(t);
+function fmtTime(sec: number) {
+  if (!isFinite(sec) || sec < 0) return "0:00";
+  const s = Math.floor(sec);
   const m = Math.floor(s / 60);
   const r = s % 60;
   return `${m}:${String(r).padStart(2, "0")}`;
 }
 
-export default function PublicAudioBar({ src, durationSec, waveformB64 }: Props) {
+export default function PublicAudioBar({
+  src,
+  durationSec = 0,
+  waveformB64,
+  interactive = true,
+  waveformColors,
+}: Props) {
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
-  const [isPlaying, setIsPlaying] = React.useState(false);
-  const [time, setTime] = React.useState(0);
 
-  // Bind de eventos del <audio>
+  // Estado derivado **solo** por eventos del <audio>
+  const [isPlaying, setIsPlaying] = React.useState(false);
+  const [cur, setCur] = React.useState(0);
+  const [dur, setDur] = React.useState(durationSec || 0);
+
+  const disabled = !src;
+
+  // Suscribimos eventos del <audio> para mantener el estado “de verdad”
   React.useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
-    const onTime = () => setTime(el.currentTime || 0);
-    const onEnd = () => setIsPlaying(false);
-    el.addEventListener("timeupdate", onTime);
-    el.addEventListener("ended", onEnd);
-    return () => {
-      el.removeEventListener("timeupdate", onTime);
-      el.removeEventListener("ended", onEnd);
-    };
-  }, []);
 
-  // Play/Pause
+    const onMeta = () => setDur(el.duration || durationSec || 0);
+    const onTime = () => setCur(el.currentTime || 0);
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    const onEnded = () => setIsPlaying(false);
+
+    el.addEventListener("loadedmetadata", onMeta);
+    el.addEventListener("timeupdate", onTime);
+    el.addEventListener("play", onPlay);
+    el.addEventListener("pause", onPause);
+    el.addEventListener("ended", onEnded);
+    return () => {
+      el.removeEventListener("loadedmetadata", onMeta);
+      el.removeEventListener("timeupdate", onTime);
+      el.removeEventListener("play", onPlay);
+      el.removeEventListener("pause", onPause);
+      el.removeEventListener("ended", onEnded);
+    };
+  }, [durationSec]);
+
+  // Botón play/pause
   async function toggle() {
     const el = audioRef.current;
     if (!el) return;
     if (el.paused) {
-      await el.play();
-      setIsPlaying(true);
+      try {
+        await el.play(); // los eventos actualizarán isPlaying
+      } catch {
+        /* autoplay bloqueado u otro detalle */
+      }
     } else {
-      el.pause();
-      setIsPlaying(false);
+      el.pause(); // evento “pause” actualizará isPlaying
     }
   }
 
-  // Seek desde el waveform
+  // Click en waveform → mover el tiempo
   function handleSeek(sec: number) {
     const el = audioRef.current;
-    if (!el) return;
-    el.currentTime = Math.min(Math.max(0, sec), durationSec || el.duration || 0);
-    // Si estaba en pause, reproducimos para que el feedback sea inmediato
+    if (!el || !dur) return;
+
+    // 1) Clamp y asignación del tiempo
+    el.currentTime = Math.max(0, Math.min(sec, dur));
+
+    // 2) Si estaba en pausa, reproducimos (gesto de usuario → permitido)
     if (el.paused) {
-      el.play().catch(() => {});
-      setIsPlaying(true);
+      el.play().catch(() => {
+        /* si falla, lo ignoramos; no forzamos estado manual */
+      });
     }
   }
 
+  // Progreso para pintar la parte “reproducida”
+  const progress = !dur ? 0 : Math.max(0, Math.min(1, cur / dur));
+
   return (
-    <div className="rounded-lg border border-zinc-800/80 bg-zinc-900/40 p-3">
-      {/* Barra superior: controles básicos */}
+    <div className="rounded-xl border border-zinc-800/70 bg-zinc-950/40 p-3">
       <div className="mb-2 flex items-center justify-between">
         <button
           type="button"
+          className={`rounded-md border px-3 py-1.5 text-sm ${
+            disabled
+              ? "cursor-not-allowed border-zinc-800 text-zinc-700"
+              : "border-zinc-700 text-zinc-100 hover:bg-zinc-900"
+          }`}
           onClick={toggle}
-          className="rounded-md border border-zinc-700 bg-zinc-800/60 px-3 py-1.5 text-sm text-zinc-100 hover:bg-zinc-700"
-          disabled={!src}
-          title={isPlaying ? "Pausar" : "Reproducir"}
+          disabled={disabled}
         >
-          {isPlaying ? "Pausar" : "Reproducir"}
+          {isPlaying ? "❚❚" : "►"}
         </button>
-        <div className="text-xs tabular-nums text-zinc-300">
-          {fmtTime(time)} / {fmtTime(durationSec || 0)}
+
+        <div className="text-xs tabular-nums text-zinc-400">
+          {fmtTime(cur)} / {fmtTime(dur)}
         </div>
       </div>
 
-      {/* Forma de onda: estable, sin tooltip */}
+      {/* Forma de onda (sin “línea media”; barras centradas y coloreadas por progreso) */}
       <WaveformScrubber
         waveformB64={waveformB64}
-        durationSec={durationSec || 0}
-        onSeek={handleSeek}
-        height={72}
+        height={80}
+        durationSec={dur}
+        progress={progress}
+        onSeek={interactive ? handleSeek : undefined}
+        className="w-full"
+        barWidth={4} // barras más anchas = look sólido
+        gap={0} // sin huecos entre barras
+        colors={{
+          base: waveformColors?.base ?? "rgba(255,255,255,0.18)", // COLOR BASE DEL PLAYER
+          progress: waveformColors?.progress ?? "#fff", // COLOR DE AVANCE PLAYER
+        }}
       />
 
-      {/* Audio nativo (no visible) */}
+      {/* Audio real (oculto pero controlado por ref) */}
       <audio ref={audioRef} src={src ?? undefined} preload="metadata" />
     </div>
   );
