@@ -3,10 +3,21 @@ import { db } from "@/server/db";
 import RightsForm from "../rights/rights-form.client";
 
 type PageProps = { params: { id: string } };
+type Params =
+  | { id: string }
+  | Promise<{ id: string }>;
 
-export default async function RightsPage({ params }: PageProps) {
+
+export default async function RightsPage({ params }: { params: Params }) {
+  // 👇 Este patrón soporta tanto objeto como Promise
+  const p = "then" in (params as any)
+    ? await (params as Promise<{ id: string }>)
+    : (params as { id: string });
+  const { id } = p;
+
+  // A partir de aquí, todo como ya lo tenías:
   const track = await db.track.findUnique({
-    where: { id: params.id },
+    where: { id },
     select: {
       id: true,
       title: true,
@@ -20,10 +31,12 @@ export default async function RightsPage({ params }: PageProps) {
       contentIdAdmin: true,
       contentIdWhitelist: true,
       master: true,
-      restrictions: true,     // text[]
-      publishingSplit: true,  // JSON o TEXT según tu schema
+      restrictions: true,
+      publishingSplit: true,
+      updatedAt: true,
     },
   });
+
 
   if (!track) return <div className="p-6">Track no encontrado.</div>;
 
