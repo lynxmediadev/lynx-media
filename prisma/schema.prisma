@@ -80,3 +80,80 @@ model Track {
   @@index([moods], type: Gin) // ← nuevo
   @@index([uses], type: Gin) // ← nuevo
 }
+
+
+// ───────────────────────────────────────────────────────────────────────────────
+// Modelo para almacenar solicitudes de licencias desde el formulario D3
+// ───────────────────────────────────────────────────────────────────────────────
+enum Currency {
+  CLP
+  USD
+  EUR
+}
+
+// ───────────────────────────────────────────────────────────────────────────────
+// Prisma: Estado mínimo del pipeline comercial
+// Peras y manzanas:
+// - Creamos un enum RequestStatus con 5 estados básicos.
+// - Agregamos el campo "status" a LicensingRequest con default NEW.
+// - No tocamos nada más del modelo para mantenerlo minimal.
+// ───────────────────────────────────────────────────────────────────────────────
+
+
+
+enum RequestStatus {
+  NEW
+  IN_REVIEW
+  QUOTED
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+model LicensingRequest {
+  id               String   @id @default(cuid())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+    // Responsable (owner) de la gestión comercial de esta solicitud
+  assignee String?
+
+  // Solicitante
+  name             String
+  email            String
+  company          String?
+
+  // Proyecto
+  projectType      String
+  media            String?
+  territories      String?
+  term             String?
+  budgetAmount     Int?
+  budgetCurrency   Currency?
+  mfn              Boolean  @default(false)
+  needWhitelist    Boolean  @default(false)
+  notes            String?
+
+  // Contexto de track
+  trackId          String
+  trackTitle       String?
+  trackArtist      String?
+  trackDurationSec Int?
+  moods            String[]
+  uses             String[]
+  restrictions     String[]
+
+  pageUrl          String?
+
+  // Respaldo del JSON completo (auditoría)
+  rawPayload       Json?
+
+  // Estado del pipeline (mínimo viable para gestión)
+  status RequestStatus @default(NEW)
+
+  @@index([createdAt, status])
+  @@index([assignee])
+
+}
+
+
+

@@ -22,6 +22,9 @@ import PublicAudioBar from "@/components/public/PublicAudioBar";
 import { getS3PublicUrl } from "@/lib/storage/s3";
 
 export const dynamic = "force-dynamic";
+import CopyLinkButton from "@/components/public/CopyLinkButton";
+import TrackMetadataTable from "@/components/public/TrackMetadataTable";
+import LicensingDialog from "@/components/public/LicensingDialog";
 
 type PageProps = {
   params: Promise<{ id: string }> | { id: string };
@@ -90,7 +93,10 @@ export default async function TrackPublicPage({ params }: PageProps) {
   if (!track) notFound();
 
   // 2) Preparar src público + waveform en base64 para el canvas
-  const src = publicAudioUrl({ assetKey: track.assetKey, audioUrl: track.audioUrl });
+  const src = publicAudioUrl({
+    assetKey: track.assetKey,
+    audioUrl: track.audioUrl,
+  });
   const waveformB64 = bytesToBase64(track.waveform as unknown as Buffer | null);
 
   // 3) Similar por primer mood; si no hay, recientes
@@ -100,14 +106,26 @@ export default async function TrackPublicPage({ params }: PageProps) {
       : { id: { not: track.id } },
     orderBy: { updatedAt: "desc" },
     take: 6,
-    select: { id: true, title: true, artist: true, loudnessLufs: true, durationSec: true },
+    select: {
+      id: true,
+      title: true,
+      artist: true,
+      loudnessLufs: true,
+      durationSec: true,
+    },
   });
   if (!similar.length) {
     similar = await db.track.findMany({
       where: { id: { not: track.id } },
       orderBy: { updatedAt: "desc" },
       take: 6,
-      select: { id: true, title: true, artist: true, loudnessLufs: true, durationSec: true },
+      select: {
+        id: true,
+        title: true,
+        artist: true,
+        loudnessLufs: true,
+        durationSec: true,
+      },
     });
   }
 
@@ -132,10 +150,15 @@ export default async function TrackPublicPage({ params }: PageProps) {
           className="rounded-2xl border border-zinc-800/80 bg-zinc-950/50 p-4 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.6)] backdrop-blur"
           aria-labelledby="track-hero"
         >
-          <h1 id="track-hero" className="mb-1 text-xl font-semibold tracking-tight">
+          <h1
+            id="track-hero"
+            className="mb-1 text-xl font-semibold tracking-tight"
+          >
             {track.title ?? "Sin título"}
           </h1>
-          <p className="mb-3 text-sm text-zinc-400">{track.artist ?? "Artista desconocido"}</p>
+          <p className="mb-3 text-sm text-zinc-400">
+            {track.artist ?? "Artista desconocido"}
+          </p>
 
           {/* ⬇️ Aquí va el reproductor de cliente con click-to-seek habilitado */}
           <PublicAudioBar
@@ -162,45 +185,75 @@ export default async function TrackPublicPage({ params }: PageProps) {
             <div className="rounded-md border border-zinc-800/60 bg-zinc-900/40 p-2">
               <div className="text-zinc-400">LUFS (I)</div>
               <div className="font-medium text-zinc-100">
-                {track.loudnessLufs == null ? "—" : track.loudnessLufs.toFixed(2)}
+                {track.loudnessLufs == null
+                  ? "—"
+                  : track.loudnessLufs.toFixed(2)}
               </div>
             </div>
             <div className="rounded-md border border-zinc-800/60 bg-zinc-900/40 p-2">
               <div className="text-zinc-400">True Peak</div>
               <div className="font-medium text-zinc-100">
-                {track.truePeakDbfs == null ? "—" : `${track.truePeakDbfs.toFixed(2)} dBFS`}
+                {track.truePeakDbfs == null
+                  ? "—"
+                  : `${track.truePeakDbfs.toFixed(2)} dBFS`}
               </div>
             </div>
           </div>
         </section>
 
+        <div className="mt-2 flex items-center gap-2">
+          <CopyLinkButton />
+          <LicensingDialog
+            track={{
+              id: track.id,
+              title: track.title,
+              artist: track.artist,
+              durationSec: track.durationSec,
+              moods: track.moods,
+              uses: track.uses,
+              restrictions: track.restrictions,
+            }}
+          />
+        </div>
         {/* Derecha: info para el cliente */}
         <section className="space-y-6">
           <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/40 p-4">
             <h2 className="mb-3 text-lg font-medium">Descripción</h2>
             <dl className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
               <div>
-                <dt className="text-xs uppercase tracking-wide text-zinc-400">Moods</dt>
+                <dt className="text-xs tracking-wide text-zinc-400 uppercase">
+                  Moods
+                </dt>
                 <dd className="mt-1 flex flex-wrap gap-1.5">
-                  {(track.moods ?? []).length
-                    ? track.moods!.map((m, i) => <Pill key={i}>{m}</Pill>)
-                    : <span className="text-zinc-500">—</span>}
+                  {(track.moods ?? []).length ? (
+                    track.moods!.map((m, i) => <Pill key={i}>{m}</Pill>)
+                  ) : (
+                    <span className="text-zinc-500">—</span>
+                  )}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs uppercase tracking-wide text-zinc-400">Usos sugeridos</dt>
+                <dt className="text-xs tracking-wide text-zinc-400 uppercase">
+                  Usos sugeridos
+                </dt>
                 <dd className="mt-1 flex flex-wrap gap-1.5">
-                  {(track.uses ?? []).length
-                    ? track.uses!.map((u, i) => <Pill key={i}>{u}</Pill>)
-                    : <span className="text-zinc-500">—</span>}
+                  {(track.uses ?? []).length ? (
+                    track.uses!.map((u, i) => <Pill key={i}>{u}</Pill>)
+                  ) : (
+                    <span className="text-zinc-500">—</span>
+                  )}
                 </dd>
               </div>
               <div className="md:col-span-2">
-                <dt className="text-xs uppercase tracking-wide text-zinc-400">Restricciones</dt>
+                <dt className="text-xs tracking-wide text-zinc-400 uppercase">
+                  Restricciones
+                </dt>
                 <dd className="mt-1 flex flex-wrap gap-1.5">
-                  {(track.restrictions ?? []).length
-                    ? track.restrictions!.map((r, i) => <Pill key={i}>{r}</Pill>)
-                    : <span className="text-zinc-500">—</span>}
+                  {(track.restrictions ?? []).length ? (
+                    track.restrictions!.map((r, i) => <Pill key={i}>{r}</Pill>)
+                  ) : (
+                    <span className="text-zinc-500">—</span>
+                  )}
                 </dd>
               </div>
             </dl>
@@ -211,8 +264,8 @@ export default async function TrackPublicPage({ params }: PageProps) {
             <h2 className="mb-3 text-lg font-medium">Licencias / contacto</h2>
             <p className="mb-3 text-sm text-zinc-400">
               ¿Te interesa usar esta pieza en un proyecto audiovisual? Hablemos.
-              Cuéntame el <strong>uso</strong>, <strong>territorios</strong> y <strong>plazos</strong>,
-              y te respondo con la licencia adecuada.
+              Cuéntame el <strong>uso</strong>, <strong>territorios</strong> y{" "}
+              <strong>plazos</strong>, y te respondo con la licencia adecuada.
             </p>
             <Link
               href={`/contact?track=${encodeURIComponent(track.id)}`}
@@ -226,7 +279,9 @@ export default async function TrackPublicPage({ params }: PageProps) {
           <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/40 p-4">
             <h2 className="mb-3 text-lg font-medium">Piezas similares</h2>
             {similar.length === 0 ? (
-              <p className="text-sm text-zinc-500">No hay sugerencias por ahora.</p>
+              <p className="text-sm text-zinc-500">
+                No hay sugerencias por ahora.
+              </p>
             ) : (
               <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {similar.map((s) => (
@@ -244,7 +299,11 @@ export default async function TrackPublicPage({ params }: PageProps) {
                       <div className="mt-1 flex items-center gap-3 text-[11px] text-zinc-500">
                         <span>{fmtDuration(s.durationSec ?? 0)}</span>
                         <span>·</span>
-                        <span>{s.loudnessLufs == null ? "—" : `${s.loudnessLufs.toFixed(1)} LUFS`}</span>
+                        <span>
+                          {s.loudnessLufs == null
+                            ? "—"
+                            : `${s.loudnessLufs.toFixed(1)} LUFS`}
+                        </span>
                       </div>
                     </Link>
                   </li>
@@ -252,6 +311,8 @@ export default async function TrackPublicPage({ params }: PageProps) {
               </ul>
             )}
           </div>
+          {/* Ficha técnica avanzada */}
+          <TrackMetadataTable track={track} />
         </section>
       </main>
     </div>
