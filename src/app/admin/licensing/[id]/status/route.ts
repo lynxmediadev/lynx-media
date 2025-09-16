@@ -9,6 +9,7 @@
  */
 import { type NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 
 const ALLOWED = new Set([
   "NEW",
@@ -20,7 +21,7 @@ const ALLOWED = new Set([
 
 export async function POST(
   req: NextRequest,
-  ctx: { params: Promise<{ id: string }> } // 👈 params Promise
+  ctx: { params: Promise<{ id: string }> }, // 👈 params Promise
 ) {
   try {
     // ✅ Aguardar params antes de usar
@@ -32,7 +33,7 @@ export async function POST(
     if (!ALLOWED.has(next)) {
       return NextResponse.json(
         { ok: false, error: "Estado inválido" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -41,12 +42,15 @@ export async function POST(
       data: { status: next as any },
     });
 
+    revalidatePath("/admin/licensing");
+    revalidatePath(`/admin/licensing/${id}`);
+
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[status:update] error:", err);
     return NextResponse.json(
       { ok: false, error: "No se pudo actualizar el estado" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

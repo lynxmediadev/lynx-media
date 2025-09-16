@@ -1,50 +1,51 @@
 /**
  * ┌─────────────────────────────────────────────────────────────────────────────┐
- * │ API: POST /admin/licensing/[id]/assignee                                   │
+ * │ API: POST /admin/licensing/[id]/priority                                   │
  * ├─────────────────────────────────────────────────────────────────────────────┤
  * │ Peras y manzanas:                                                           │
- * │ - Next 15 exige AWAIT a `params` en Route Handlers (es una Promise).        │
- * │ - Recibe { assignee } y actualiza el responsable (o lo deja NULL si vacío). │
- * │ - Hereda auth del middleware /admin/*                                       │
+ * │ - Guarda priority (LOW|MEDIUM|HIGH).                                        │
+ * │ - Tras actualizar en BD, invalida el detalle y el listado con               │
+ * │   `revalidatePath` para evitar ver datos viejos al volver/navegar.          │
  * └─────────────────────────────────────────────────────────────────────────────┘
  */
-import { type NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import prisma from "@/lib/prisma";
+
+const ALLOWED = new Set(["LOW", "MEDIUM", "HIGH"]);
 
 export async function POST(
   req: NextRequest,
-  ctx: { params: Promise<{ id: string }> }, // 👈 params es Promise en Next 15
+  ctx: { params: Promise<{ id: string }> }
 ) {
   try {
-    // ✅ Desempaquetamos el id con await
     const { id } = await ctx.params;
 
-    const body = (await req.json()) as { assignee?: string };
-    const raw = (body.assignee ?? "").trim();
+    const body = (await req.json()) as { priority?: string };
+    const next = String(body?.priority ?? "").toUpperCase();
 
-    if (raw.length > 120) {
+    if (!ALLOWED.has(next)) {
       return NextResponse.json(
-        { ok: false, error: "El responsable es demasiado largo (máx. 120)" },
-        { status: 400 },
+        { ok: false, error: "Prioridad inválida" },
+        { status: 400 }
       );
     }
 
     await prisma.licensingRequest.update({
-      where: { id }, // ← ya tenemos id
-      data: { assignee: raw.length ? raw : null },
+      where: { id },
+      data: { priority: next as any },
     });
 
-    // ... después del prisma.update({ ... })
+    // ⬇️ Invalida caché de detalle y listado para ver el nuevo valor al instante
     revalidatePath("/admin/licensing");
     revalidatePath(`/admin/licensing/${id}`);
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error("[assignee:update] error:", err);
+    console.error("[priority:update] error:", err);
     return NextResponse.json(
-      { ok: false, error: "No se pudo actualizar el responsable" },
-      { status: 500 },
+      { ok: false, error: "No se pudo actualizar la prioridad" },
+      { status: 500 }
     );
   }
 }

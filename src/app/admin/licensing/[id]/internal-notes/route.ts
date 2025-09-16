@@ -1,38 +1,43 @@
 /**
  * ┌─────────────────────────────────────────────────────────────────────────────┐
- * │ API: POST /admin/licensing/[id]/assignee                                   │
+ * │ API: POST /admin/licensing/[id]/internal-notes                              │
  * ├─────────────────────────────────────────────────────────────────────────────┤
  * │ Peras y manzanas:                                                           │
- * │ - Next 15 exige AWAIT a `params` en Route Handlers (es una Promise).        │
- * │ - Recibe { assignee } y actualiza el responsable (o lo deja NULL si vacío). │
- * │ - Hereda auth del middleware /admin/*                                       │
+ * │ - Recibe { internalNotes: string }.                                         │
+ * │ - Trim y límite razonable (~20k chars). Vacío => NULL.                      │
+ * │ - Next 15: `params` es Promise; hacemos `await` antes de usar `id`.         │
+ * │ - Protegida por middleware /admin/* (tu auth actual).                        │
  * └─────────────────────────────────────────────────────────────────────────────┘
  */
-import { type NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
+const MAX_LEN = 20000; // límite suave para evitar basura enorme
+
 export async function POST(
   req: NextRequest,
-  ctx: { params: Promise<{ id: string }> }, // 👈 params es Promise en Next 15
+  ctx: { params: Promise<{ id: string }> }, // Next 15
 ) {
   try {
-    // ✅ Desempaquetamos el id con await
     const { id } = await ctx.params;
 
-    const body = (await req.json()) as { assignee?: string };
-    const raw = (body.assignee ?? "").trim();
+    const body = (await req.json()) as { internalNotes?: string };
+    const raw = (body.internalNotes ?? "").trim();
 
-    if (raw.length > 120) {
+    if (raw.length > MAX_LEN) {
       return NextResponse.json(
-        { ok: false, error: "El responsable es demasiado largo (máx. 120)" },
+        {
+          ok: false,
+          error: `Notas demasiado largas (máx. ${MAX_LEN} caracteres)`,
+        },
         { status: 400 },
       );
     }
 
     await prisma.licensingRequest.update({
-      where: { id }, // ← ya tenemos id
-      data: { assignee: raw.length ? raw : null },
+      where: { id },
+      data: { internalNotes: raw.length ? raw : null },
     });
 
     // ... después del prisma.update({ ... })
@@ -41,9 +46,9 @@ export async function POST(
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error("[assignee:update] error:", err);
+    console.error("[internal-notes:update] error:", err);
     return NextResponse.json(
-      { ok: false, error: "No se pudo actualizar el responsable" },
+      { ok: false, error: "No se pudo actualizar las notas internas" },
       { status: 500 },
     );
   }

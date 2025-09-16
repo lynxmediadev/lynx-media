@@ -1,49 +1,51 @@
 /**
  * ┌─────────────────────────────────────────────────────────────────────────────┐
- * │ API: POST /admin/licensing/[id]/assignee                                   │
+ * │ API: POST /admin/licensing/[id]/follow-up                                   │
  * ├─────────────────────────────────────────────────────────────────────────────┤
  * │ Peras y manzanas:                                                           │
- * │ - Next 15 exige AWAIT a `params` en Route Handlers (es una Promise).        │
- * │ - Recibe { assignee } y actualiza el responsable (o lo deja NULL si vacío). │
- * │ - Hereda auth del middleware /admin/*                                       │
+ * │ - Recibe { nextFollowUpAt?: string|null } con ISO (UTC) o null/"" (limpia). │
+ * │ - Si llega string inválido → 400.                                           │
+ * │ - Next 15: params es Promise → await.                                       │
  * └─────────────────────────────────────────────────────────────────────────────┘
  */
-import { type NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 export async function POST(
   req: NextRequest,
-  ctx: { params: Promise<{ id: string }> }, // 👈 params es Promise en Next 15
+  ctx: { params: Promise<{ id: string }> },
 ) {
   try {
-    // ✅ Desempaquetamos el id con await
     const { id } = await ctx.params;
+    const body = (await req.json()) as { nextFollowUpAt?: string | null };
 
-    const body = (await req.json()) as { assignee?: string };
-    const raw = (body.assignee ?? "").trim();
+    let value: Date | null = null;
 
-    if (raw.length > 120) {
-      return NextResponse.json(
-        { ok: false, error: "El responsable es demasiado largo (máx. 120)" },
-        { status: 400 },
-      );
+    if (typeof body.nextFollowUpAt === "string" && body.nextFollowUpAt.trim()) {
+      const d = new Date(body.nextFollowUpAt);
+      if (Number.isNaN(d.getTime())) {
+        return NextResponse.json(
+          { ok: false, error: "Fecha/hora inválida" },
+          { status: 400 },
+        );
+      }
+      value = d;
     }
 
     await prisma.licensingRequest.update({
-      where: { id }, // ← ya tenemos id
-      data: { assignee: raw.length ? raw : null },
+      where: { id },
+      data: { nextFollowUpAt: value },
     });
 
-    // ... después del prisma.update({ ... })
     revalidatePath("/admin/licensing");
     revalidatePath(`/admin/licensing/${id}`);
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error("[assignee:update] error:", err);
+    console.error("[followup:update] error:", err);
     return NextResponse.json(
-      { ok: false, error: "No se pudo actualizar el responsable" },
+      { ok: false, error: "No se pudo actualizar el follow-up" },
       { status: 500 },
     );
   }

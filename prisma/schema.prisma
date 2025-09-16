@@ -152,8 +152,34 @@ model LicensingRequest {
 
   @@index([createdAt, status])
   @@index([assignee])
+  
+  /// Notas internas de gestión (no se envían al cliente)
+  internalNotes String? @db.Text
+
+  /// Prioridad de gestión comercial
+  priority        RequestPriority @default(MEDIUM)
+
+  /// Próximo seguimiento (fecha/hora local convertida a UTC)
+  nextFollowUpAt  DateTime?
+
+  @@index([priority])
+  @@index([nextFollowUpAt])
 
 }
 
 
+
+// ───────────────────────────────────────────────────────────────────────────────
+// Prisma: Seguimiento mínimo (prioridad + próximo follow-up)
+// Peras y manzanas:
+// - Enum RequestPriority: LOW/MEDIUM/HIGH (por defecto MEDIUM).
+// - Campo nextFollowUpAt: fecha/hora opcional del próximo seguimiento.
+// - Índices sugeridos para listados y filtros.
+// ───────────────────────────────────────────────────────────────────────────────
+
+enum RequestPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
 

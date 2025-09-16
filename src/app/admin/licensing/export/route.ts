@@ -97,6 +97,7 @@ export async function GET(req: NextRequest) {
     "createdAt",
     "status",
     "assignee",
+    "internalNotes",
     "name",
     "email",
     "company",
@@ -126,6 +127,7 @@ export async function GET(req: NextRequest) {
       r.createdAt.toISOString(),
       (r as any).status ?? "",          // ← status (enum en Prisma)
       r.assignee ?? "",                 // ← assignee (AHORA INCLUIDO)
+      (r.internalNotes ?? "").replace(/\r?\n/g, " "), // ⬅️ NUEVO (plano para CSV)
       r.name,
       r.email,
       r.company ?? "",
