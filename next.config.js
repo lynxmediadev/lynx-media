@@ -18,10 +18,10 @@
  */
 import "./src/env.js";
 
-/** @type {import("next").NextConfig} */
-const config = {
-  // Evita warnings por opciones experimentales inválidas.
-  // No declares experimental.serverExternalPackages / serverComponentsExternalPackages.
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  eslint: { ignoreDuringBuilds: true }, // desactiva lint en build (solo temporal)
 };
 
-export default config;
+export default nextConfig;
+

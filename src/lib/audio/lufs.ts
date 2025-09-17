@@ -129,9 +129,9 @@ export async function probeLoudnormFromLocalPath(filePath: string): Promise<Loud
       const inputTP     = obj ? num(obj.input_tp)     : null;
 
       let source: LoudnormStats["source"] = "unknown";
-      let integratedLufs = measuredI   ?? inputI   ?? null;
-      let loudnessRangeLu = measuredLRA ?? inputLRA ?? null;
-      let truePeakDbfs    = measuredTP  ?? inputTP  ?? null;
+      const integratedLufs = measuredI   ?? inputI   ?? null;
+      const loudnessRangeLu = measuredLRA ?? inputLRA ?? null;
+      const truePeakDbfs    = measuredTP  ?? inputTP  ?? null;
 
       if (measuredI != null || measuredLRA != null || measuredTP != null) source = "measured";
       else if (inputI != null || inputLRA != null || inputTP != null)     source = "input";

@@ -27,7 +27,7 @@ export async function POST(req: NextRequest, ctx: Ctx) {
     const result = await analyzeTrackById(id);
 
     let normalizeOut: any = null;
-    let warnings = [...(result.warnings ?? [])];
+    const warnings = [...(result.warnings ?? [])];
     if (doNormalize) {
       try {
         const n = await normalizeTrackAsset(id, false);

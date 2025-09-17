@@ -36,11 +36,11 @@ export default function RightsForm({ track }: Props) {
     if (state?.ok) {
       // Reemplaza estos alert por tu sistema de toasts:
       // toast.success("Guardado 👍");
-      // eslint-disable-next-line no-alert
+       
       alert("Guardado 👍");
       router.refresh(); // recarga datos del servidor, URL se mantiene limpia
     } else if (state && !state.ok) {
-      // eslint-disable-next-line no-alert
+       
       alert("Ocurrió un error guardando. Revisa la consola del servidor.");
     }
   }, [state, router]);
