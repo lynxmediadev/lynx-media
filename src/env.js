@@ -5,8 +5,11 @@
 // Qué hace: Evita caídas por ENV inválidos. S3 se valida “justo a tiempo”.
 // Peras y manzanas: “Las llaves del auto (DB) siempre; las de la bodega (S3) solo si voy.”
 // ================================================
+
+/* eslint-env node */
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
+
 
 export const env = createEnv({
   server: {

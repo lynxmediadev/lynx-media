@@ -13,6 +13,19 @@
  * │ - Next 15: searchParams asíncrono.                                          │
  * └─────────────────────────────────────────────────────────────────────────────┘
  */
+// src/app/admin/licensing/page.tsx
+/**
+ * ┌─────────────────────────────────────────────────────────────────────────────┐
+ * │ Listado de Solicitudes — KPIs internos y Panel de Pendientes (sin Slack)    │
+ * ├─────────────────────────────────────────────────────────────────────────────┤
+ * │ Peras y manzanas:                                                           │
+ * │ - Calcula contadores: Overdue / Hoy / Mañana / Semana (lun–dom).            │
+ * │ - Muestra una franja de KPIs y un "Panel de pendientes" (Top 10 overdue).   │
+ * │ - Respeta filtros base (q, fechas de creación, flags, estado, owner, prio). │
+ * │ - Mantiene quick-filters, orden inteligente y export CSV.                   │
+ * │ - Next 15: searchParams asíncrono.                                          │
+ * └─────────────────────────────────────────────────────────────────────────────┘
+ */
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 import RowActions from "@/components/admin/RowActions";
@@ -99,14 +112,12 @@ function activeFilterChips(opts: {
   if (opts.prio) chips.push(`prio:${opts.prio}`);
   if (opts.withFU === "1") chips.push("conFollowUp");
   if (opts.overdue === "1") chips.push("atrasados");
-  if (opts.fuRange) chips.push(`fu:${opts.fuRange}`); // hoy/mañana/semana
+  if (opts.fuRange) chips.push(`fu:${opts.fuRange}`);
   if (opts.sortBy === "followup") chips.push("ordenarPor:followUp");
   return chips;
 }
 
 type SP = Record<string, string | string[] | undefined>;
-
-// Helper para leer el primer valor (Next 15 pasa string|string[]|undefined)
 const get1 = (v: string | string[] | undefined) => (typeof v === "string" ? v : Array.isArray(v) ? v[0] : "");
 
 // Construye URLSearchParams preservando filtros (útil para quick-filters)
@@ -127,7 +138,6 @@ function buildBaseParams(current: {
   if (current.sortBy) p.set("sortBy", current.sortBy);
   if (current.order) p.set("order", current.order);
   p.set("take", String(current.take));
-  // ojo: no incluimos fuRange aquí; cada quick-filter lo setea/borra explícitamente
   return p;
 }
 
@@ -185,16 +195,15 @@ export default async function Page({ searchParams }: { searchParams: Promise<SP>
   if (mfn === "1") whereBase.mfn = true;
   const ST_ALLOWED = new Set(["NEW", "IN_REVIEW", "QUOTED", "CLOSED_WON", "CLOSED_LOST"]);
   if (status && ST_ALLOWED.has(status)) whereBase.status = status;
-  if (assignee) whereBase.assignee = { contains: assignee, mode: "insensitive" };
   const PR_ALLOWED = new Set(["LOW", "MEDIUM", "HIGH"]);
   if (prio && PR_ALLOWED.has(prio)) whereBase.priority = prio;
+  if (assignee) whereBase.assignee = { contains: assignee, mode: "insensitive" };
 
   // ───────── Filtro de follow-up (fuRange/withFU/overdue) ─────────
   const now = new Date();
   const where: any = { ...whereBase };
 
   if (fuRange) {
-    // Quick-filter activo: manda sobre withFU/overdue
     let gteFU: Date | undefined;
     let lteFU: Date | undefined;
     if (fuRange === "today") {
@@ -222,10 +231,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<SP>
   let orderUsed: "asc" | "desc" = orderParam === "asc" ? "asc" : "desc";
 
   if (!sortByParam) {
-    // Chequear si hay atrasados bajo los filtros base (sin fuRange/withFU overrides), para decidir el default
     const overdueWhere = { ...whereBase, nextFollowUpAt: { lt: now } };
-    const overdueCount = await prisma.licensingRequest.count({ where: overdueWhere });
-    if (overdueCount > 0) {
+    const overdueCountForDefault = await prisma.licensingRequest.count({ where: overdueWhere });
+    if (overdueCountForDefault > 0) {
       sortByUsed = "followup";
       orderUsed = "asc";
     } else {
@@ -238,21 +246,53 @@ export default async function Page({ searchParams }: { searchParams: Promise<SP>
     ? [{ nextFollowUpAt: orderUsed as any }, { createdAt: "desc" as const }]
     : [{ createdAt: orderUsed as any }];
 
-  // ───────── Data ─────────
+  // ───────── Data principal y KPIs (nuevo) ─────────
+  const todayStart = startOfDay(now);
+  const todayEnd = endOfDay(now);
+  const tomorrowStart = startOfDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
+  const tomorrowEnd = endOfDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
+  const weekStart = startOfWeekMon(now);
+  const weekEnd = endOfWeekSun(now);
+
   let rows: Awaited<ReturnType<typeof prisma.licensingRequest.findMany>> | [] = [];
   let filteredCount = 0;
   let totalCount = 0;
+  let kpiOverdue = 0, kpiToday = 0, kpiTomorrow = 0, kpiWeek = 0;
+  let topOverdue: Awaited<ReturnType<typeof prisma.licensingRequest.findMany>> | [] = [];
   let loadError: unknown = null;
 
   try {
-    const [list, cFiltered, cTotal] = await Promise.all([
+    const [
+      list, cFiltered, cTotal,
+      cOverdue, cToday, cTomorrow, cWeek,
+      tOverdue
+    ] = await Promise.all([
       prisma.licensingRequest.findMany({ where, orderBy, take }),
       prisma.licensingRequest.count({ where }),
       prisma.licensingRequest.count(),
+
+      // KPIs: siempre sobre whereBase (respeta filtros base, no los de fuRange/overdue/withFU)
+      prisma.licensingRequest.count({ where: { ...whereBase, nextFollowUpAt: { lt: now } } }),
+      prisma.licensingRequest.count({ where: { ...whereBase, nextFollowUpAt: { gte: todayStart, lte: todayEnd } } }),
+      prisma.licensingRequest.count({ where: { ...whereBase, nextFollowUpAt: { gte: tomorrowStart, lte: tomorrowEnd } } }),
+      prisma.licensingRequest.count({ where: { ...whereBase, nextFollowUpAt: { gte: weekStart, lte: weekEnd } } }),
+
+      // Top 10 overdue (para el panel), también filtrado por whereBase
+      prisma.licensingRequest.findMany({
+        where: { ...whereBase, nextFollowUpAt: { lt: now } },
+        orderBy: [{ nextFollowUpAt: "asc" }, { createdAt: "desc" }],
+        take: 10,
+      }),
     ]);
+
     rows = list;
     filteredCount = cFiltered;
     totalCount = cTotal;
+    kpiOverdue = cOverdue;
+    kpiToday = cToday;
+    kpiTomorrow = cTomorrow;
+    kpiWeek = cWeek;
+    topOverdue = tOverdue;
   } catch (err) {
     console.error("[admin/licensing] query failed:", err);
     loadError = err;
@@ -261,14 +301,13 @@ export default async function Page({ searchParams }: { searchParams: Promise<SP>
   // ───────── QS para export/limpiar/quick-filters ─────────
   const baseParams = buildBaseParams({
     q, from, to, whitelist, mfn, status, assignee, prio,
-    withFU, overdue,
-    order: orderUsed, sortBy: sortByUsed, take,
-    fuRange, // ojo: no lo incluimos en buildBase por diseño; lo agregamos explícito donde toque
+    withFU, overdue, order: orderUsed, sortBy: sortByUsed, take, fuRange,
   });
 
   const paramsToday = new URLSearchParams(baseParams.toString()); paramsToday.set("fuRange", "today"); paramsToday.set("withFollowUp", "1"); paramsToday.delete("overdue");
   const paramsTomorrow = new URLSearchParams(baseParams.toString()); paramsTomorrow.set("fuRange", "tomorrow"); paramsTomorrow.set("withFollowUp", "1"); paramsTomorrow.delete("overdue");
   const paramsWeek = new URLSearchParams(baseParams.toString()); paramsWeek.set("fuRange", "week"); paramsWeek.set("withFollowUp", "1"); paramsWeek.delete("overdue");
+  const paramsOverdue = new URLSearchParams(baseParams.toString()); paramsOverdue.delete("fuRange"); paramsOverdue.set("overdue", "1"); paramsOverdue.set("withFollowUp", "1");
   const paramsClearFU = new URLSearchParams(baseParams.toString()); paramsClearFU.delete("fuRange"); paramsClearFU.delete("withFollowUp"); paramsClearFU.delete("overdue");
 
   const currentParams = new URLSearchParams(baseParams.toString());
@@ -293,12 +332,37 @@ export default async function Page({ searchParams }: { searchParams: Promise<SP>
           </div>
         </div>
 
-        {/* Quick-filters (Follow-up) */}
+        {/* KPIs de Follow-up (nuevo) */}
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+          <a href={`/admin/licensing?${paramsOverdue.toString()}`} className="rounded-lg border border-border bg-muted px-3 py-2 hover:bg-accent">
+            <div className="text-muted-foreground text-[0.8rem]">Overdue</div>
+            <div className="text-xl font-semibold">{kpiOverdue}</div>
+          </a>
+          <a href={`/admin/licensing?${paramsToday.toString()}`} className="rounded-lg border border-border bg-muted px-3 py-2 hover:bg-accent">
+            <div className="text-muted-foreground text-[0.8rem]">Hoy</div>
+            <div className="text-xl font-semibold">{kpiToday}</div>
+          </a>
+          <a href={`/admin/licensing?${paramsTomorrow.toString()}`} className="rounded-lg border border-border bg-muted px-3 py-2 hover:bg-accent">
+            <div className="text-muted-foreground text-[0.8rem]">Mañana</div>
+            <div className="text-xl font-semibold">{kpiTomorrow}</div>
+          </a>
+          <a href={`/admin/licensing?${paramsWeek.toString()}`} className="rounded-lg border border-border bg-muted px-3 py-2 hover:bg-accent">
+            <div className="text-muted-foreground text-[0.8rem]">Esta semana</div>
+            <div className="text-xl font-semibold">{kpiWeek}</div>
+          </a>
+          <a href={`/admin/licensing?${paramsClearFU.toString()}`} className="rounded-lg border border-border bg-muted px-3 py-2 hover:bg-accent">
+            <div className="text-muted-foreground text-[0.8rem]">Limpiar rango</div>
+            <div className="text-xl font-semibold">—</div>
+          </a>
+        </div>
+
+        {/* Quick-filters (mantiene) */}
         <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
           <span className="text-muted-foreground">Follow-up rápido:</span>
           <a href={`/admin/licensing?${paramsToday.toString()}`} className={`rounded-md border px-2 py-1 hover:bg-accent ${fuRange==="today" ? "bg-card" : "bg-muted"} border-border`}>Hoy</a>
           <a href={`/admin/licensing?${paramsTomorrow.toString()}`} className={`rounded-md border px-2 py-1 hover:bg-accent ${fuRange==="tomorrow" ? "bg-card" : "bg-muted"} border-border`}>Mañana</a>
           <a href={`/admin/licensing?${paramsWeek.toString()}`} className={`rounded-md border px-2 py-1 hover:bg-accent ${fuRange==="week" ? "bg-card" : "bg-muted"} border-border`}>Esta semana</a>
+          <a href={`/admin/licensing?${paramsOverdue.toString()}`} className={`rounded-md border px-2 py-1 hover:bg-accent ${overdue==="1" ? "bg-card" : "bg-muted"} border-border`}>Overdue</a>
           <a href={`/admin/licensing?${paramsClearFU.toString()}`} className="ml-2 rounded-md border border-border bg-muted px-2 py-1 hover:bg-accent">Quitar</a>
         </div>
 
@@ -318,6 +382,33 @@ export default async function Page({ searchParams }: { searchParams: Promise<SP>
             </div>
           </div>
         )}
+
+        {/* Panel de pendientes (nuevo) */}
+        <details className="mt-4 group">
+          <summary className="cursor-pointer select-none text-sm text-muted-foreground hover:text-foreground">
+            {kpiOverdue > 0 ? `Mostrar pendientes (${kpiOverdue})` : "No hay pendientes (overdue)"}
+          </summary>
+          {kpiOverdue > 0 && (
+            <div className="mt-3 rounded-xl border border-border bg-muted/50 p-3">
+              {topOverdue.map((r) => (
+                <div key={r.id} className="flex flex-col gap-1 border-b border-border py-2 last:border-0">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="font-medium">{r.name}</span>
+                    <span className="text-muted-foreground">{r.email}</span>
+                    {r.assignee && <span className="text-muted-foreground">• Owner: {r.assignee}</span>}
+                    <span className="ml-auto text-xs">{r.nextFollowUpAt ? new Date(r.nextFollowUpAt).toLocaleString("es-CL") : "—"}</span>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {r.projectType}{r.media ? ` · ${r.media}` : ""} — {r.trackTitle || "—"} {r.trackArtist ? `· ${r.trackArtist}` : ""}
+                  </div>
+                  <div className="mt-1">
+                    <Link prefetch={false} href={`/admin/licensing/${r.id}`} className="text-xs underline underline-offset-2">Ver</Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </details>
       </header>
 
       {/* Filtros: básicos + avanzados (se mantienen) */}
@@ -414,8 +505,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<SP>
                   Sólo atrasados
                 </label>
               </div>
-              {/* Info del quick-filter activo */}
-              {fuRange && <div className="mt-2 text-xs text-muted-foreground">Quick-filter activo: <strong>{fuRange}</strong> (usa “Quitar” arriba o limpia filtros)</div>}
+              {fuRange && <div className="mt-2 text-xs text-muted-foreground">Quick-filter activo: <strong>{fuRange}</strong> (usa “Quitar” o KPIs para cambiar)</div>}
             </div>
           </div>
         </details>
@@ -454,7 +544,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<SP>
                     <div className="text-muted-foreground">{r.email}</div>
                     {r.company && <div className="text-muted-foreground">{r.company}</div>}
                     {r.assignee && <div className="text-muted-foreground">Owner: {r.assignee}</div>}
-                    {/* 📝 preview (se mantiene) */}
                     {r.internalNotes && (
                       <div className="text-muted-foreground">
                         📝 {r.internalNotes.length > 80 ? r.internalNotes.slice(0, 80) + "…" : r.internalNotes}
