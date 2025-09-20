@@ -1,40 +1,42 @@
-// ================================================
-// File: src/lib/env.ts
-// Título: Variables de entorno (validación con Zod)
-// Descripción: Centraliza y valida todas las variables de entorno necesarias
-//              para BD y storage antes de arrancar el servidor.
-// Qué hace: Si falta algo crítico (DB_URL, credenciales S3/R2...), lanza error
-//           temprano. Evita fallas sorpresivas en producción.
-// Peras y manzanas: “Si no tengo las llaves del auto, no intento manejar.
-//                    Paro aquí mismo y pido las llaves (env).”
-// ================================================
-import { z } from "zod";
+// src/lib/env.ts
+/**
+ * ┌─────────────────────────────────────────────────────────────────────────────┐
+ * │ env.ts — Capa única para leer/validar variables de entorno                  │
+ * ├─────────────────────────────────────────────────────────────────────────────┤
+ * │ Peras y manzanas:                                                           │
+ * │ - Aplica trim() a todas las variables.                                      │
+ * │ - Valida requeridos y entrega mensajes claros en dev/CI.                    │
+ * │ - Exporta getters tipados para evitar repetir lógica en cada archivo.       │
+ * └─────────────────────────────────────────────────────────────────────────────┘
+ */
+function must(name: string, val?: string) {
+  const v = (val ?? "").trim();
+  if (!v) throw new Error(`[env] Missing required env: ${name}`);
+  return v;
+}
+function opt(_name: string, val?: string) {
+  return (val ?? "").trim() || undefined;
+}
 
-const envSchema = z.object({
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+export const ENV = {
+  // Base de datos (Prisma)
+  DATABASE_URL: () => must("DATABASE_URL", process.env.DATABASE_URL),
 
-  // Base de datos (Postgres)
-  DATABASE_URL: z.string().url(),
+  // Admin auth (KEY tiene prioridad; PASS fallback)
+  ADMIN_ACCESS_KEY: () => opt("ADMIN_ACCESS_KEY", process.env.ADMIN_ACCESS_KEY),
+  ADMIN_PASS: () => opt("ADMIN_PASS", process.env.ADMIN_PASS),
+  ADMIN_EXPECTED: () => {
+    const key = ENV.ADMIN_ACCESS_KEY();
+    const pass = ENV.ADMIN_PASS();
+    const expected = (key || pass);
+    if (!expected) throw new Error("[env] Configure ADMIN_ACCESS_KEY or ADMIN_PASS");
+    return expected;
+  },
 
-  // S3/R2 (S3-compatible). Para Cloudflare R2 usa endpoint propio.
-  S3_ENDPOINT: z.string().url().optional(), // ej: https://<accountid>.r2.cloudflarestorage.com
-  S3_REGION: z.string().default("auto"),
-  S3_BUCKET: z.string(),
-  S3_ACCESS_KEY_ID: z.string(),
-  S3_SECRET_ACCESS_KEY: z.string(),
+  // Integración Google Apps Script/Sheets (si la estás usando)
+  GOOGLE_SCRIPT_URL: () => opt("GOOGLE_SCRIPT_URL", process.env.GOOGLE_SCRIPT_URL),
+  GOOGLE_SCRIPT_TOKEN: () => opt("GOOGLE_SCRIPT_TOKEN", process.env.GOOGLE_SCRIPT_TOKEN),
 
-  // URL pública del bucket (CDN o Website endpoint) para servir archivos
-  S3_PUBLIC_BASE_URL: z.string().url(), // ej: https://cdn.tudominio.com
-});
-
-export const env = envSchema.parse({
-  NODE_ENV: process.env.NODE_ENV,
-  DATABASE_URL: process.env.DATABASE_URL,
-
-  S3_ENDPOINT: process.env.S3_ENDPOINT,
-  S3_REGION: process.env.S3_REGION,
-  S3_BUCKET: process.env.S3_BUCKET,
-  S3_ACCESS_KEY_ID: process.env.S3_ACCESS_KEY_ID,
-  S3_SECRET_ACCESS_KEY: process.env.S3_SECRET_ACCESS_KEY,
-  S3_PUBLIC_BASE_URL: process.env.S3_PUBLIC_BASE_URL,
-});
+  // Debug
+  DEBUG_ADMIN_MW: () => opt("DEBUG_ADMIN_MW", process.env.DEBUG_ADMIN_MW) === "1",
+};
