@@ -1,11 +1,11 @@
 // src/app/api/debug/env-admin/route.ts
 /**
  * ┌─────────────────────────────────────────────────────────────────────────────┐
- * │ GET /api/debug/env-admin — Diagnóstico de variables de entorno (seguro)     │
+ * │ GET /api/debug/env-admin — Diagnóstico de envs (oculto en producción)       │
  * ├─────────────────────────────────────────────────────────────────────────────┤
  * │ Peras y manzanas:                                                           │
- * │ - No expone la clave. Muestra solo longitud y hash corto (8 chars).         │
- * │ - Útil para confirmar que .env.local fue cargado correctamente.             │
+ * │ - En desarrollo: ayuda a verificar que .env.local cargó bien.               │
+ * │ - En producción: devuelve 404 (no dejamos datos de entorno expuestos).      │
  * └─────────────────────────────────────────────────────────────────────────────┘
  */
 import { NextResponse } from "next/server";
@@ -16,21 +16,26 @@ function sha8(s: string) {
 }
 
 export async function GET() {
-  const ENV_PASS_RAW = process.env.ADMIN_PASS ?? "";
-  const ENV_KEY_RAW  = process.env.ADMIN_ACCESS_KEY ?? "";
+  // 🔒 Cerramos este endpoint en producción
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ ok: false }, { status: 404 });
+  }
 
-  const ENV_PASS = ENV_PASS_RAW.trim();
-  const ENV_KEY  = ENV_KEY_RAW.trim();
-  const expected = (ENV_KEY || ENV_PASS).trim();
+  // En dev: mostramos longitudes y hash corto (SIN revelar secretos)
+  const RAW_PASS = process.env.ADMIN_PASS ?? "";
+  const RAW_KEY  = process.env.ADMIN_ACCESS_KEY ?? "";
+  const PASS = RAW_PASS.trim();
+  const KEY  = RAW_KEY.trim();
+  const expected = (KEY || PASS).trim();
 
   return NextResponse.json({
-    has_PASS: Boolean(ENV_PASS_RAW.length),
-    has_KEY: Boolean(ENV_KEY_RAW.length),
-    pass_len: ENV_PASS.length,
-    key_len: ENV_KEY.length,
+    has_PASS: Boolean(RAW_PASS.length),
+    has_KEY: Boolean(RAW_KEY.length),
+    pass_len: PASS.length,
+    key_len: KEY.length,
     expected_len: expected.length,
-    pass_hash8: ENV_PASS ? sha8(ENV_PASS) : null,
-    key_hash8: ENV_KEY ? sha8(ENV_KEY) : null,
+    pass_hash8: PASS ? sha8(PASS) : null,
+    key_hash8: KEY ? sha8(KEY) : null,
     expected_hash8: expected ? sha8(expected) : null,
   });
 }

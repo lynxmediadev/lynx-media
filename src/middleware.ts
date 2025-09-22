@@ -1,61 +1,91 @@
 // src/middleware.ts
 /**
  * ┌─────────────────────────────────────────────────────────────────────────────┐
- * │ middleware — Guard real para /admin/** usando cookie `admin_key`            │
+ * │ middleware — Gateo /admin/** con token HMAC v1 (admin_session)              │
  * ├─────────────────────────────────────────────────────────────────────────────┤
  * │ Peras y manzanas:                                                           │
- * │ - Permite /admin/login y /admin/login/submit.                               │
- * │ - Para el resto de /admin/** exige cookie `admin_key` == (KEY || PASS).     │
- * │ - Incluye logs de diagnóstico si DEBUG_ADMIN_MW=1 (quítalos luego).         │
+ * │ - Acepta /admin/login, /admin/login/submit, /admin/logout sin sesión.       │
+ * │ - Valida admin_session: "v1.<payload>.<sig>" con ADMIN_SESSION_SECRET.      │
+ * │ - Opcional: bind al User-Agent (ADMIN_BIND_UA=1) para endurecer la sesión.  │
+ * │ - Legacy: por defecto DESACTIVADO; si pones ADMIN_ALLOW_LEGACY=1 se acepta  │
+ * │   temporalmente la cookie antigua admin_key == (ADMIN_ACCESS_KEY || PASS).  │
  * └─────────────────────────────────────────────────────────────────────────────┘
  */
 import { NextRequest, NextResponse } from "next/server";
 
 export const config = { matcher: ["/admin/:path*"] };
 
-export function middleware(req: NextRequest) {
-  const debug = process.env.DEBUG_ADMIN_MW === "1";
+function tenc(s: string) { return new TextEncoder().encode(s); }
+function b64uToU8(b64url: string): Uint8Array {
+  const pad = "=".repeat((4 - (b64url.length % 4)) % 4);
+  const b64 = (b64url + pad).replace(/-/g, "+").replace(/_/g, "/");
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+async function hmacRaw(key: string, msg: string) {
+  const k = await crypto.subtle.importKey("raw", tenc(key), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", k, tenc(msg));
+  return new Uint8Array(sig);
+}
+function tse(a: Uint8Array, b: Uint8Array) {
+  if (a.length !== b.length) return false; let x = 0;
+  for (let i = 0; i < a.length; i++) x |= a[i] ^ b[i];
+  return x === 0;
+}
+async function sha256hex(s: string) {
+  const d = await crypto.subtle.digest("SHA-256", tenc(s));
+  return Array.from(new Uint8Array(d)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Permitir login UI y submit
-  if (pathname === "/admin/login" || pathname === "/admin/login/submit") {
-    if (debug) console.log("[MW allow]", pathname);
+  // Rutas abiertas del flujo de auth
+  if (pathname === "/admin/login" || pathname === "/admin/login/submit" || pathname === "/admin/logout") {
     return NextResponse.next();
   }
 
-  // Valor esperado (KEY prioritaria; fallback PASS), todo con trim()
-  const ENV_PASS = (process.env.ADMIN_PASS ?? "").trim();
-  const ENV_KEY  = (process.env.ADMIN_ACCESS_KEY ?? "").trim();
-  const expected = (ENV_KEY || ENV_PASS).trim();
+  const SECRET  = (process.env.ADMIN_SESSION_SECRET ?? "").trim();
+  const BIND_UA = (process.env.ADMIN_BIND_UA ?? "") === "1";
+  const ALLOW_LEGACY = (process.env.ADMIN_ALLOW_LEGACY ?? "") === "1";
+  const EXPECTED_LEGACY = ((process.env.ADMIN_ACCESS_KEY ?? "").trim() || (process.env.ADMIN_PASS ?? "").trim());
 
-  if (!expected) {
-    if (debug) console.log("[MW error] No expected key configured");
-    return new NextResponse("Admin not configured", { status: 500 });
-  }
-
-  // Leer cookie
-  const cookieKey = (req.cookies.get("admin_key")?.value ?? "").trim();
-  if (debug) console.log("[MW check]", { path: pathname, hasCookie: Boolean(cookieKey), match: cookieKey === expected });
-
-  // ¿Cookie válida?
-  if (cookieKey === expected) {
-    return NextResponse.next();
-  }
-
-  // (Opcional) Basic Auth como respaldo (misma clave)
-  const auth = req.headers.get("authorization");
-  if (auth?.startsWith("Basic ")) {
+  // 1) Validar token HMAC v1
+  const token = (req.cookies.get("admin_session")?.value ?? "").trim();
+  if (SECRET && token) {
     try {
-      const base64 = auth.split(" ")[1]!;
-      const [user, pass] = atob(base64).split(":");
-      if ((pass ?? "").trim() === expected) {
-        if (debug) console.log("[MW basic-auth] pass match");
-        return NextResponse.next();
+      const [v, payloadB64, sigB64] = token.split(".");
+      if (v === "v1" && payloadB64 && sigB64) {
+        const expSig = await hmacRaw(SECRET, payloadB64);
+        const gotSig = b64uToU8(sigB64);
+        if (tse(expSig, gotSig)) {
+          const json = atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/"));
+          const p = JSON.parse(json) as { sub?: string; exp?: number; ua?: string };
+          if (p?.sub === "admin" && typeof p.exp === "number" && Date.now() < p.exp) {
+            if (BIND_UA && p.ua) {
+              const ua = req.headers.get("user-agent") || "";
+              const h = await sha256hex(ua);
+              if (h !== p.ua) return NextResponse.redirect(new URL("/admin/login", req.url), { status: 303 });
+            }
+            return NextResponse.next(); // ✅ token válido
+          }
+        }
       }
-    } catch {}
+    } catch {
+      // Ignoramos y probamos legacy si está permitido
+    }
   }
 
-  // Sin cookie o no coincide → redirigir a login
-  if (debug) console.log("[MW redirect]", pathname, "→ /admin/login");
+  // 2) (Opcional) Legacy cookie admin_key (por compatibilidad temporal)
+  if (ALLOW_LEGACY && EXPECTED_LEGACY) {
+    const legacy = (req.cookies.get("admin_key")?.value ?? "").trim();
+    if (legacy === EXPECTED_LEGACY) {
+      return NextResponse.next(); // ✅ permitir mientras migras
+    }
+  }
+
+  // 3) No autenticado → login
   return NextResponse.redirect(new URL("/admin/login", req.url), { status: 303 });
 }
