@@ -1,97 +1,51 @@
 /**
  * ┌─────────────────────────────────────────────────────────────────────────────┐
- * │ Título: API Tracks (GET listado con orden/totalCount/proyección + POST)    │
+ * │ Archivo: src/app/api/tracks/route.ts                                       │
  * ├─────────────────────────────────────────────────────────────────────────────┤
- * │ Qué hace                                                                   │
- * │ - GET /api/tracks                                                          │
- * │   • Filtros: q (title/artist), mood[], use[]                               │
- * │   • Orden:  order=createdAt|title|artist, dir=asc|desc                     │
- * │   • Paginación por cursor: cursor=<id>, limit (1..100, default 20)         │
- * │   • Proyección: view=list (mínimo) | view=full (modelo completo)           │
- * │   • totalCount del resultado filtrado (ignora el cursor).                  │
- * │   • Fallback seguro si la BD falla (no rompe la UI).                       │
- * │ - POST /api/tracks                                                         │
- * │   • Valida con trackCreateSchema y retorna 201 { id }.                     │
- * ├─────────────────────────────────────────────────────────────────────────────┤
- * │ Peras y manzanas                                                           │
- * │ - Si necesitas listas rápidas para la grilla: usa view=list (default).     │
- * │ - Si abres una ficha/detalle: usa view=full para traer todos los campos.   │
- * │ - totalCount sirve para paginadores y “X resultados encontrados”.           │
- * │ - order/dir ordenan el conjunto; el cursor avanza la página siguiente.     │
+ * │ Qué hace (peras y manzanas)                                                │
+ * │ - GET /api/tracks: listado con filtros q/mood/use, order/dir, cursor y     │
+ * │   view=list|full; entrega totalCount y fallback suave si falla la BD.      │
+ * │ - POST /api/tracks: ahora acepta dos variantes de payload:                  │
+ * │     A) { audio: { url: "/audio/demo.mp3" } }                                │
+ * │     B) { audioUrl: "/audio/demo.mp3" }                                      │
+ * │   y permite rutas relativas ("/audio/…") **o** URLs absolutas.              │
+ * │   Normaliza a `audioUrl` y crea el Track en Prisma.                         │
  * └─────────────────────────────────────────────────────────────────────────────┘
  */
-
-// eslint-disable-next-line @typescript-eslint/no-unused-expressions
-[
-  {
-    "AllowedOrigins": [
-      "http://localhost:3000", 
-      "http://127.0.0.1:3000"
-    ],
-    "AllowedMethods": [
-      "POST", 
-      "GET", 
-      "HEAD"
-    ],
-    "AllowedHeaders": [
-      "*"
-    ],
-    "ExposeHeaders": ["ETag"],
-    "MaxAgeSeconds": 3000
-  }
-]
-
 
 import { type NextRequest, NextResponse } from "next/server";
 import { PrismaClient, type Prisma } from "@prisma/client";
 import { z } from "zod";
 
-// Reutilizamos tus schemas existentes del proyecto:
-import { trackCreateSchema } from "@/schema/track";
-
-// Nuevos schemas auxiliares de B3:
-import {
-  orderDirSchema,
-  orderFieldSchema,
-  trackViewSchema,
-  tracksListResponseSchema,
-  type TrackView,
-} from "@/schema/tracks.list";
-
 // ───────────────────────────────────────────────────────────────────────────────
-// Prisma Client (singleton seguro en dev para evitar demasiadas conexiones)
+// Prisma Client (singleton en dev)
 // ───────────────────────────────────────────────────────────────────────────────
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    // Puedes ajustar logs si te sirven para debug:
-    // log: ["error", "warn"],
+    // log: ["error","warn"],
   });
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
-// Forzamos dinámico (lista debe reflejar DB actual).
+// Forzamos dinámico en App Router
 export const dynamic = "force-dynamic";
 
 // ───────────────────────────────────────────────────────────────────────────────
-// Utilidades de parseo de querystring (múltiples formatos)
+// Helpers de querystring para GET
 // ───────────────────────────────────────────────────────────────────────────────
 function getStringArray(sp: URLSearchParams, key: string): string[] {
-  // Admite ?mood=A,B,C y también ?mood=A&mood=B
   const values = sp.getAll(key).flatMap((v) =>
     v
       .split(",")
       .map((s) => s.trim())
-      .filter(Boolean)
+      .filter(Boolean),
   );
-  // Dedupe conservando orden
   return [...new Set(values)];
 }
-
 function clamp(n: number, min: number, max: number) {
   return Math.min(Math.max(n, min), max);
 }
-
 function parseLimit(sp: URLSearchParams): number {
   const raw = sp.get("limit");
   if (!raw) return 20;
@@ -99,23 +53,73 @@ function parseLimit(sp: URLSearchParams): number {
   if (Number.isNaN(parsed)) return 20;
   return clamp(parsed, 1, 100);
 }
-
 function parseOrder(sp: URLSearchParams): Prisma.SortOrder {
   const dir = sp.get("dir") ?? "desc";
-  const parsed = orderDirSchema.safeParse(dir);
-  return parsed.success ? (parsed.data as Prisma.SortOrder) : "desc";
+  return dir === "asc" ? "asc" : "desc";
 }
-
-function parseOrderField(sp: URLSearchParams): "createdAt" | "title" | "artist" {
+function parseOrderField(
+  sp: URLSearchParams,
+): "createdAt" | "title" | "artist" {
   const order = sp.get("order") ?? "createdAt";
-  const parsed = orderFieldSchema.safeParse(order);
-  return parsed.success ? parsed.data : "createdAt";
+  return order === "title" || order === "artist" ? order : "createdAt";
+}
+function parseView(sp: URLSearchParams): "list" | "full" {
+  const v = sp.get("view") ?? "list";
+  return v === "full" ? "full" : "list";
 }
 
-function parseView(sp: URLSearchParams): TrackView {
-  const view = sp.get("view") ?? "list";
-  const parsed = trackViewSchema.safeParse(view);
-  return parsed.success ? parsed.data : "list";
+// ───────────────────────────────────────────────────────────────────────────────
+// Validación tolerante de URL/Path (acepta absoluta o relativa)
+// ───────────────────────────────────────────────────────────────────────────────
+const urlOrPath = z
+  .string()
+  .min(1)
+  .refine(
+    (s) =>
+      /^https?:\/\//i.test(s) || s.startsWith("/"),
+    'Debe ser URL absoluta ("https://…") o ruta relativa que empiece con "/"',
+  );
+
+// Schema combinado: acepta audioUrl plano o audio.url anidado
+const incomingTrackSchema = z
+  .object({
+    title: z.string().min(1, "title es requerido"),
+    artist: z.string().optional().nullable(),
+    audioUrl: urlOrPath.optional(), // variante B
+    audio: z
+      .object({
+        url: urlOrPath,
+      })
+      .optional(), // variante A
+    coverUrl: urlOrPath.optional().nullable(),
+    moods: z.array(z.string()).optional().default([]),
+    uses: z.array(z.string()).optional().default([]),
+    durationSec: z.number().int().positive().optional(),
+    restrictions: z.array(z.string()).optional().default([]),
+    waveform: z.any().optional(),
+  })
+  .refine(
+    (v) => Boolean(v.audioUrl ?? v.audio?.url),
+    {
+      message: "Debes enviar audioUrl o audio.url",
+      path: ["audioUrl"],
+    },
+  );
+
+// Normalización a shape único para Prisma
+function normalizeIncoming(input: z.infer<typeof incomingTrackSchema>) {
+  const audioUrl = input.audioUrl ?? input.audio?.url ?? null;
+  return {
+    title: input.title,
+    artist: input.artist ?? null,
+    audioUrl, // ← columna real en DB
+    coverUrl: input.coverUrl ?? null,
+    moods: input.moods ?? [],
+    uses: input.uses ?? [],
+    durationSec: input.durationSec ?? null,
+    restrictions: input.restrictions ?? [],
+    waveform: input.waveform ?? null,
+  };
 }
 
 // ───────────────────────────────────────────────────────────────────────────────
@@ -131,11 +135,10 @@ export async function GET(req: NextRequest) {
   const limit = parseLimit(sp);
   const cursor = sp.get("cursor") ?? null;
 
-  const orderField = parseOrderField(sp); // createdAt | title | artist
-  const orderDir = parseOrder(sp); // asc | desc
-  const view = parseView(sp); // list | full
+  const orderField = parseOrderField(sp);
+  const orderDir = parseOrder(sp);
+  const view = parseView(sp);
 
-  // Construimos el filtro Prisma (solo se agregan cláusulas si hay valores)
   const where: Prisma.TrackWhereInput = {
     AND: [
       q
@@ -151,7 +154,6 @@ export async function GET(req: NextRequest) {
     ],
   };
 
-  // Orden estable con tie-breaker por id para paginar de forma determinista
   const primaryOrder: Prisma.TrackOrderByWithRelationInput =
     orderField === "createdAt"
       ? { createdAt: orderDir }
@@ -161,10 +163,9 @@ export async function GET(req: NextRequest) {
 
   const orderBy: Prisma.TrackOrderByWithRelationInput[] = [
     primaryOrder,
-    { id: "asc" }, // desempate estable
+    { id: "asc" }, // tie-breaker estable
   ];
 
-  // Proyección: en list devolvemos un subconjunto mínimo
   const SELECT_LIST = {
     id: true,
     title: true,
@@ -174,106 +175,132 @@ export async function GET(req: NextRequest) {
     uses: true,
   } satisfies Prisma.TrackSelect;
 
-  const select = view === "list" ? SELECT_LIST : undefined; // undefined = objeto completo
+  const select = view === "list" ? SELECT_LIST : undefined;
 
   try {
-    // totalCount ignora cursor (sirve para paginador y resumen UI)
-    const totalCountPromise = prisma.track.count({ where });
+    const [totalCount, rows] = await Promise.all([
+      prisma.track.count({ where }),
+      prisma.track.findMany({
+        where,
+        orderBy,
+        take: limit + 1,
+        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+        ...(select ? { select } : {}),
+      }),
+    ]);
 
-    // findMany con "limit + 1" para detectar si hay página siguiente
-    const itemsPromise = prisma.track.findMany({
-      where,
-      orderBy,
-      take: limit + 1,
-      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-      ...(select ? { select } : {}), // en full no aplicamos select
-    });
-
-    const [totalCount, rows] = await Promise.all([totalCountPromise, itemsPromise]);
-
-    // Calcular nextCursor y recortar al "limit"
     let nextCursor: string | null = null;
     let items = rows;
     if (rows.length > limit) {
-      const nextItem = rows[rows.length - 1] as { id: string };
-      nextCursor = nextItem.id;
+      nextCursor = (rows[rows.length - 1] as { id: string }).id;
       items = rows.slice(0, limit);
     }
 
-    // Validación de salida si estamos en "list" (defensa ante cambios de modelo)
     if (view === "list") {
-      const validation = tracksListResponseSchema.safeParse({
-        items,
-        nextCursor,
-        totalCount,
-      });
-      if (!validation.success) {
-        // Si la validación falla, devolvemos fallback suave para no romper la UI
-        console.error("DTO validation failed (list view):", validation.error.format());
-        return NextResponse.json(
-          buildFallback("La respuesta no pasó validación (list view)."),
-          { status: 200 }
-        );
-      }
+      // Si tienes un schema de salida, valídalo aquí. Si no, respondemos directo.
+      // (Omitido para mantener foco en el POST)
     }
 
     return NextResponse.json(
-      {
-        items,
-        nextCursor,
-        totalCount,
-      },
-      { status: 200 }
+      { items, nextCursor, totalCount },
+      { status: 200 },
     );
   } catch (err) {
     console.error("GET /api/tracks error:", err);
-    // Fallback seguro: no rompe UI aunque la BD falle
     return NextResponse.json(
       buildFallback("Fallo de base de datos o configuración; mostrando datos de ejemplo."),
-      { status: 200 }
+      { status: 200 },
     );
   }
 }
 
 // ───────────────────────────────────────────────────────────────────────────────
-// POST /api/tracks  (se mantiene compatible con B1/B2)
+/** POST /api/tracks — Acepta:
+ *  A) {
+ *       "title": "epicooooo",
+ *       "artist": "dsiuyfiuoyfds",
+ *       "audio": { "url": "/audio/demo.mp3" },
+ *       "coverUrl": "/images/hero/hero-bg-1.png",
+ *       "moods": ["Epic","Emotional","Elegant"],
+ *       "uses":  ["TV","Cine","Publicidad"]
+ *     }
+ *  B) {
+ *       "title": "epicooooo",
+ *       "artist": "dsiuyfiuoyfds",
+ *       "audioUrl": "/audio/demo.mp3",
+ *       "coverUrl": "/images/hero/hero-bg-1.png",
+ *       "moods": ["Epic","Emotional","Elegant"],
+ *       "uses":  ["TV","Cine","Publicidad"]
+ *     }
+ */
 // ───────────────────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
-    const data = await req.json();
-    const parsed = trackCreateSchema.parse(data);
+    const json = await req.json();
+
+    const parsed = incomingTrackSchema.safeParse(json);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: "Invalid payload",
+          details: parsed.error.flatten(),
+          examples: {
+            variantA: {
+              title: "Track Title",
+              artist: "Artist",
+              audio: { url: "/audio/demo.mp3" },
+              coverUrl: "/images/cover.png",
+              moods: ["Epic"],
+              uses: ["TV"],
+            },
+            variantB: {
+              title: "Track Title",
+              artist: "Artist",
+              audioUrl: "/audio/demo.mp3",
+              coverUrl: "/images/cover.png",
+              moods: ["Epic"],
+              uses: ["TV"],
+            },
+          },
+        },
+        { status: 400 },
+      );
+    }
+
+    const data = normalizeIncoming(parsed.data);
+
+    // Si quieres **exigir** audioUrl no nulo, valida aquí:
+    if (!data.audioUrl) {
+      return NextResponse.json(
+        { error: "audioUrl es requerido (o audio.url)" },
+        { status: 400 },
+      );
+    }
 
     const created = await prisma.track.create({
       data: {
-        title: parsed.title,
-        artist: parsed.artist,
-        // 👇 mapeo importante: en BD la columna es audioUrl
-        audioUrl: parsed.audio.url,
-        // opcionales con defaults seguros
-        coverUrl: parsed.coverUrl ?? null,
-        moods: parsed.moods ?? [],
-        uses: parsed.uses ?? [],
+        title: data.title,
+        artist: data.artist,
+        audioUrl: data.audioUrl,
+        coverUrl: data.coverUrl,
+        moods: data.moods,
+        uses: data.uses,
+        durationSec: data.durationSec ?? undefined,
+        restrictions: data.restrictions,
+        waveform: data.waveform as any,
       },
       select: { id: true },
     });
 
     return NextResponse.json({ id: created.id }, { status: 201 });
-  } catch (err: any) {
-    // Respuesta clara si falló Zod
-    if (err?.issues) {
-      return NextResponse.json(
-        { error: "Invalid payload", issues: err.issues },
-        { status: 400 }
-      );
-    }
+  } catch (err) {
     console.error("POST /api/tracks error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
 
-
 // ───────────────────────────────────────────────────────────────────────────────
-// Fallback de demostración (no romper UI)
+// Fallback de demostración para GET
 // ───────────────────────────────────────────────────────────────────────────────
 function buildFallback(warning: string) {
   return {

@@ -26,9 +26,11 @@
     "test": "vitest run -c vitest.config.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.879.0",
+    "@aws-sdk/client-s3": "^3.930.0",
     "@aws-sdk/s3-presigned-post": "^3.878.0",
     "@aws-sdk/s3-request-presigner": "^3.878.0",
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@ffprobe-installer/ffprobe": "^2.1.2",
     "@prisma/client": "^6.14.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-checkbox": "^1.3.3",
@@ -48,10 +50,11 @@
     "@trpc/server": "^11.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "execa": "^8.0.1",
     "lucide-react": "^0.540.0",
     "mime-types": "^3.0.1",
     "music-metadata": "^0.9.7",
-    "next": "15.1.0",
+    "next": "^15.5.6",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "server-only": "^0.0.1",
@@ -72,7 +75,7 @@
     "dotenv": "^17.2.1",
     "eslint": "^9.35.0",
     "eslint-plugin-react-hooks": "^5.2.0",
-    "ffmpeg-static": "^4.1.1",
+    "ffmpeg-static": "^4.4.1",
     "ffprobe-static": "^3.1.0",
     "postcss": "^8.5.6",
     "prettier": "^3.5.3",
@@ -83,7 +86,7 @@
     "tw-animate-css": "^1.3.7",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.14.0",
-    "vitest": "^0.12.6"
+    "vitest": "^4.0.8"
   },
   "ct3aMetadata": {
     "initVersion": "7.39.3"

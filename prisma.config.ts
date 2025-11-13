@@ -5,7 +5,7 @@
 // Qué hace: Reemplaza la configuración de package.json#prisma.
 // Peras y manzanas: “El botón de ‘sembrar’ vive aquí, no en package.json.”
 // ================================================
-import "dotenv/config";                 // Carga las variables de .env para el CLI
+import 'dotenv/config';                 // Carga las variables de .env para el CLI
 import path from "node:path";
 import { defineConfig } from "prisma/config";
 
