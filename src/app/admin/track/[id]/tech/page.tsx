@@ -1,41 +1,23 @@
 // src/app/admin/track/[id]/tech/page.tsx
 import { prisma } from "@/server/prisma";
 import { Actions } from "./ui/Actions.client";
-import { Waveform } from "./ui/Waveform";
+import PublicAudioBar from "@/components/public/PublicAudioBar";
 import PayloadPanel from "./ui/PayloadPanel.client";
+import { getS3PublicUrl } from "@/lib/storage/s3";
 
 export const dynamic = "force-dynamic";
 
-function parseWaveformFlex(wf: unknown): number[] | null {
-  if (!wf) return null;
-  try {
-    if (typeof wf === "string") {
-      const arr = JSON.parse(wf);
-      return Array.isArray(arr) ? arr : null;
-    }
-    if (typeof Buffer !== "undefined" && Buffer.isBuffer(wf)) {
-      const txt = (wf as Buffer).toString("utf8");
-      const arr = JSON.parse(txt);
-      return Array.isArray(arr) ? arr : null;
-    }
-    if (wf instanceof Uint8Array) {
-      const dec = new TextDecoder();
-      const txt = dec.decode(wf);
-      const arr = JSON.parse(txt);
-      return Array.isArray(arr) ? arr : null;
-    }
-    const maybe = wf as any;
-    if (maybe && maybe.type === "Buffer" && Array.isArray(maybe.data)) {
-      const u8 = Uint8Array.from(maybe.data);
-      const dec = new TextDecoder();
-      const txt = dec.decode(u8);
-      const arr = JSON.parse(txt);
-      return Array.isArray(arr) ? arr : null;
-    }
-    return null;
-  } catch {
-    return null;
-  }
+/** Buffer(Bytes) → base64 para el waveform del player técnico */
+function bytesToBase64(buf: Buffer | Uint8Array | null): string | null {
+  if (!buf) return null;
+  // Buffer.from soporta Buffer y TypedArray (Uint8Array, etc.)
+  return Buffer.from(buf).toString("base64");
+}
+
+/** Prefiere assetKey→R2; si no, usa audioUrl como fallback */
+function publicAudioUrl(input: { assetKey: string | null; audioUrl: string | null }): string | null {
+  if (input.assetKey) return getS3PublicUrl(input.assetKey);
+  return input.audioUrl ?? null;
 }
 
 // 👇 params ahora es Promise y se await-ea
@@ -45,11 +27,23 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const t = await prisma.track.findUnique({
     where: { id },
     select: {
-      id: true, title: true, artist: true, audioUrl: true,
-      durationSec: true, sampleRateHz: true, channels: true, bitrateKbps: true,
-      loudnessLufs: true, loudnessRangeLu: true, truePeakDbfs: true,
-      waveform: true, analysisAt: true, updatedAt: true, createdAt: true
-    }
+      id: true,
+      title: true,
+      artist: true,
+      audioUrl: true,
+      assetKey: true,
+      durationSec: true,
+      sampleRateHz: true,
+      channels: true,
+      bitrateKbps: true,
+      loudnessLufs: true,
+      loudnessRangeLu: true,
+      truePeakDbfs: true,
+      waveform: true,
+      analysisAt: true,
+      updatedAt: true,
+      createdAt: true,
+    },
   });
 
   if (!t) {
@@ -60,7 +54,14 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     );
   }
 
-  const wf = parseWaveformFlex(t.waveform);
+  // URL pública del audio (R2 si hay assetKey, si no, audioUrl directa)
+  const src = publicAudioUrl({
+    assetKey: (t as any).assetKey ?? null,
+    audioUrl: t.audioUrl,
+  });
+
+  // Waveform como base64 para el reproductor técnico (mismo formato que la página pública)
+  const waveformB64 = bytesToBase64(t.waveform as any);
 
   return (
     <main className="mx-auto max-w-5xl p-6 space-y-8">
@@ -74,14 +75,19 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         <Actions trackId={t.id} />
       </header>
 
-      {t.audioUrl ? (
+      {src ? (
         <div className="rounded-xl border border-zinc-800 p-4">
-          <p className="text-sm mb-2 text-zinc-400">Reproductor</p>
-          <audio src={t.audioUrl} controls preload="none" className="w-full" />
+          <p className="text-sm mb-2 text-zinc-400">Reproductor técnico</p>
+          <PublicAudioBar
+            src={src}
+            durationSec={t.durationSec ?? 0}
+            waveformB64={waveformB64}
+            interactive
+          />
         </div>
       ) : (
         <div className="rounded-xl border border-zinc-800 p-4 text-sm text-zinc-400">
-          No hay <code>audioUrl</code> en este track.
+          No hay <code>assetKey</code> ni <code>audioUrl</code> en este track.
         </div>
       )}
 
@@ -105,31 +111,28 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
         <div className="rounded-lg border border-zinc-800 p-3">
           <div className="text-xs text-zinc-500">Loudness (I)</div>
-          <div className="text-lg">{typeof t.loudnessLufs === "number" ? `${t.loudnessLufs} LUFS` : "–"}</div>
+          <div className="text-lg">
+            {typeof t.loudnessLufs === "number" ? `${t.loudnessLufs} LUFS` : "–"}
+          </div>
         </div>
         <div className="rounded-lg border border-zinc-800 p-3">
           <div className="text-xs text-zinc-500">Loudness Range</div>
-          <div className="text-lg">{typeof t.loudnessRangeLu === "number" ? `${t.loudnessRangeLu} LU` : "–"}</div>
+          <div className="text-lg">
+            {typeof t.loudnessRangeLu === "number" ? `${t.loudnessRangeLu} LU` : "–"}
+          </div>
         </div>
         <div className="rounded-lg border border-zinc-800 p-3">
           <div className="text-xs text-zinc-500">True Peak</div>
-          <div className="text-lg">{typeof t.truePeakDbfs === "number" ? `${t.truePeakDbfs} dBFS` : "–"}</div>
+          <div className="text-lg">
+            {typeof t.truePeakDbfs === "number" ? `${t.truePeakDbfs} dBFS` : "–"}
+          </div>
         </div>
         <div className="rounded-lg border border-zinc-800 p-3">
           <div className="text-xs text-zinc-500">Analizado</div>
-          <div className="text-lg">{t.analysisAt ? new Date(t.analysisAt).toLocaleString() : "–"}</div>
-        </div>
-      </section>
-
-      <section className="rounded-xl border border-zinc-800 p-4">
-        <h2 className="text-sm text-zinc-400 mb-3">Waveform</h2>
-        {wf && wf.length ? (
-          <Waveform samples={wf} height={96} />
-        ) : (
-          <div className="text-sm text-zinc-400">
-            No hay waveform válido almacenado. Usa <em>Analizar</em> o <em>Analizar + Normalizar</em>.
+          <div className="text-lg">
+            {t.analysisAt ? new Date(t.analysisAt).toLocaleString() : "–"}
           </div>
-        )}
+        </div>
       </section>
 
       {/* Panel de payload SIEMPRE al final */}

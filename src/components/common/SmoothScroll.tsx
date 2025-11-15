@@ -1,12 +1,24 @@
+// src/components/common/SmoothScroll.tsx
 "use client";
 
 import { useEffect, useRef } from "react";
 
 /**
- * SmoothScroll
- * - Intercepta la rueda del mouse/trackpad y aplica easing con requestAnimationFrame.
- * - Respeta prefers-reduced-motion.
- * - Evita interferir si el objetivo del evento está dentro de un contenedor scrollable.
+ * SmoothScroll (versión segura)
+ * -----------------------------------------------------------------------------
+ * Objetivo:
+ * - Aplicar desplazamiento vertical suave (easing) sobre el scroll de la página,
+ *   sin romper:
+ *   - Zoom del navegador (Ctrl + rueda, Ctrl + +/-).
+ *   - Desplazamiento horizontal (Shift + rueda, trackpads).
+ *   - Contenedores internos que tengan su propio scroll.
+ *
+ * Peras y manzanas:
+ * - Si el usuario hace scroll normal vertical → se aplica “easing” suave.
+ * - Si el usuario usa Ctrl/⌘/Alt/Shift → el navegador hace lo suyo (zoom, scroll
+ *   horizontal, etc.), no intervenimos.
+ * - Si el evento viene de un contenedor que sí puede seguir desplazándose
+ *   (por ejemplo un div con overflow scroll) → no intervenimos.
  */
 export default function SmoothScroll() {
   const rafId = useRef<number | null>(null);
@@ -15,12 +27,21 @@ export default function SmoothScroll() {
   const enabled = useRef<boolean>(true);
 
   useEffect(() => {
-    // Accesibilidad: si el usuario prefiere menos movimiento, deshabilitar
+    // Accesibilidad: respetar "prefers-reduced-motion"
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    const cancelAnim = () => {
+      if (rafId.current != null) {
+        cancelAnimationFrame(rafId.current);
+        rafId.current = null;
+      }
+    };
+
     const updateMotion = () => {
       enabled.current = !media.matches;
       cancelAnim();
     };
+
     updateMotion();
     media.addEventListener?.("change", updateMotion);
 
@@ -28,93 +49,125 @@ export default function SmoothScroll() {
     currentY.current = window.scrollY;
     targetY.current = currentY.current;
 
-    const onWheel = (e: WheelEvent) => {
-      if (!enabled.current) return; // respetar accesibilidad
+    function animate() {
+      const ease = 0.15; // coeficiente de relajación
+      const diff = targetY.current - currentY.current;
 
-      // Si el target está dentro de un contenedor scrollable que puede seguir desplazándose, no interceptar
-      if (hasScrollableAncestor(e.target as HTMLElement, e.deltaY)) return;
+      if (Math.abs(diff) < 0.5) {
+        currentY.current = targetY.current;
+        window.scrollTo(0, currentY.current);
+        rafId.current = null;
+        return;
+      }
 
-      // Interceptamos para aplicar easing propio
-      e.preventDefault();
+      currentY.current = currentY.current + diff * ease;
+      window.scrollTo(0, currentY.current);
+      rafId.current = requestAnimationFrame(animate);
+    }
 
-      const maxScroll =
-        document.documentElement.scrollHeight - window.innerHeight;
-
-      // Acumular destino con deltaY
-      targetY.current = clamp(targetY.current + e.deltaY, 0, maxScroll);
-
-      // Lanzar animación si no hay una corriendo
-      if (rafId.current === null) animate();
+    const startAnim = () => {
+      if (rafId.current == null) {
+        rafId.current = requestAnimationFrame(animate);
+      }
     };
 
-    // Necesitamos passive:false para poder preventDefault
+    const onWheel = (e: WheelEvent) => {
+      if (!enabled.current) return; // si usuario pidió menos movimiento, no intervenimos
+
+      // 1) Dejar pasar cualquier combinación “especial”:
+      //    - Ctrl / Meta / Alt → zoom o combinaciones del navegador.
+      //    - Shift o deltaX dominante → scroll horizontal o gestos laterales.
+      if (
+        e.ctrlKey ||
+        e.metaKey ||
+        e.altKey ||
+        e.shiftKey ||
+        Math.abs(e.deltaX) > Math.abs(e.deltaY)
+      ) {
+        return; // no preventDefault, el navegador se encarga
+      }
+
+      const deltaY = e.deltaY;
+
+      // 2) Si el evento viene de un contenedor que sí puede seguir desplazándose,
+      //    dejamos que ese contenedor lo maneje.
+      if (shouldLetElementScroll(e.target as HTMLElement | null, deltaY)) {
+        return;
+      }
+
+      // 3) Interceptamos scroll vertical "del documento" y aplicamos smoothing
+      e.preventDefault();
+
+      const doc = document.documentElement;
+      const maxScroll = doc.scrollHeight - window.innerHeight;
+
+      targetY.current = targetY.current + deltaY;
+
+      if (targetY.current < 0) targetY.current = 0;
+      if (targetY.current > maxScroll) targetY.current = maxScroll;
+
+      startAnim();
+    };
+
+    const onResize = () => {
+      // Al cambiar el tamaño recalculamos límites y “anclamos” targetY
+      const doc = document.documentElement;
+      const maxScroll = doc.scrollHeight - window.innerHeight;
+
+      if (targetY.current > maxScroll) {
+        targetY.current = maxScroll;
+      }
+      currentY.current = window.scrollY;
+    };
+
     window.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("resize", onResize);
 
     return () => {
-      window.removeEventListener("wheel", onWheel as EventListener);
       media.removeEventListener?.("change", updateMotion);
+      window.removeEventListener("wheel", onWheel as EventListener);
+      window.removeEventListener("resize", onResize);
       cancelAnim();
     };
   }, []);
 
-  function animate() {
-    // Easing tipo “critically-damped”: lerp suave
-    const ease = 0.05; // ajustar sensibilidad (0.08–0.18)
-    const tick = () => {
-      const y = currentY.current + (targetY.current - currentY.current) * ease;
-      currentY.current = y;
-      window.scrollTo(0, y);
-
-      if (Math.abs(targetY.current - currentY.current) < 0.5) {
-        // Snap final para no quedar con decimales residuales
-        window.scrollTo(0, targetY.current);
-        cancelAnim();
-        return;
-      }
-      rafId.current = window.requestAnimationFrame(tick);
-    };
-    rafId.current = window.requestAnimationFrame(tick);
-  }
-
-  function cancelAnim() {
-    if (rafId.current !== null) {
-      window.cancelAnimationFrame(rafId.current);
-      rafId.current = null;
-    }
-  }
-
   return null;
 }
 
-/** Utilidades */
-
-function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(n, max));
-}
-
 /**
- * Determina si el evento ocurrió dentro de un contenedor que:
- *  - es desplazable (overflow auto/scroll) y
- *  - todavía puede desplazar en la dirección del delta.
+ * Recorre el árbol de elementos desde el target hacia arriba y determina si
+ * algún contenedor intermedio:
+ * - Tiene overflow-y scroll/auto/visible, y
+ * - Todavía puede seguir desplazándose en la dirección del delta.
+ *
+ * Si es así, devolvemos true → dejamos que el contenedor maneje el evento.
  */
-function hasScrollableAncestor(node: HTMLElement | null, deltaY: number): boolean {
-  let el: HTMLElement | null = node;
+function shouldLetElementScroll(
+  target: HTMLElement | null,
+  deltaY: number
+): boolean {
+  let el: HTMLElement | null = target;
+
   while (el && el !== document.body && el !== document.documentElement) {
-    const style = getComputedStyle(el);
+    const style = window.getComputedStyle(el);
+    const overflowY = style.overflowY;
+
     const canScrollY =
-      /(auto|scroll)/.test(style.overflowY) ||
-      (style.overflowY === "visible" && el.scrollHeight > el.clientHeight);
+      (overflowY === "auto" || overflowY === "scroll" || overflowY === "visible") &&
+      el.scrollHeight > el.clientHeight;
 
     if (canScrollY) {
       const atTop = el.scrollTop <= 0;
       const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
 
-      // Si puede seguir desplazando en la dirección de delta, no interceptar
+      // Si el contenedor puede seguir desplazándose en esta dirección, no interceptar
       if ((deltaY < 0 && !atTop) || (deltaY > 0 && !atBottom)) {
         return true;
       }
     }
+
     el = el.parentElement;
   }
+
   return false;
 }

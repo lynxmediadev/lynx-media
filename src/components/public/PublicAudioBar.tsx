@@ -13,6 +13,8 @@
  * │   (play/pause/ended), no al “dedo”; así evitamos el warning de play/pause.  │
  * │ - En `onSeek`: movemos currentTime y, si estaba pausado, llamamos a play(). │
  * │ - Pasamos `progress` (0..1) al WaveformScrubber para colorear el avance.    │
+ * │ - Layout adaptado para admin/tech: columna izquierda (Play+tiempo) +        │
+ * │   columna derecha (waveform) con alturas equivalentes.                      │
  * └─────────────────────────────────────────────────────────────────────────────┘
  */
 
@@ -112,40 +114,47 @@ export default function PublicAudioBar({
 
   return (
     <div className="rounded-xl border border-zinc-800/70 bg-zinc-950/40 p-3">
-      <div className="mb-2 flex items-center justify-between">
-        <button
-          type="button"
-          className={`rounded-md border px-3 py-1.5 text-sm ${
-            disabled
-              ? "cursor-not-allowed border-zinc-800 text-zinc-700"
-              : "border-zinc-700 text-zinc-100 hover:bg-zinc-900"
-          }`}
-          onClick={toggle}
-          disabled={disabled}
-        >
-          {isPlaying ? "❚❚" : "►"}
-        </button>
+      <div className="flex items-stretch gap-3">
+        {/* Columna izquierda: Play (arriba) + tiempo (abajo) */}
+        <div className="flex min-h-[56px] w-32 flex-col justify-between py-0">
+          <button
+            type="button"
+            className={`h-4/6 rounded-sm border px-auto text-sm ${
+              disabled
+                ? "cursor-not-allowed border-zinc-800 text-zinc-700"
+                : "border-zinc-700 text-zinc-100 hover:bg-zinc-900"
+            }`}
+            onClick={toggle}
+            disabled={disabled}
+          >
+            <span className="text-lg leading-none">
+              {isPlaying ? "❚❚" : "►"}
+            </span>
+          </button>
 
-        <div className="text-xs tabular-nums text-zinc-400">
-          {fmtTime(cur)} / {fmtTime(dur)}
+          <div className="mt-1 flex h-2/6 items-center justify-center rounded-sm bg-zinc-900/80 px-auto text-[11px] tabular-nums text-zinc-200">
+            {fmtTime(cur)} / {fmtTime(dur)}
+          </div>
+        </div>
+
+        {/* Columna derecha: waveform (misma “altura visual” que la columna de controles) */}
+        <div className="flex min-h-[56px] flex-1 items-center">
+          <WaveformScrubber
+            waveformB64={waveformB64}
+            height={72} // un poco más bajo que 80 para compactar (ajustable)
+            durationSec={dur}
+            progress={progress}
+            onSeek={interactive ? handleSeek : undefined}
+            className="w-full"
+            barWidth={4} // barras más anchas = look sólido
+            gap={0} // sin huecos entre barras
+            colors={{
+              base: waveformColors?.base ?? "rgba(255,255,255,0.18)", // COLOR BASE DEL PLAYER
+              progress: waveformColors?.progress ?? "#fff", // COLOR DE AVANCE PLAYER
+            }}
+          />
         </div>
       </div>
-
-      {/* Forma de onda (sin “línea media”; barras centradas y coloreadas por progreso) */}
-      <WaveformScrubber
-        waveformB64={waveformB64}
-        height={80}
-        durationSec={dur}
-        progress={progress}
-        onSeek={interactive ? handleSeek : undefined}
-        className="w-full"
-        barWidth={4} // barras más anchas = look sólido
-        gap={0} // sin huecos entre barras
-        colors={{
-          base: waveformColors?.base ?? "rgba(255,255,255,0.18)", // COLOR BASE DEL PLAYER
-          progress: waveformColors?.progress ?? "#fff", // COLOR DE AVANCE PLAYER
-        }}
-      />
 
       {/* Audio real (oculto pero controlado por ref) */}
       <audio ref={audioRef} src={src ?? undefined} preload="metadata" />

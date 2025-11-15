@@ -1,101 +1,108 @@
-/**
- * ┌─────────────────────────────────────────────────────────────────────────────┐
- * │ Título: src/components/admin/IdsForm.tsx                                    │
- * ├─────────────────────────────────────────────────────────────────────────────┤
- * │ Qué hace                                                                    │
- * │ - Formulario cliente para editar ISRC / ISWC / UPC.                         │
- * │ - Llama al Server Action y muestra el resultado (ok/error).                 │
- * ├─────────────────────────────────────────────────────────────────────────────┤
- * │ Peras y manzanas                                                            │
- * │ - Endurecido: si la action no retorna objeto, no crashea el cliente.        │
- * └─────────────────────────────────────────────────────────────────────────────┘
- */
-
+// src/components/admin/IdsForm.tsx
 "use client";
 
 import * as React from "react";
+import { useFormStatus } from "react-dom";
 
-type TrackIds = {
-  id: string;
-  title: string | null;
-  artist: string | null;
-  isrc: string | null;
-  iswc: string | null;
-  upc: string | null;
-  updatedAt: Date | string | null;
+type IdsFormProps = {
+  track: {
+    id: string;
+    title: string | null;
+    artist: string | null;
+    isrc: string | null;
+    iswc: string | null;
+    upc: string | null;
+    updatedAt: Date;
+  };
+  updateIds: (formData: FormData) => Promise<{ ok: boolean; message: string }>;
 };
 
-export default function IdsForm({
-  track,
-  updateIds,
-}: {
-  track: TrackIds;
-  updateIds: (fd: FormData) => Promise<{ ok: boolean; message: string } | void>;
-}) {
-  const [msg, setMsg] = React.useState<string | null>(null);
-  const [isSaving, setSaving] = React.useState(false);
-
-  async function onSubmit(formData: FormData) {
-    setSaving(true);
-    setMsg(null);
-    const res = await updateIds(formData);
-    setSaving(false);
-    setMsg((res as any)?.message ?? "Guardado");
-  }
-
+function SubmitButton() {
+  const { pending } = useFormStatus();
   return (
-    <form action={onSubmit} className="space-y-4">
-      <div className="grid gap-3 md:grid-cols-3">
-        <div>
-          <label className="mb-1 block text-xs text-gray-500">ISRC</label>
-          <input
-            name="isrc"
-            defaultValue={track.isrc ?? ""}
-            placeholder="p.ej. CLABC2512345"
-            className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm"
-          />
-          <p className="mt-1 text-xs text-gray-500">
-            Se normaliza en mayúsculas y sin separadores. Deja vacío para borrar (null).
-          </p>
-        </div>
+    <button
+      type="submit"
+      disabled={pending}
+      className="inline-flex items-center justify-center rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-50 hover:bg-zinc-800 disabled:opacity-50"
+    >
+      {pending ? "Guardando…" : "Guardar"}
+    </button>
+  );
+}
 
-        <div>
-          <label className="mb-1 block text-xs text-gray-500">ISWC</label>
-          <input
-            name="iswc"
-            defaultValue={track.iswc ?? ""}
-            placeholder="p.ej. T-123.456.789-0"
-            className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm"
-          />
-          <p className="mt-1 text-xs text-gray-500">
-            Se guarda como string simple (upper/trim); vacío → null.
-          </p>
-        </div>
+export default function IdsForm({ track, updateIds }: IdsFormProps) {
+  return (
+    <form action={updateIds} className="space-y-3">
+      <input type="hidden" name="id" value={track.id} />
 
+      {/* Header sección + botón */}
+      <div className="mb-1 flex items-center justify-between gap-2">
         <div>
-          <label className="mb-1 block text-xs text-gray-500">UPC</label>
-          <input
-            name="upc"
-            defaultValue={track.upc ?? ""}
-            placeholder="p.ej. 887654321098"
-            className="w-full rounded border border-gray-300 px-3 py-1.5 text-sm"
-          />
-          <p className="mt-1 text-xs text-gray-500">
-            String simple; no se valida estrictamente aquí.
+          <h3 className="text-sm font-semibold text-zinc-50">
+            Identificadores
+          </h3>
+          <p className="mt-0.5 text-xs text-zinc-400">
+            ISRC / ISWC / UPC. Se normalizan en el servidor (mayúsculas, trim,
+            vacío → null).
           </p>
         </div>
+        <SubmitButton />
       </div>
 
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={isSaving}
-          className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-          title="Guardar"
-        >
-          {isSaving ? "Guardando…" : "Guardar"}
-        </button>
-        {msg && <span className="text-sm text-gray-600">{msg}</span>}
+      <div className="grid gap-3 md:grid-cols-3">
+        {/* ISRC */}
+        <div className="flex flex-col gap-1">
+          <label htmlFor="isrc" className="text-xs font-medium text-zinc-200">
+            ISRC
+          </label>
+          <input
+            id="isrc"
+            name="isrc"
+            type="text"
+            defaultValue={track.isrc ?? ""}
+            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+            placeholder="CL-XXX-24-00001"
+          />
+          <p className="text-[11px] text-zinc-500">
+            Código de grabación internacional. Se normaliza a mayúsculas y sin espacios/guiones.
+          </p>
+        </div>
+
+        {/* ISWC */}
+        <div className="flex flex-col gap-1">
+          <label htmlFor="iswc" className="text-xs font-medium text-zinc-200">
+            ISWC
+          </label>
+          <input
+            id="iswc"
+            name="iswc"
+            type="text"
+            defaultValue={track.iswc ?? ""}
+            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+            placeholder="T-123.456.789-Z"
+          />
+          <p className="text-[11px] text-zinc-500">
+            Código de composición (obra). Opcional si aún no se ha registrado en una sociedad.
+          </p>
+        </div>
+
+        {/* UPC */}
+        <div className="flex flex-col gap-1">
+          <label htmlFor="upc" className="text-xs font-medium text-zinc-200">
+            UPC / EAN
+          </label>
+          <input
+            id="upc"
+            name="upc"
+            type="text"
+            defaultValue={track.upc ?? ""}
+            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+            placeholder="123456789012"
+          />
+          <p className="text-[11px] text-zinc-500">
+            Identificador del producto (álbum / single) si aplica.
+          </p>
+        </div>
       </div>
     </form>
   );
