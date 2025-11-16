@@ -1,393 +1,417 @@
+// src/app/admin/_components/admin-track-ingest-page.tsx
 /**
- * ┌─────────────────────────────────────────────────────────────────────────────┐
- * │ Admin · Ingesta de audio + creación de Track                               │
- * ├─────────────────────────────────────────────────────────────────────────────┤
- * │ Flujo unificado:                                                           │
- * │  - A) Subir archivo a Cloudflare R2 (Presigned PUT)                        │
- * │  - B) Usar URL pública de audio                                            │
- * │ Luego crea un Track vía POST /api/tracks con audio.url = publicUrl         │
- * └─────────────────────────────────────────────────────────────────────────────┘
+ * AdminTrackIngestPage (componente compartido)
+ *
+ * Rutas donde se usa:
+ *   - /admin/track/new
+ *   - /admin/uploads
+ *
+ * Peras y manzanas:
+ * - Flujo en 3 pasos:
+ *     1) Seleccionar archivo de audio en el disco.
+ *     2) Subirlo a R2 usando /api/uploads/sign (URL firmada).
+ *     3) Crear un Track vía POST /api/tracks con:
+ *          • title, artist, coverUrl
+ *          • moods, uses
+ *          • audioUrl (publicUrl de R2)
+ *          • assetKey, assetMime, assetSize (para gestión/borrado en R2)
+ *
+ * Notas importantes:
+ * - /api/uploads/sign devuelve una URL firmada de tipo PUT (x-id=PutObject).
+ *   Por eso aquí subimos el archivo con fetch(url, { method: "PUT", body: file }).
+ * - No toca nada de análisis ni waveform; sólo ingesta.
  */
+
 "use client";
 
-import { useState } from "react";
+import * as React from "react";
+import { useRouter } from "next/navigation";
 
-type SignResp = {
-  url: string;
-  method: "PUT";
-  headers?: Record<string, string>;
-  assetKey: string;
-  publicUrl: string;
-  expiresIn: number;
+type AdminTrackIngestPageProps = {
+  heading?: string;
+  description?: string;
 };
 
-type Created = { id: string };
+type SignUploadResponse = {
+  url: string;
+  assetKey: string;
+  publicUrl: string;
+  // Para compatibilidad futura dejamos fields opcional,
+  // pero para R2 + PUT no lo usamos.
+  fields?: Record<string, string>;
+};
 
-function parseCSV(input: string): string[] {
-  return input
-    .split(",")
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-}
+type UploadedAsset = {
+  assetKey: string;
+  publicUrl: string;
+  mime: string;
+  size: number;
+};
 
-export default function AdminTrackIngestPage() {
-  // Origen del audio
-  const [file, setFile] = useState<File | null>(null);
-  const [publicUrl, setPublicUrl] = useState<string>("");
-  const [manualUrl, setManualUrl] = useState<string>("");
+export default function AdminTrackIngestPage(
+  props: AdminTrackIngestPageProps,
+) {
+  const router = useRouter();
 
-  // Metadata del track
-  const [title, setTitle] = useState<string>("");
-  const [artist, setArtist] = useState<string>("");
-  const [coverUrl, setCoverUrl] = useState<string>("/images/hero/hero-bg-1.png");
-  const [moodsCSV, setMoodsCSV] = useState<string>("Epic,Emotional,Elegant");
-  const [usesCSV, setUsesCSV] = useState<string>("TV,Cine,Publicidad");
+  // Metadata básica
+  const [title, setTitle] = React.useState("");
+  const [artist, setArtist] = React.useState("");
+  const [coverUrl, setCoverUrl] = React.useState("");
 
-  // Estado / debug
-  const [status, setStatus] = useState<string>("");
-  const [isUploading, setIsUploading] = useState<boolean>(false);
-  const [isCreating, setIsCreating] = useState<boolean>(false);
-  const [created, setCreated] = useState<Created | null>(null);
-  const [echo, setEcho] = useState<any | null>(null);
+  // Moods y usos con valores iniciales útiles (se pueden sobrescribir al tiro)
+  const [moodsInput, setMoodsInput] = React.useState("dark\ncinematic");
+  const [usesInput, setUsesInput] = React.useState("trailer\nserie drama");
+
+  // Archivo local + estado de subida
+  const [file, setFile] = React.useState<File | null>(null);
+  const [uploading, setUploading] = React.useState(false);
+  const [uploadedAsset, setUploadedAsset] = React.useState<UploadedAsset | null>(
+    null,
+  );
+
+  // Creación de track
+  const [creating, setCreating] = React.useState(false);
+  const [statusMsg, setStatusMsg] = React.useState<string | null>(null);
+
+  const heading = props.heading ?? "Ingesta de track";
+  const description =
+    props.description ??
+    "Sube un archivo de audio a R2, completa la metadata básica y crea un track en el catálogo.";
 
   /**
-   * Paso 1: Firma + subida directa por PUT a R2
+   * Normaliza un textarea (comas / líneas) a array de strings únicos.
    */
-  async function signAndUpload() {
+  function toCleanList(input: string): string[] {
+    return Array.from(
+      new Set(
+        input
+          .split(/[\n,]/g)
+          .map((s) => s.trim())
+          .filter(Boolean),
+      ),
+    );
+  }
+
+  /**
+   * Paso 1: seleccionar archivo
+   */
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+
+    setFile(f);
+    setUploadedAsset(null);
+    setStatusMsg(null);
+  }
+
+  /**
+   * Paso 2: subir archivo a R2 usando URL firmada.
+   *
+   * Importante:
+   * - /api/uploads/sign espera un payload con:
+   *     { fileName: string; mime: string; size: number; ... }
+   * - Devuelve una URL firmada de tipo PUT (query con X-Amz-* y x-id=PutObject).
+   * - NO usamos FormData aquí: enviamos el archivo crudo como body del PUT.
+   */
+  async function handleUploadToR2() {
     if (!file) {
-      setStatus("Selecciona un archivo de audio primero.");
+      setStatusMsg("Primero selecciona un archivo de audio.");
       return;
     }
 
-    setStatus("Firmando URL de subida…");
-    setIsUploading(true);
-    setCreated(null);
-    setEcho(null);
-    setPublicUrl("");
+    setUploading(true);
+    setStatusMsg("Solicitando firma de subida…");
+    setUploadedAsset(null);
 
     try {
-      // 1) Solicitar firma
       const signRes = await fetch("/api/uploads/sign", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fileName: file.name,
-          mime: file.type || "audio/mpeg", // debe coincidir con el firmado
+          mime: file.type,
           size: file.size,
-          dir: "audio",
         }),
       });
 
-      const signJson = (await signRes.json().catch(() => ({}))) as Partial<SignResp> & {
-        error?: string;
-      };
-
       if (!signRes.ok) {
-        setStatus(
-          "Error firma: " +
-            (signJson?.error ?? `${signRes.status} ${signRes.statusText}`)
-        );
+        const errText = await signRes.text().catch(() => "");
+        console.error("[AdminTrackIngest] error en /api/uploads/sign:", errText);
+        setStatusMsg("Error al obtener firma de subida.");
         return;
       }
 
-      if (!signJson.url) {
-        setStatus("La firma no devolvió una URL válida.");
+      const signJson = (await signRes.json()) as SignUploadResponse;
+
+      if (!signJson.url || !signJson.assetKey || !signJson.publicUrl) {
+        console.error("[AdminTrackIngest] respuesta de sign incompleta:", signJson);
+        setStatusMsg("Respuesta de firma incompleta (falta assetKey/publicUrl).");
         return;
       }
 
-      // 2) Subir con PUT directo (sin FormData)
-      setStatus("Subiendo a R2…");
+      setStatusMsg("Subiendo archivo a R2…");
 
-      const upRes = await fetch(signJson.url as string, {
+      // ⬇️ AQUÍ ESTABA EL PROBLEMA:
+      //   - Antes: POST + FormData → 403 (firma de PUT no coincide).
+      //   - Ahora: PUT + body: file, con Content-Type alineado al mime usado en la firma.
+      const uploadRes = await fetch(signJson.url, {
         method: "PUT",
-        mode: "cors",
-        credentials: "omit",
         headers: {
-          "Content-Type": file.type || "audio/mpeg",
-          // si quisieras confiar en signJson.headers:
-          // ...(signJson.headers ?? {}),
+          "Content-Type": file.type || "application/octet-stream",
         },
         body: file,
-      }).catch((e) => {
-        console.error("Upload network error:", e);
-        return null;
       });
 
-      if (!upRes) {
-        setStatus("Error de red al subir (CORS o endpoint).");
-        return;
-      }
-
-      // Aceptamos 200/201/204 como éxito
-      if (![200, 201, 204].includes(upRes.status)) {
-        const text = await upRes.text().catch(() => "");
-        console.error("Upload failed:", upRes.status, text);
-        setStatus(
-          `Error subida: HTTP ${upRes.status} ${text || upRes.statusText}`
+      if (!uploadRes.ok) {
+        // El navegador suele bloquear leer el body por CORS,
+        // pero el status nos sirve para debug rápido.
+        console.error(
+          "[AdminTrackIngest] error al subir a R2. status:",
+          uploadRes.status,
+          uploadRes.statusText,
         );
+        setStatusMsg("Error al subir archivo a R2.");
         return;
       }
 
-      const finalUrl = String(signJson.publicUrl || "");
-      if (!finalUrl) {
-        setStatus("Subida OK, pero no llegó publicUrl desde la API.");
-        return;
-      }
+      // Éxito: guardamos metadatos del asset
+      const uploaded: UploadedAsset = {
+        assetKey: signJson.assetKey,
+        publicUrl: signJson.publicUrl,
+        mime: file.type || "audio/*",
+        size: file.size ?? 0,
+      };
 
-      setPublicUrl(finalUrl);
-      setManualUrl(finalUrl);
-      setStatus("Subida OK. URL de audio lista para crear Track.");
+      setUploadedAsset(uploaded);
+      setStatusMsg("Archivo subido a R2 correctamente.");
     } catch (err) {
-      console.error(err);
-      setStatus(
-        err instanceof Error
-          ? err.message
-          : "Error desconocido al firmar/subir archivo."
-      );
+      console.error("[AdminTrackIngest] excepción en subida a R2:", err);
+      setStatusMsg("Error inesperado al subir archivo.");
     } finally {
-      setIsUploading(false);
+      setUploading(false);
     }
   }
 
   /**
-   * Paso 1 alternativa: usar una URL externa manual
+   * Paso 3: crear track en BD vía /api/tracks.
+   *
+   * Requiere:
+   * - título no vacío
+   * - uploadedAsset (assetKey/publicUrl listos)
    */
-  function useManualAudioUrl() {
-    const trimmed = manualUrl.trim();
-    if (!trimmed) {
-      setStatus("Pega primero una URL pública de audio.");
-      return;
-    }
-    setPublicUrl(trimmed);
-    setStatus("Usando URL manual como audio.url.");
-  }
-
-  /**
-   * Paso 2: Crear Track en el backend
-   */
-  async function createTrack() {
-    if (!publicUrl) {
-      setStatus("Falta URL de audio. Sube un archivo o usa una URL pública.");
-      return;
-    }
-    if (!title.trim() || !artist.trim()) {
-      setStatus("Faltan title y/o artist.");
+  async function handleCreateTrack() {
+    if (!title.trim()) {
+      setStatusMsg("El título es obligatorio.");
       return;
     }
 
-    setIsCreating(true);
-    setStatus("Creando track…");
-    setCreated(null);
+    if (!uploadedAsset) {
+      setStatusMsg("Primero sube el archivo a R2 antes de crear el track.");
+      return;
+    }
 
-    const moods = parseCSV(moodsCSV);
-    const uses = parseCSV(usesCSV);
+    setCreating(true);
+    setStatusMsg("Creando track en el catálogo…");
 
-    const payload: any = {
-      title: title.trim(),
-      artist: artist.trim(),
-      audio: { url: publicUrl },
-    };
-
-    if (coverUrl.trim()) payload.coverUrl = coverUrl.trim();
-    if (moods.length) payload.moods = moods;
-    if (uses.length) payload.uses = uses;
-
-    setEcho(payload);
+    const moods = toCleanList(moodsInput);
+    const uses = toCleanList(usesInput);
 
     try {
       const res = await fetch("/api/tracks", {
         method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title.trim(),
+          artist: artist.trim() || null,
+
+          audio: {
+            url: uploadedAsset.publicUrl,
+          },
+
+          coverUrl: coverUrl.trim() || null,
+          moods,
+          uses,
+
+          // Metadatos de asset para R2
+          assetKey: uploadedAsset.assetKey,
+          assetMime: uploadedAsset.mime,
+          assetSize: uploadedAsset.size,
+        }),
       });
 
-      const json = await res.json().catch(() => null);
-
       if (!res.ok) {
-        const msg =
-          (json && (json.error || json.message)) ||
-          `Error al crear track: HTTP ${res.status} ${res.statusText}`;
-        throw new Error(msg);
+        const json = await res.json().catch(() => null);
+        console.error("[AdminTrackIngest] error al crear track:", json ?? res.status);
+        setStatusMsg(
+          json?.error ?? "Error al crear el track. Revisa la consola del servidor.",
+        );
+        return;
       }
 
-      setCreated(json as Created);
-      setStatus(
-        `Track creado correctamente (id: ${(json as any).id ?? "desconocido"})`
-      );
+      const data = await res.json();
+      console.log("[AdminTrackIngest] track creado:", data);
+      setStatusMsg("Track creado correctamente.");
+
+      // Flujo principal: volver al listado técnico
+      router.push("/admin/analyze");
     } catch (err) {
-      console.error(err);
-      setStatus(
-        err instanceof Error
-          ? err.message
-          : "Error desconocido al crear track."
-      );
+      console.error("[AdminTrackIngest] excepción al crear track:", err);
+      setStatusMsg("Error inesperado al crear track.");
     } finally {
-      setIsCreating(false);
+      setCreating(false);
     }
   }
 
-  const disableCreate =
-    !publicUrl || !title.trim() || !artist.trim() || isCreating;
-
   return (
-    <main className="mx-auto flex max-w-4xl flex-col gap-8 p-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-bold">
-          Admin · Ingesta de audio &amp; creación de Track
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Flujo unificado para subir audio (Cloudflare R2) o usar una URL
-          pública y luego crear un Track.
-        </p>
+    <main className="mx-auto w-[80vw] max-w-5xl space-y-6 p-4">
+      {/* Header */}
+      <header className="border-b border-zinc-800 pb-3">
+        <h1 className="text-lg font-semibold text-zinc-50">{heading}</h1>
+        <p className="mt-1 text-xs text-zinc-400">{description}</p>
       </header>
 
-      {/* Origen del audio */}
-      <section className="space-y-4 rounded-md border p-4">
-        <h2 className="text-lg font-semibold">1. Origen del audio</h2>
-
+      <section className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-950/70 p-4">
+        {/* Paso 1 + 2: archivo de audio + subida a R2 */}
         <div className="space-y-2">
-          <p className="text-sm font-medium">A) Subir archivo a Cloudflare R2</p>
+          <label className="block text-xs font-medium text-zinc-200">
+            Archivo de audio
+          </label>
+          <p className="text-[11px] text-zinc-500">
+            Selecciona el master (WAV/AIFF/MP3). El archivo se subirá a
+            Cloudflare R2 y quedará vinculado como asset del track.
+          </p>
           <input
             type="file"
             accept="audio/*"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="block w-full text-sm"
+            onChange={handleFileChange}
+            className="mt-1 block w-full text-xs text-zinc-200 file:mr-2 file:rounded-md file:border file:border-zinc-700 file:bg-zinc-900 file:px-3 file:py-1.5 file:text-xs file:text-zinc-100 hover:file:bg-zinc-800"
           />
-          <button
-            type="button"
-            className="rounded-md border px-3 py-2 text-sm"
-            onClick={signAndUpload}
-            disabled={!file || isUploading}
-          >
-            {isUploading ? "Subiendo…" : "Firmar y subir"}
-          </button>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleUploadToR2}
+              disabled={!file || uploading}
+              className="inline-flex h-8 items-center justify-center rounded-md border border-zinc-700 bg-zinc-900 px-3 text-xs font-medium text-zinc-100 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {uploading ? "Subiendo…" : "Subir a R2"}
+            </button>
+
+            {uploadedAsset && (
+              <span className="text-[11px] text-emerald-400">
+                Asset listo ({uploadedAsset.assetKey})
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <p className="text-sm font-medium">B) Usar una URL pública de audio</p>
-          <input
-            type="url"
-            className="w-full rounded-md border px-3 py-2 text-sm"
-            placeholder="https://tus-assets.com/audio/tema-001.mp3"
-            value={manualUrl}
-            onChange={(e) => setManualUrl(e.target.value)}
-          />
-          <button
-            type="button"
-            className="rounded-md border px-3 py-2 text-sm"
-            onClick={useManualAudioUrl}
-          >
-            Usar URL
-          </button>
-        </div>
-
-        <div className="rounded-md bg-muted p-3 text-xs">
-          <p className="font-medium">URL de audio seleccionada:</p>
-          <p className="break-all">
-            {publicUrl || "— aún no definida —"}
-          </p>
-        </div>
-      </section>
-
-      {/* Metadata del track */}
-      <section className="space-y-4 rounded-md border p-4">
-        <h2 className="text-lg font-semibold">2. Metadata del Track</h2>
-
-        <div className="grid gap-4 md:grid-cols-2">
+        {/* Metadata básica */}
+        <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-1">
-            <label className="block text-sm font-medium">Title *</label>
+            <label className="block text-xs font-medium text-zinc-200">
+              Título
+            </label>
             <input
-              className="w-full rounded-md border px-3 py-2 text-sm"
+              type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Epic Strings 001"
+              className="mt-0.5 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
+              placeholder="Ej: Shifting Shadows"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="block text-sm font-medium">Artist *</label>
+            <label className="block text-xs font-medium text-zinc-200">
+              Artista
+            </label>
             <input
-              className="w-full rounded-md border px-3 py-2 text-sm"
+              type="text"
               value={artist}
               onChange={(e) => setArtist(e.target.value)}
-              placeholder="Lynx Media"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-sm font-medium">
-              Cover URL (opcional)
-            </label>
-            <input
-              className="w-full rounded-md border px-3 py-2 text-sm"
-              value={coverUrl}
-              onChange={(e) => setCoverUrl(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-sm font-medium">
-              Moods (CSV, opcional)
-            </label>
-            <input
-              className="w-full rounded-md border px-3 py-2 text-sm"
-              value={moodsCSV}
-              onChange={(e) => setMoodsCSV(e.target.value)}
-              placeholder="Epic,Emotional,Elegant"
-            />
-          </div>
-
-          <div className="space-y-1 md:col-span-2">
-            <label className="block text-sm font-medium">
-              Uses (CSV, opcional)
-            </label>
-            <input
-              className="w-full rounded-md border px-3 py-2 text-sm"
-              value={usesCSV}
-              onChange={(e) => setUsesCSV(e.target.value)}
-              placeholder="TV,Cine,Publicidad"
+              className="mt-0.5 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
+              placeholder="Ej: Lynx / Dtrip"
             />
           </div>
         </div>
 
-        <button
-          type="button"
-          className="rounded-md border px-4 py-2 text-sm font-medium"
-          onClick={createTrack}
-          disabled={disableCreate}
-        >
-          {isCreating ? "Creando…" : "Crear Track"}
-        </button>
-      </section>
+        {/* Cover URL */}
+        <div className="space-y-1">
+          <label className="block text-xs font-medium text-zinc-200">
+            Cover URL (opcional)
+          </label>
+          <p className="text-[11px] text-zinc-500">
+            URL completa de una imagen de portada. Puede ser un asset estático
+            del sitio o una URL externa.
+          </p>
+          <input
+            type="text"
+            value={coverUrl}
+            onChange={(e) => setCoverUrl(e.target.value)}
+            className="mt-0.5 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
+            placeholder="Ej: https://tu-sitio.com/covers/mi-track.png"
+          />
+        </div>
 
-      {/* Estado y debug */}
-      <section className="space-y-3">
-        {status ? (
-          <div className="rounded-md border border-dashed p-3 text-xs">
-            <p className="font-medium">Estado:</p>
-            <p>{status}</p>
-          </div>
-        ) : null}
-
-        {created ? (
-          <div className="rounded-md border p-3 text-xs">
-            <p className="font-medium">Track creado</p>
-            <p>
-              ID: <span className="font-mono">{created.id}</span>
+        {/* Moods / Uses */}
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-zinc-200">
+              Moods
+            </label>
+            <p className="text-[11px] text-zinc-500">
+              Una entrada por línea o separadas por comas. Ej:{" "}
+              <span className="font-mono">
+                dark, cinematic, tense, hopeful
+              </span>
+              .
             </p>
+            <textarea
+              value={moodsInput}
+              onChange={(e) => setMoodsInput(e.target.value)}
+              rows={3}
+              className="mt-0.5 w-full resize-y rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
+            />
           </div>
-        ) : null}
 
-        {echo ? (
-          <details className="rounded-md border p-3 text-xs">
-            <summary className="cursor-pointer font-medium">
-              Payload enviado a /api/tracks
-            </summary>
-            <pre className="mt-2 max-h-64 overflow-auto text-[11px]">
-              {JSON.stringify(echo, null, 2)}
-            </pre>
-          </details>
-        ) : null}
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-zinc-200">
+              Usos previstos
+            </label>
+            <p className="text-[11px] text-zinc-500">
+              Una entrada por línea o separadas por comas. Ej:{" "}
+              <span className="font-mono">
+                trailer, serie drama, documental, ad tech
+              </span>
+              .
+            </p>
+            <textarea
+              value={usesInput}
+              onChange={(e) => setUsesInput(e.target.value)}
+              rows={3}
+              className="mt-0.5 w-full resize-y rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
+            />
+          </div>
+        </div>
+
+        {/* Footer: estado + botón crear */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-800 pt-3">
+          <p className="text-[11px] text-zinc-500">
+            1) Selecciona archivo · 2) Sube a R2 · 3) Crea track
+          </p>
+          <div className="flex items-center gap-3">
+            {statusMsg && (
+              <span className="text-[11px] text-zinc-400">{statusMsg}</span>
+            )}
+            <button
+              type="button"
+              onClick={handleCreateTrack}
+              disabled={creating}
+              className="inline-flex h-8 items-center justify-center rounded-md border border-emerald-500/70 bg-emerald-600/80 px-3 text-xs font-medium text-emerald-50 hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {creating ? "Creando…" : "Crear track"}
+            </button>
+          </div>
+        </div>
       </section>
     </main>
   );

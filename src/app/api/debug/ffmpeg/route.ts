@@ -1,31 +1,45 @@
-// src/app/api/_debug/ffmpeg/route.ts
+// src/app/api/debug/ffmpeg/route.ts
 /**
- * Endpoint de diagnóstico: muestra qué rutas ve el runtime y si corren `-version`.
- * GET /api/_debug/ffmpeg
+ * Debug FFMPEG desde el runtime de Next.js (dev).
+ *
+ * Peras y manzanas:
+ * - Permite verificar si el proceso de Node que corre Next
+ *   realmente puede ejecutar `ffmpeg -version`.
+ * - NO toca ninguna lógica de tu endpoint de análisis.
+ * - Si hay problema de PATH u otra cosa, nos lo dice en JSON
+ *   sin tirar un uncaughtException.
  */
+
 import { NextResponse } from "next/server";
-import { execa } from "execa";
-import { resolveFfmpegPaths } from "@/server/media/ffmpeg";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export const runtime = "nodejs"; // aseguramos entorno Node, no Edge
 
-async function tryVersion(bin: string) {
-  try {
-    const r = await execa(bin, ["-version"], { timeout: 10_000, windowsHide: true });
-    return { ok: true, firstLine: (r.stdout.split("\n")[0] || "").trim() };
-  } catch (e: any) {
-    return { ok: false, error: String(e?.shortMessage || e?.message || e) };
-  }
-}
+const execFileAsync = promisify(execFile);
 
 export async function GET() {
-  const { ffmpeg, ffprobe } = resolveFfmpegPaths();
-  const a = await tryVersion(ffmpeg);
-  const b = await tryVersion(ffprobe);
-  return NextResponse.json({
-    env: { FFMPEG_PATH: process.env.FFMPEG_PATH || "", FFPROBE_PATH: process.env.FFPROBE_PATH || "" },
-    resolved: { ffmpeg, ffprobe },
-    checks: { ffmpeg: a, ffprobe: b },
-  });
+  try {
+    const { stdout } = await execFileAsync("ffmpeg", ["-version"]);
+
+    return NextResponse.json({
+      ok: true,
+      where: "Next.js runtime",
+      ffmpegVersion: stdout.split("\n")[0] ?? stdout,
+      sample: stdout.slice(0, 500),
+      path: process.env.PATH ?? null,
+    });
+  } catch (err: any) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: String(err?.message ?? err),
+        code: err?.code ?? null,
+        syscall: err?.syscall ?? null,
+        pathTried: "ffmpeg",
+        pathEnv: process.env.PATH ?? null,
+      },
+      { status: 500 },
+    );
+  }
 }

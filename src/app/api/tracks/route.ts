@@ -1,267 +1,153 @@
+// src/app/api/tracks/route.ts
 /**
- * ┌─────────────────────────────────────────────────────────────────────────────┐
- * │ Archivo: src/app/api/tracks/route.ts                                       │
- * ├─────────────────────────────────────────────────────────────────────────────┤
- * │ Qué hace (peras y manzanas)                                                │
- * │ - GET /api/tracks: listado con filtros q/mood/use, order/dir, cursor y     │
- * │   view=list|full; entrega totalCount y fallback suave si falla la BD.      │
- * │ - POST /api/tracks: ahora acepta dos variantes de payload:                  │
- * │     A) { audio: { url: "/audio/demo.mp3" } }                                │
- * │     B) { audioUrl: "/audio/demo.mp3" }                                      │
- * │   y permite rutas relativas ("/audio/…") **o** URLs absolutas.              │
- * │   Normaliza a `audioUrl` y crea el Track en Prisma.                         │
- * └─────────────────────────────────────────────────────────────────────────────┘
+ * API de Tracks (App Router)
+ *
+ * Ruta:
+ *   - POST /api/tracks  → crear track a partir de un payload JSON
+ *   - GET  /api/tracks  → listar tracks (uso general/admin)
+ *
+ * Peras y manzanas:
+ * - POST se usa desde el flujo de ingest (AdminTrackIngestPage):
+ *     • Recibe título, artista, audioUrl (via `audio.url`),
+ *       moods, uses, coverUrl.
+ *     • AHORA también recibe:
+ *         - assetKey: clave interna del objeto en R2/S3
+ *         - assetMime: MIME del archivo subido (ej: audio/wav)
+ *         - assetSize: tamaño en bytes
+ * - Guardamos esos campos en la tabla Track para poder:
+ *     • Construir URLs públicas (getS3PublicUrl) cuando haga falta.
+ *     • Borrar físicamente el asset en R2 usando assetKey.
  */
 
-import { type NextRequest, NextResponse } from "next/server";
-import { PrismaClient, type Prisma } from "@prisma/client";
+import { NextResponse } from "next/server";
 import { z } from "zod";
+import { db } from "@/server/db";
 
-// ───────────────────────────────────────────────────────────────────────────────
-// Prisma Client (singleton en dev)
-// ───────────────────────────────────────────────────────────────────────────────
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    // log: ["error","warn"],
-  });
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
-
-// Forzamos dinámico en App Router
-export const dynamic = "force-dynamic";
-
-// ───────────────────────────────────────────────────────────────────────────────
-// Helpers de querystring para GET
-// ───────────────────────────────────────────────────────────────────────────────
-function getStringArray(sp: URLSearchParams, key: string): string[] {
-  const values = sp.getAll(key).flatMap((v) =>
-    v
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean),
-  );
-  return [...new Set(values)];
-}
-function clamp(n: number, min: number, max: number) {
-  return Math.min(Math.max(n, min), max);
-}
-function parseLimit(sp: URLSearchParams): number {
-  const raw = sp.get("limit");
-  if (!raw) return 20;
-  const parsed = Number.parseInt(raw, 10);
-  if (Number.isNaN(parsed)) return 20;
-  return clamp(parsed, 1, 100);
-}
-function parseOrder(sp: URLSearchParams): Prisma.SortOrder {
-  const dir = sp.get("dir") ?? "desc";
-  return dir === "asc" ? "asc" : "desc";
-}
-function parseOrderField(
-  sp: URLSearchParams,
-): "createdAt" | "title" | "artist" {
-  const order = sp.get("order") ?? "createdAt";
-  return order === "title" || order === "artist" ? order : "createdAt";
-}
-function parseView(sp: URLSearchParams): "list" | "full" {
-  const v = sp.get("view") ?? "list";
-  return v === "full" ? "full" : "list";
-}
-
-// ───────────────────────────────────────────────────────────────────────────────
-// Validación tolerante de URL/Path (acepta absoluta o relativa)
-// ───────────────────────────────────────────────────────────────────────────────
-const urlOrPath = z
-  .string()
-  .min(1)
-  .refine(
-    (s) =>
-      /^https?:\/\//i.test(s) || s.startsWith("/"),
-    'Debe ser URL absoluta ("https://…") o ruta relativa que empiece con "/"',
-  );
-
-// Schema combinado: acepta audioUrl plano o audio.url anidado
-const incomingTrackSchema = z
-  .object({
-    title: z.string().min(1, "title es requerido"),
-    artist: z.string().optional().nullable(),
-    audioUrl: urlOrPath.optional(), // variante B
-    audio: z
-      .object({
-        url: urlOrPath,
-      })
-      .optional(), // variante A
-    coverUrl: urlOrPath.optional().nullable(),
-    moods: z.array(z.string()).optional().default([]),
-    uses: z.array(z.string()).optional().default([]),
-    durationSec: z.number().int().positive().optional(),
-    restrictions: z.array(z.string()).optional().default([]),
-    waveform: z.any().optional(),
-  })
-  .refine(
-    (v) => Boolean(v.audioUrl ?? v.audio?.url),
-    {
-      message: "Debes enviar audioUrl o audio.url",
-      path: ["audioUrl"],
-    },
-  );
-
-// Normalización a shape único para Prisma
-function normalizeIncoming(input: z.infer<typeof incomingTrackSchema>) {
-  const audioUrl = input.audioUrl ?? input.audio?.url ?? null;
-  return {
-    title: input.title,
-    artist: input.artist ?? null,
-    audioUrl, // ← columna real en DB
-    coverUrl: input.coverUrl ?? null,
-    moods: input.moods ?? [],
-    uses: input.uses ?? [],
-    durationSec: input.durationSec ?? null,
-    restrictions: input.restrictions ?? [],
-    waveform: input.waveform ?? null,
-  };
-}
-
-// ───────────────────────────────────────────────────────────────────────────────
-// GET /api/tracks
-// ───────────────────────────────────────────────────────────────────────────────
-export async function GET(req: NextRequest) {
-  const url = new URL(req.url);
-  const sp = url.searchParams;
-
-  const q = sp.get("q")?.trim() || "";
-  const moods = getStringArray(sp, "mood");
-  const uses = getStringArray(sp, "use");
-  const limit = parseLimit(sp);
-  const cursor = sp.get("cursor") ?? null;
-
-  const orderField = parseOrderField(sp);
-  const orderDir = parseOrder(sp);
-  const view = parseView(sp);
-
-  const where: Prisma.TrackWhereInput = {
-    AND: [
-      q
-        ? {
-            OR: [
-              { title: { contains: q, mode: "insensitive" } },
-              { artist: { contains: q, mode: "insensitive" } },
-            ],
-          }
-        : {},
-      moods.length ? { moods: { hasSome: moods } } : {},
-      uses.length ? { uses: { hasSome: uses } } : {},
-    ],
-  };
-
-  const primaryOrder: Prisma.TrackOrderByWithRelationInput =
-    orderField === "createdAt"
-      ? { createdAt: orderDir }
-      : orderField === "title"
-      ? { title: orderDir }
-      : { artist: orderDir };
-
-  const orderBy: Prisma.TrackOrderByWithRelationInput[] = [
-    primaryOrder,
-    { id: "asc" }, // tie-breaker estable
-  ];
-
-  const SELECT_LIST = {
-    id: true,
-    title: true,
-    artist: true,
-    coverUrl: true,
-    moods: true,
-    uses: true,
-  } satisfies Prisma.TrackSelect;
-
-  const select = view === "list" ? SELECT_LIST : undefined;
-
-  try {
-    const [totalCount, rows] = await Promise.all([
-      prisma.track.count({ where }),
-      prisma.track.findMany({
-        where,
-        orderBy,
-        take: limit + 1,
-        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-        ...(select ? { select } : {}),
-      }),
-    ]);
-
-    let nextCursor: string | null = null;
-    let items = rows;
-    if (rows.length > limit) {
-      nextCursor = (rows[rows.length - 1] as { id: string }).id;
-      items = rows.slice(0, limit);
-    }
-
-    if (view === "list") {
-      // Si tienes un schema de salida, valídalo aquí. Si no, respondemos directo.
-      // (Omitido para mantener foco en el POST)
-    }
-
-    return NextResponse.json(
-      { items, nextCursor, totalCount },
-      { status: 200 },
-    );
-  } catch (err) {
-    console.error("GET /api/tracks error:", err);
-    return NextResponse.json(
-      buildFallback("Fallo de base de datos o configuración; mostrando datos de ejemplo."),
-      { status: 200 },
-    );
-  }
-}
-
-// ───────────────────────────────────────────────────────────────────────────────
-/** POST /api/tracks — Acepta:
- *  A) {
- *       "title": "epicooooo",
- *       "artist": "dsiuyfiuoyfds",
- *       "audio": { "url": "/audio/demo.mp3" },
- *       "coverUrl": "/images/hero/hero-bg-1.png",
- *       "moods": ["Epic","Emotional","Elegant"],
- *       "uses":  ["TV","Cine","Publicidad"]
- *     }
- *  B) {
- *       "title": "epicooooo",
- *       "artist": "dsiuyfiuoyfds",
- *       "audioUrl": "/audio/demo.mp3",
- *       "coverUrl": "/images/hero/hero-bg-1.png",
- *       "moods": ["Epic","Emotional","Elegant"],
- *       "uses":  ["TV","Cine","Publicidad"]
- *     }
+/**
+ * Schema del payload entrante para crear track.
+ *
+ * NOTA:
+ * - `audio.url` representa la URL pública del audio (R2 u otra).
+ * - `assetKey` / `assetMime` / `assetSize` son opcionales, pero cuando
+ *   el audio viene de R2 es MUY recomendable enviarlos.
  */
-// ───────────────────────────────────────────────────────────────────────────────
-export async function POST(req: NextRequest) {
+const incomingTrackSchema = z.object({
+  title: z.string().min(1, "El título es obligatorio"),
+  artist: z.string().optional().nullable(),
+
+  audio: z
+    .object({
+      url: z.string().url().optional().nullable(),
+    })
+    .optional()
+    .nullable(),
+
+  coverUrl: z.string().url().optional().nullable(),
+
+  moods: z.array(z.string()).optional(),
+  uses: z.array(z.string()).optional(),
+
+  durationSec: z.number().optional(),
+  restrictions: z.array(z.string()).optional(),
+
+  // Opcional: waveform base64 (no lo usas hoy en ingest, pero lo dejamos)
+  waveform: z.string().optional(),
+
+  // NUEVO: metadatos del asset en R2/S3
+  assetKey: z.string().optional(),
+  assetMime: z.string().optional(),
+  assetSize: z.number().int().nonnegative().optional(),
+});
+
+/**
+ * Normaliza el payload de entrada a algo que Prisma entienda bien.
+ */
+function normalizeIncoming(input: z.infer<typeof incomingTrackSchema>) {
+  const title = input.title.trim();
+  const artist =
+    (input.artist ?? "")
+      .toString()
+      .trim() || null;
+
+  const audioUrl =
+    input.audio?.url?.toString().trim() || null;
+
+  const coverUrl =
+    (input.coverUrl ?? "")
+      .toString()
+      .trim() || null;
+
+  const moods = (input.moods ?? []).map((m) => m.trim()).filter(Boolean);
+  const uses = (input.uses ?? []).map((u) => u.trim()).filter(Boolean);
+
+  const durationSec =
+    typeof input.durationSec === "number" ? input.durationSec : null;
+
+  const restrictions = (input.restrictions ?? [])
+    .map((r) => r.trim())
+    .filter(Boolean);
+
+  // Waveform opcional en base64 → Buffer
+  let waveform: Buffer | null = null;
+  if (input.waveform && input.waveform.trim().length > 0) {
+    try {
+      waveform = Buffer.from(input.waveform.trim(), "base64");
+    } catch (err) {
+      console.warn(
+        "[api/tracks] waveform base64 inválido; se ignora el campo.",
+        err,
+      );
+    }
+  }
+
+  // NUEVO: metadatos de asset en R2/S3
+  const assetKey =
+    (input.assetKey ?? "")
+      .toString()
+      .trim() || "";
+
+  const assetMime =
+    (input.assetMime ?? "")
+      .toString()
+      .trim() || "";
+
+  const assetSize =
+    typeof input.assetSize === "number" && input.assetSize >= 0
+      ? input.assetSize
+      : 0;
+
+  return {
+    title,
+    artist,
+    audioUrl,
+    coverUrl,
+    moods,
+    uses,
+    durationSec,
+    restrictions,
+    waveform,
+    assetKey,
+    assetMime,
+    assetSize,
+  };
+}
+
+/**
+ * POST /api/tracks
+ * Crea un track nuevo.
+ */
+export async function POST(req: Request) {
   try {
     const json = await req.json();
-
     const parsed = incomingTrackSchema.safeParse(json);
+
     if (!parsed.success) {
+      console.error("[api/tracks:POST] payload inválido:", parsed.error);
       return NextResponse.json(
         {
-          error: "Invalid payload",
-          details: parsed.error.flatten(),
-          examples: {
-            variantA: {
-              title: "Track Title",
-              artist: "Artist",
-              audio: { url: "/audio/demo.mp3" },
-              coverUrl: "/images/cover.png",
-              moods: ["Epic"],
-              uses: ["TV"],
-            },
-            variantB: {
-              title: "Track Title",
-              artist: "Artist",
-              audioUrl: "/audio/demo.mp3",
-              coverUrl: "/images/cover.png",
-              moods: ["Epic"],
-              uses: ["TV"],
-            },
-          },
+          ok: false,
+          error: "Payload inválido",
+          issues: parsed.error.flatten(),
         },
         { status: 400 },
       );
@@ -269,15 +155,7 @@ export async function POST(req: NextRequest) {
 
     const data = normalizeIncoming(parsed.data);
 
-    // Si quieres **exigir** audioUrl no nulo, valida aquí:
-    if (!data.audioUrl) {
-      return NextResponse.json(
-        { error: "audioUrl es requerido (o audio.url)" },
-        { status: 400 },
-      );
-    }
-
-    const created = await prisma.track.create({
+    const created = await db.track.create({
       data: {
         title: data.title,
         artist: data.artist,
@@ -288,42 +166,50 @@ export async function POST(req: NextRequest) {
         durationSec: data.durationSec ?? undefined,
         restrictions: data.restrictions,
         waveform: data.waveform as any,
+
+        // NUEVO: metadatos del asset en R2
+        assetKey: data.assetKey,
+        assetMime: data.assetMime,
+        assetSize: data.assetSize,
       },
-      select: { id: true },
     });
 
-    return NextResponse.json({ id: created.id }, { status: 201 });
+    return NextResponse.json(
+      {
+        ok: true,
+        track: {
+          id: created.id,
+          title: created.title,
+          artist: created.artist,
+        },
+      },
+      { status: 201 },
+    );
   } catch (err) {
-    console.error("POST /api/tracks error:", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    console.error("[api/tracks:POST] error inesperado:", err);
+    return NextResponse.json(
+      { ok: false, error: "Error interno al crear track" },
+      { status: 500 },
+    );
   }
 }
 
-// ───────────────────────────────────────────────────────────────────────────────
-// Fallback de demostración para GET
-// ───────────────────────────────────────────────────────────────────────────────
-function buildFallback(warning: string) {
-  return {
-    items: [
-      {
-        id: "demo-001",
-        title: "Demo Epic Orchestral",
-        artist: "Lynx Music Collective",
-        coverUrl: "/images/hero/hero-bg-1.png",
-        moods: ["Epic", "Emotional", "Elegant"],
-        uses: ["TV", "Cine", "Publicidad"],
-      },
-      {
-        id: "demo-002",
-        title: "Urban Night Drive",
-        artist: "Lynx Music Collective",
-        coverUrl: "/images/hero/hero-bg-2.png",
-        moods: ["Dark", "Stylish"],
-        uses: ["Publicidad", "Fashion"],
-      },
-    ],
-    nextCursor: null,
-    totalCount: 2,
-    warning,
-  };
+/**
+ * GET /api/tracks
+ * Listado simple de tracks (puede servir para debugging o vistas futuras).
+ */
+export async function GET() {
+  try {
+    const tracks = await db.track.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json({ ok: true, tracks });
+  } catch (err) {
+    console.error("[api/tracks:GET] error inesperado:", err);
+    return NextResponse.json(
+      { ok: false, error: "Error interno al listar tracks" },
+      { status: 500 },
+    );
+  }
 }

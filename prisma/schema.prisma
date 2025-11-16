@@ -38,12 +38,18 @@ model Track {
   moods    String[] // requiere Postgres
   uses     String[]
 
+  // Derechos / licensing
+  master           String?
+  publishingSplit  String?   // JSON resumen opcional (legacy/compat)
+  writerName       String?   // Ej: "Diego Fernández"
+  writerSharePct   Int?      // Ej: 50 (representa 50%)
+  publisherName    String?   // Ej: "Lynx Publishing"
+  publisherSharePct Int?     // Ej: 50
+
   // Identificadores / derechos (MVP)
   isrc               String?
   iswc               String?
   upc                String?
-  master             String?
-  publishingSplit    String?
   licenseType        String?
   territories        String?
   term               String?
