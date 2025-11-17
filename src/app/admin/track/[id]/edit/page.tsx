@@ -23,8 +23,8 @@ import Link from "next/link";
 
 import { db } from "@/server/db";
 import PublicAudioBar from "@/components/public/PublicAudioBar";
-import CreativeForm from "@/components/admin/CreativeForm";
-import IdsForm from "@/components/admin/IdsForm";
+import CreativeForm from "@/components/admin/track/CreativeForm";
+import IdsForm from "@/components/admin/track/IdsForm";
 import RightsFormClient from "@/components/admin/track/RightsFormClient";
 import { getS3PublicUrl } from "@/lib/storage/s3";
 import { TrackAnalyzeHeaderButtons } from "@/components/admin/AnalyzeActions";
@@ -126,7 +126,11 @@ function parsePublishingSplit(raw: string | null) {
   return { writerName, writerSharePct, publisherName, publisherSharePct };
 }
 
-export default async function AdminTrackEditPage({ params }: { params: Params }) {
+export default async function AdminTrackEditPage({
+  params,
+}: {
+  params: Params;
+}) {
   // Soporta params síncrono y Promise (patrón Next 15)
   const p =
     "then" in (params as any)
@@ -182,7 +186,15 @@ export default async function AdminTrackEditPage({ params }: { params: Params })
       restrictions: true,
 
       // Publishing (guardado como string o JSON, según schema)
-      publishingSplit: true,
+      // publishingSplit: true,
+      publishingShares: {
+        select: {
+          role: true,
+          name: true,
+          ipiNumber: true,
+          sharePct: true,
+        },
+      },
     },
   });
 
@@ -192,7 +204,7 @@ export default async function AdminTrackEditPage({ params }: { params: Params })
 
   const publicSrc = track.assetKey
     ? getS3PublicUrl(track.assetKey)
-    : track.audioUrl ?? null;
+    : (track.audioUrl ?? null);
 
   const waveformB64 = track.waveform
     ? bytesToBase64(track.waveform as any)
@@ -200,12 +212,11 @@ export default async function AdminTrackEditPage({ params }: { params: Params })
 
   const restrictionsStr = (track.restrictions ?? []).join("\n");
 
-  const {
-    writerName,
-    writerSharePct,
-    publisherName,
-    publisherSharePct,
-  } = parsePublishingSplit(track.publishingSplit ?? null);
+  const primaryWriter =
+    track.publishingShares.find((s) => s.role === "WRITER") ?? null;
+
+  const primaryPublisher =
+    track.publishingShares.find((s) => s.role === "PUBLISHER") ?? null;
 
   // ----------------- Server Actions (secciones) -----------------
 
@@ -390,39 +401,44 @@ export default async function AdminTrackEditPage({ params }: { params: Params })
               </p>
             )}
 
+            {/* Identificadores clave (solo lectura) */}
+            {/* <div className="mt-2 grid gap-2 rounded-md border border-zinc-800 bg-zinc-950/80 p-2">
+              <div>
+                <div className="text-[11px] tracking-wide text-zinc-500 uppercase">
+                  ISRC
+                </div>
+                <div className="font-mono text-xs break-all text-zinc-100">
+                  {track.isrc ?? "—"}
+                </div>
+              </div>
+            </div> */}
+
             {/* Ficha técnica básica del archivo */}
             <div className="grid gap-2 rounded-lg border border-zinc-800 bg-zinc-950/80 p-3 text-xs text-zinc-200 md:grid-cols-4">
               <div className="rounded-md border border-zinc-800 bg-zinc-900/70 p-2">
-                <div className="text-[10px] uppercase tracking-wide text-zinc-500">
-                  Duración
+                <div className="text-[10px] tracking-wide text-zinc-500 uppercase">
+                  ISRC
                 </div>
-                <div>
-                  {typeof track.durationSec === "number"
-                    ? `${track.durationSec.toFixed(2)} s`
-                    : "–"}
+                <div className="">{(track.isrc ?? "—").trim().toUpperCase()}</div>
+              </div>
+
+              <div className="rounded-md border border-zinc-800 bg-zinc-900/70 p-2">
+                <div className="text-[10px] tracking-wide text-zinc-500 uppercase">
+                  ISWC
                 </div>
+                <div className="">{(track.iswc ?? "—").trim().toUpperCase()}</div>
               </div>
               <div className="rounded-md border border-zinc-800 bg-zinc-900/70 p-2">
-                <div className="text-[10px] uppercase tracking-wide text-zinc-500">
-                  Sample Rate
+                <div className="text-[10px] tracking-wide text-zinc-500 uppercase">
+                  TIPO DE LICENCIA
                 </div>
-                <div>
-                  {track.sampleRateHz ? `${track.sampleRateHz} Hz` : "–"}
-                </div>
+                <div className="">{(track.licenseType ?? "—").trim().toUpperCase()}</div>
               </div>
               <div className="rounded-md border border-zinc-800 bg-zinc-900/70 p-2">
-                <div className="text-[10px] uppercase tracking-wide text-zinc-500">
-                  Canales
+                <div className="text-[10px] tracking-wide text-zinc-500 uppercase">
+                  COMPOSITOR
                 </div>
-                <div>{track.channels ?? "–"}</div>
-              </div>
-              <div className="rounded-md border border-zinc-800 bg-zinc-900/70 p-2">
-                <div className="text-[10px] uppercase tracking-wide text-zinc-500">
-                  Bitrate
-                </div>
-                <div>
-                  {track.bitrateKbps ? `${track.bitrateKbps} kbps` : "–"}
-                </div>
+                <div className="">{(primaryWriter?.name ?? "—").trim().toUpperCase()}</div>
               </div>
             </div>
           </div>
@@ -436,7 +452,9 @@ export default async function AdminTrackEditPage({ params }: { params: Params })
             {techHasAnalysis ? (
               <dl className="grid grid-cols-2 gap-2">
                 <div>
-                  <dt className="text-[11px] text-zinc-500">Loudness (I)</dt>
+                  <dt className="text-[11px] font-black text-zinc-400">
+                    Loudness (I)
+                  </dt>
                   <dd className="font-mono text-xs">
                     {typeof track.loudnessLufs === "number"
                       ? `${track.loudnessLufs.toFixed(2)} LUFS`
@@ -444,9 +462,7 @@ export default async function AdminTrackEditPage({ params }: { params: Params })
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-[11px] text-zinc-500">
-                    Loudness Range
-                  </dt>
+                  <dt className="text-[11px] text-zinc-500">Loudness Range</dt>
                   <dd className="font-mono text-xs">
                     {typeof track.loudnessRangeLu === "number"
                       ? `${track.loudnessRangeLu.toFixed(2)} LU`
@@ -461,10 +477,33 @@ export default async function AdminTrackEditPage({ params }: { params: Params })
                       : "–"}
                   </dd>
                 </div>
+
                 <div>
-                  <dt className="text-[11px] text-zinc-500">
-                    Último análisis
-                  </dt>
+                  <dt className="text-[11px] text-zinc-500">Duración</dt>
+                  <dd className="font-mono text-xs">
+                    {typeof track.durationSec === "number"
+                      ? `${track.durationSec.toFixed(2)} s`
+                      : "–"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[11px] text-zinc-500">Sample Rate</dt>
+                  <dd className="font-mono text-xs">
+                    {typeof track.sampleRateHz === "number"
+                      ? `${track.sampleRateHz.toFixed(2)} Hz`
+                      : "–"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[11px] text-zinc-500">Bitrate</dt>
+                  <dd className="font-mono text-xs">
+                    {typeof track.bitrateKbps === "number"
+                      ? `${track.bitrateKbps.toFixed(2)} kbps`
+                      : "–"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[11px] text-zinc-500">Último análisis</dt>
                   <dd className="font-mono text-[11px]">
                     {track.analysisAt
                       ? new Date(track.analysisAt).toLocaleString()
@@ -501,7 +540,7 @@ export default async function AdminTrackEditPage({ params }: { params: Params })
           <h2 className="text-base font-semibold text-zinc-50">
             Metadata creativa &amp; identificadores
           </h2>
-          <p className="mb-3 mt-1 text-xs text-zinc-400">
+          <p className="mt-1 mb-3 text-xs text-zinc-400">
             Ajusta contenido creativo (título, artista, moods, usos) e
             identificadores industriales (ISRC, ISWC, UPC), junto con los
             derechos de explotación y publishing, desde un mismo panel.
@@ -556,10 +595,15 @@ export default async function AdminTrackEditPage({ params }: { params: Params })
                 contentIdWhitelist: track.contentIdWhitelist ?? "",
                 master: track.master ?? "",
                 restrictionsStr,
-                writerName,
-                writerSharePct,
-                publisherName,
-                publisherSharePct,
+
+                // PUBLISHING
+                writerName: primaryWriter?.name ?? "",
+                writerSharePct: primaryWriter?.sharePct ?? null,
+                writerIpiNumber: primaryWriter?.ipiNumber ?? "",
+
+                publisherName: primaryPublisher?.name ?? "",
+                publisherSharePct: primaryPublisher?.sharePct ?? null,
+                publisherIpiNumber: primaryPublisher?.ipiNumber ?? "",
               }}
             />
           </div>

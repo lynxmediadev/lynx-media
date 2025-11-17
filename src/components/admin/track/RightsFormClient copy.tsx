@@ -26,7 +26,6 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { updateRights } from "@/app/admin/track/[id]/rights/actions";
-import FormField from "../ui/FormField";
 
 type RightsTrackFormProps = {
   track: {
@@ -41,16 +40,10 @@ type RightsTrackFormProps = {
     contentIdWhitelist: string;
     master: string;
     restrictionsStr: string;
-
-    // PUBLISHING
-    // WRITER
     writerName: string;
     writerSharePct: number | null;
-    writerIpiNumber: string;
-    // PUBLISHER
     publisherName: string;
     publisherSharePct: number | null;
-    publisherIpiNumber: string;
   };
 };
 
@@ -140,145 +133,133 @@ export default function RightsFormClient({ track }: RightsTrackFormProps) {
       {/* BLOQUE SUPERIOR: Licencia & alcance / Master & publishing */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Sub-sección izquierda: Licencia & alcance */}
-        <div className="space-y-1 rounded-lg border border-zinc-800 bg-zinc-950/70 p-3">
+        <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-950/70 p-3">
+          
+          
           <h3 className="text-sm font-semibold text-zinc-50">
             Licencia &amp; alcance
           </h3>
-          <p className="mb-3 text-[11px] text-zinc-500">
+          <p className="text-[11px] text-zinc-500">
             Define el marco general de explotación del master para este track:
             tipo de licencia, territorios, plazo y si está pensado para paid
             media.
           </p>
 
           {/* Fila 1: licencia + plazo (columna izquierda) / territorios + media buy (columna derecha) */}
-          <div className="grid gap-4 md:grid-cols-1">
-            {/* Tipo de licencia */}
-            <FormField
-              htmlFor="licenseType"
-              label="Tipo de licencia"
-              descriptionPosition="above"
-              description={
-                <>
-                  Ej: <span className="font-mono">Exclusive sync</span>,{" "}
+          <div className="grid gap-3 md:grid-cols-1">
+            <div className="space-y-2">
+              {/* licenseType */}
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-zinc-200">
+                  Tipo de licencia
+                </label>
+                <p className="text-[11px] text-zinc-500">
+                  Ej:{" "}
+                  <span className="font-mono">Exclusive sync</span>,{" "}
                   <span className="font-mono">Non-exclusive sync</span>,{" "}
                   <span className="font-mono">Custom buyout</span>.
-                </>
-              }
-            >
-              <input
-                id="licenseType"
-                name="licenseType"
-                type="text"
-                defaultValue={track.licenseType}
-                className="mt-0.5 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
-                placeholder="Ej: Exclusive sync para este catálogo"
-              />
-            </FormField>
+                </p>
+                <input
+                  type="text"
+                  name="licenseType"
+                  defaultValue={track.licenseType}
+                  className="mt-0.5 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
+                  placeholder="Ej: Exclusive sync para este catálogo"
+                />
+              </div>
 
-            {/* Plazo (term) */}
-            <FormField
-              htmlFor="term"
-              label="Plazo (term)"
-              descriptionPosition="above"
-              description={
-                <>
+              {/* term */}
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-zinc-200">
+                  Plazo (term)
+                </label>
+                <p className="text-[11px] text-zinc-500">
                   Ej: <span className="font-mono">Perpetual</span>,{" "}
                   <span className="font-mono">5 years from first use</span>,{" "}
                   <span className="font-mono">1 year</span>.
-                </>
-              }
-            >
-              <input
-                id="term"
-                name="term"
-                type="text"
-                defaultValue={track.term}
-                className="mt-0.5 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
-                placeholder="Ej: Perpetual para usos aprobados"
-              />
-            </FormField>
+                </p>
+                <input
+                  type="text"
+                  name="term"
+                  defaultValue={track.term}
+                  className="mt-0.5 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
+                  placeholder="Ej: Perpetual para usos aprobados"
+                />
+              </div>
+            </div>
 
-            {/* territories */}
-            <FormField
-              htmlFor="territories"
-              label="Territorios"
-              descriptionPosition="above"
-              description={
-                <>
+            <div className="space-y-2">
+              {/* territories */}
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-zinc-200">
+                  Territorios
+                </label>
+                <p className="text-[11px] text-zinc-500">
                   Ej: <span className="font-mono">World</span>,{" "}
                   <span className="font-mono">LATAM</span>,{" "}
                   <span className="font-mono">Chile only</span>.
-                </>
-              }
-            >
-              <input
-                id="territories"
-                name="territories"
-                type="text"
-                defaultValue={track.territories}
-                className="mt-0.5 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
-                placeholder="Ej: World (salvo exclusiones específicas)"
-              />
-            </FormField>
+                </p>
+                <input
+                  type="text"
+                  name="territories"
+                  defaultValue={track.territories}
+                  className="mt-0.5 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
+                  placeholder="Ej: World (salvo exclusiones específicas)"
+                />
+              </div>
 
-            {/* mediaBuy */}
-            <FormField
-              htmlFor="mediaBuy"
-              label="Media buy / Paid media"
-              descriptionPosition="above"
-              description={
-                <>
+              {/* mediaBuy */}
+              <div className="space-y-1">
+                <label className="block text-xs font-medium text-zinc-200">
+                  Media buy / Paid media
+                </label>
+                <p className="text-[11px] text-zinc-500">
                   Ej: <span className="font-mono">No paid media</span>,{" "}
-                  <span className="font-mono">Digital only (Meta/YouTube)</span>
-                  , <span className="font-mono">TV + Digital</span>.
-                </>
-              }
-            >
-              <input
-                id="mediaBuy"
-                name="mediaBuy"
-                type="text"
-                defaultValue={track.mediaBuy}
-                className="mt-0.5 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
-                placeholder="Ej: Digital only, sin TV abierta"
-              />
-            </FormField>
+                  <span className="font-mono">Digital only (Meta/YouTube)</span>,{" "}
+                  <span className="font-mono">TV + Digital</span>.
+                </p>
+                <input
+                  type="text"
+                  name="mediaBuy"
+                  defaultValue={track.mediaBuy}
+                  className="mt-0.5 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
+                  placeholder="Ej: Digital only, sin TV abierta"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Fila 2: MFN + Content ID enrolled, uno bajo el otro */}
+          
         </div>
 
         {/* Sub-sección derecha: Master & publishing */}
-        <div className="space-y-1 rounded-lg border border-zinc-800 bg-zinc-950/70 p-3">
+        <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-950/70 p-3">
           <h3 className="text-sm font-semibold text-zinc-50">
             Master &amp; publishing
           </h3>
-          <p className="mb-3 text-[11px] text-zinc-500">
+          <p className="text-[11px] text-zinc-500">
             Define quién controla el master y cómo se reparte el publishing
             entre writer y publisher.
           </p>
 
           {/* Master */}
-          <FormField
-            htmlFor="master"
-            label="Master (titular)"
-            descriptionPosition="above"
-            description={
-              <>
-                Ej: <span className="font-mono">Lynx Media 100%</span>,{" "}
-                <span className="font-mono">Lynx 50% / Cliente 50%</span>.
-              </>
-            }
-          >
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-zinc-200">
+              Master (titular)
+            </label>
+            <p className="text-[11px] text-zinc-500">
+              Ej: <span className="font-mono">Lynx Media 100%</span>,{" "}
+              <span className="font-mono">Lynx 50% / Cliente 50%</span>.
+            </p>
             <input
-              id="master"
-              name="master"
               type="text"
+              name="master"
               defaultValue={track.master}
               className="mt-0.5 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
               placeholder="Ej: Lynx Media 100% master ownership"
             />
-          </FormField>
+          </div>
 
           {/* Publishing split */}
           <div className="space-y-2 pt-1">
@@ -300,67 +281,35 @@ export default function RightsFormClient({ track }: RightsTrackFormProps) {
                 <p className="text-[11px] font-semibold text-emerald-400">
                   Writer
                 </p>
-
-                <FormField
-                  htmlFor="writerName"
-                  label="Nombre / entidad"
-                  descriptionPosition="above"
-                  description={<></>}
-                >
+                <div className="space-y-1">
+                  <label className="block text-[11px] text-zinc-300">
+                    Nombre / entidad
+                  </label>
                   <input
-                    id="writerName"
-                    name="writerName"
                     type="text"
+                    name="writerName"
                     defaultValue={track.writerName}
                     className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
                     placeholder="Ej: Diego Fernández (writer)"
                   />
-                </FormField>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {/* % (entero) */}
-                  <div className="space-y-1">
-                    <label
-                      htmlFor="writerSharePct"
-                      className="block text-[11px] text-zinc-300"
-                    >
-                      % (entero)
-                    </label>
-                    <div className="relative">
-                      <input
-                        id="writerSharePct"
-                        name="writerSharePct"
-                        type="text"
-                        defaultValue={
-                          track.writerSharePct !== null
-                            ? track.writerSharePct
-                            : ""
-                        }
-                        className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 pr-6 text-right text-xs text-zinc-50 placeholder:text-zinc-500 focus:outline-none"
-                        placeholder="50"
-                      />
-                      <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[11px] text-zinc-400">
-                        %
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* IPI Number */}
-                  <div className="space-y-1 border-l border-zinc-800 pl-3">
-                    <label
-                      htmlFor="writerIpiNumber"
-                      className="block text-[11px] text-zinc-300"
-                    >
-                      IPI Number
-                    </label>
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-[11px] text-zinc-300">
+                    % (entero)
+                  </label>
+                  <div className="flex items-center gap-1">
                     <input
-                      id="writerIpiNumber"
-                      name="writerIpiNumber"
-                      type="text"
-                      defaultValue={track.writerIpiNumber}
-                      className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500 focus:outline-none"
-                      placeholder="Ej: 12345678901"
+                      type="number"
+                      name="writerSharePct"
+                      defaultValue={
+                        track.writerSharePct !== null
+                          ? track.writerSharePct
+                          : ""
+                      }
+                      className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
+                      placeholder="Ej: 50"
                     />
+                    <span className="text-[11px] text-zinc-400">%</span>
                   </div>
                 </div>
               </div>
@@ -370,72 +319,38 @@ export default function RightsFormClient({ track }: RightsTrackFormProps) {
                 <p className="text-[11px] font-semibold text-sky-400">
                   Publisher
                 </p>
-
-                <FormField
-                  htmlFor="publisherName"
-                  label="Nombre / entidad"
-                  descriptionPosition="above"
-                  description={<></>}
-                >
+                <div className="space-y-1">
+                  <label className="block text-[11px] text-zinc-300">
+                    Nombre / entidad
+                  </label>
                   <input
-                    id="publisherName"
-                    name="publisherName"
                     type="text"
+                    name="publisherName"
                     defaultValue={track.publisherName}
                     className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
                     placeholder="Ej: Lynx Publishing"
                   />
-                </FormField>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {/* % (entero) */}
-                  <div className="space-y-1">
-                    <label
-                      htmlFor="publisherSharePct"
-                      className="block text-[11px] text-zinc-300"
-                    >
-                      % (entero)
-                    </label>
-                    <div className="relative">
-                      <input
-                        id="publisherSharePct"
-                        name="publisherSharePct"
-                        type="text"
-                        defaultValue={
-                          track.publisherSharePct !== null
-                            ? track.publisherSharePct
-                            : ""
-                        }
-                        className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 pr-6 text-right text-xs text-zinc-50 placeholder:text-zinc-500 focus:outline-none"
-                        placeholder="50"
-                      />
-                      <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[11px] text-zinc-400">
-                        %
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* IPI Number */}
-                  <div className="space-y-1 border-l border-zinc-800 pl-3">
-                    <label
-                      htmlFor="publisherIpiNumber"
-                      className="block text-[11px] text-zinc-300"
-                    >
-                      IPI Number
-                    </label>
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-[11px] text-zinc-300">
+                    % (entero)
+                  </label>
+                  <div className="flex items-center gap-1">
                     <input
-                      id="publisherIpiNumber"
-                      name="publisherIpiNumber"
-                      type="text"
-                      defaultValue={track.publisherIpiNumber}
-                      className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500 focus:outline-none"
-                      placeholder="Ej: 12345678901"
+                      type="number"
+                      name="publisherSharePct"
+                      defaultValue={
+                        track.publisherSharePct !== null
+                          ? track.publisherSharePct
+                          : ""
+                      }
+                      className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
+                      placeholder="Ej: 50"
                     />
+                    <span className="text-[11px] text-zinc-400">%</span>
                   </div>
                 </div>
               </div>
-
-              
             </div>
           </div>
           <div className="space-y-2 pt-1">
@@ -444,8 +359,8 @@ export default function RightsFormClient({ track }: RightsTrackFormProps) {
               <div className="flex items-center gap-2">
                 <input
                   id="mfn"
-                  name="mfn"
                   type="checkbox"
+                  name="mfn"
                   defaultChecked={track.mfn}
                   className="h-3.5 w-3.5 flex-shrink-0 rounded border-zinc-600 bg-zinc-900 text-zinc-100"
                 />
@@ -496,79 +411,68 @@ export default function RightsFormClient({ track }: RightsTrackFormProps) {
       {/* BLOQUE INFERIOR: Content ID & administración / Restricciones */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Sub-sección izquierda: Content ID & administración */}
-        <div className="space-y-1 rounded-lg border border-zinc-800 bg-zinc-950/70 p-3">
+        <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-950/70 p-3">
           <h3 className="text-sm font-semibold text-zinc-50">
             Content ID &amp; administración
           </h3>
-          <p className="mb-3 text-[11px] text-zinc-500">
-            Define quién administra Content ID y qué canales deben estar exentos
-            de reclamaciones (whitelist).
+          <p className="text-[11px] text-zinc-500">
+            Define quién administra Content ID y qué canales deben estar
+            exentos de reclamaciones (whitelist).
           </p>
 
-          {/* Admin Content ID - contentIdAdmin */}
-          <FormField
-            htmlFor="contentIdAdmin"
-            label="Admin Content ID"
-            descriptionPosition="above"
-            className="mb-5"
-            description={
-              <>
-                Quién administra Content ID. Ej:{" "}
-                <span className="font-mono">Identifyy</span>,{" "}
-                <span className="font-mono">HAWWK</span>,{" "}
-                <span className="font-mono">Propietario directo</span>.
-              </>
-            }
-          >
+          {/* contentIdAdmin */}
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-zinc-200">
+              Admin Content ID
+            </label>
+            <p className="text-[11px] text-zinc-500">
+              Quién administra Content ID. Ej:{" "}
+              <span className="font-mono">Identifyy</span>,{" "}
+              <span className="font-mono">HAWWK</span>,{" "}
+              <span className="font-mono">Propietario directo</span>.
+            </p>
             <input
-              id="contentIdAdmin"
-              name="contentIdAdmin"
               type="text"
+              name="contentIdAdmin"
               defaultValue={track.contentIdAdmin}
               className="mt-0.5 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
               placeholder="Ej: Identifyy como administrador de Content ID"
             />
-          </FormField>
+          </div>
 
           {/* contentIdWhitelist */}
-
-          <FormField
-            htmlFor="contentIdWhitelist"
-            label="Whitelist Content ID"
-            descriptionPosition="above"
-            description={
-              <>
-                Canales o cuentas excluidas de reclamaciones. Una por línea o
-                separadas por comas. Ej: nombres de canales de clientes, tu
-                propio canal, etc.
-              </>
-            }
-          >
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-zinc-200">
+              Whitelist Content ID
+            </label>
+            <p className="text-[11px] text-zinc-500">
+              Canales o cuentas excluidas de reclamaciones. Una por línea o
+              separadas por comas. Ej: nombres de canales de clientes, tu
+              propio canal, etc.
+            </p>
             <textarea
-              id="contentIdWhitelist"
               name="contentIdWhitelist"
               defaultValue={track.contentIdWhitelist}
               rows={4}
               className="mt-0.5 w-full resize-y rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
-              placeholder={`Ej: lynxmediaofficial
+              placeholder={`Ej:
+lynxmediaofficial
 cliente_marca_tv
 cliente_youtube_channel`}
             />
-          </FormField>
+          </div>
         </div>
 
         {/* Sub-sección derecha: Restricciones de uso */}
-
-        <div className="space-y-1 rounded-lg border border-zinc-800 bg-zinc-950/70 p-3">
+        <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-950/70 p-3">
           <h3 className="text-sm font-semibold text-zinc-50">
             Restricciones de uso
           </h3>
-          <p className="mb-3 text-[11px] text-zinc-500">
+          <p className="text-[11px] text-zinc-500">
             Indica usos que NO están permitidos para este master. Una
             restricción por línea.
           </p>
           <textarea
-            id="restrictions"
             name="restrictions"
             defaultValue={track.restrictionsStr}
             rows={8}

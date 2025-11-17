@@ -39,12 +39,22 @@ model Track {
   uses     String[]
 
   // Derechos / licensing
-  master           String?
-  publishingSplit  String?   // JSON resumen opcional (legacy/compat)
-  writerName       String?   // Ej: "Diego Fernández"
-  writerSharePct   Int?      // Ej: 50 (representa 50%)
-  publisherName    String?   // Ej: "Lynx Publishing"
-  publisherSharePct Int?     // Ej: 50
+  master          String?
+  publishingSplit String? // JSON resumen opcional (legacy/compat)
+  
+  // Publishing Share
+  publishingShares PublishingShare[]
+
+
+  // // Writer
+  // writerName      String? // Ej: "Diego Fernández"
+  // writerSharePct  Int? // Ej: 50 (representa 50%)
+  // writerIpiNumber String?
+
+  // // Publisher
+  // publisherName      String? // Ej: "Lynx Publishing"
+  // publisherSharePct  Int? // Ej: 50
+  // publisherIpiNumber String?
 
   // Identificadores / derechos (MVP)
   isrc               String?
@@ -87,6 +97,27 @@ model Track {
   @@index([uses], type: Gin) // ← nuevo
 }
 
+enum PublishingRole {
+  WRITER
+  PUBLISHER
+}
+
+model PublishingShare {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relación con Track
+  trackId String
+  track   Track   @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  role      PublishingRole // WRITER o PUBLISHER
+  name      String         // Nombre/entidad
+  ipiNumber String?        // IPI opcional
+  sharePct  Int?           // 0–100 (puede ser null mientras no se complete)
+  // pro      String?      // (si quieres agregar luego la sociedad PRO)
+}
+
 
 // ───────────────────────────────────────────────────────────────────────────────
 // Modelo para almacenar solicitudes de licencias desde el formulario D3
@@ -105,8 +136,6 @@ enum Currency {
 // - No tocamos nada más del modelo para mantenerlo minimal.
 // ───────────────────────────────────────────────────────────────────────────────
 
-
-
 enum RequestStatus {
   NEW
   IN_REVIEW
@@ -116,28 +145,28 @@ enum RequestStatus {
 }
 
 model LicensingRequest {
-  id               String   @id @default(cuid())
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    // Responsable (owner) de la gestión comercial de esta solicitud
+  // Responsable (owner) de la gestión comercial de esta solicitud
   assignee String?
 
   // Solicitante
-  name             String
-  email            String
-  company          String?
+  name    String
+  email   String
+  company String?
 
   // Proyecto
-  projectType      String
-  media            String?
-  territories      String?
-  term             String?
-  budgetAmount     Int?
-  budgetCurrency   Currency?
-  mfn              Boolean  @default(false)
-  needWhitelist    Boolean  @default(false)
-  notes            String?
+  projectType    String
+  media          String?
+  territories    String?
+  term           String?
+  budgetAmount   Int?
+  budgetCurrency Currency?
+  mfn            Boolean   @default(false)
+  needWhitelist  Boolean   @default(false)
+  notes          String?
 
   // Contexto de track
   trackId          String
@@ -148,32 +177,28 @@ model LicensingRequest {
   uses             String[]
   restrictions     String[]
 
-  pageUrl          String?
+  pageUrl String?
 
   // Respaldo del JSON completo (auditoría)
-  rawPayload       Json?
+  rawPayload Json?
 
   // Estado del pipeline (mínimo viable para gestión)
   status RequestStatus @default(NEW)
 
-  @@index([createdAt, status])
-  @@index([assignee])
-  
   /// Notas internas de gestión (no se envían al cliente)
   internalNotes String? @db.Text
 
   /// Prioridad de gestión comercial
-  priority        RequestPriority @default(MEDIUM)
+  priority RequestPriority @default(MEDIUM)
 
   /// Próximo seguimiento (fecha/hora local convertida a UTC)
-  nextFollowUpAt  DateTime?
+  nextFollowUpAt DateTime?
 
+  @@index([createdAt, status])
+  @@index([assignee])
   @@index([priority])
   @@index([nextFollowUpAt])
-
 }
-
-
 
 // ───────────────────────────────────────────────────────────────────────────────
 // Prisma: Seguimiento mínimo (prioridad + próximo follow-up)
@@ -188,5 +213,3 @@ enum RequestPriority {
   MEDIUM
   HIGH
 }
-
-

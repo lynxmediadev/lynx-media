@@ -2,124 +2,230 @@
 /**
  * Server action para actualizar "Derechos & explotación" de un track.
  *
- * Se usa tanto en:
+ * Ruta:
  *   - /admin/track/[id]/rights
  *   - /admin/track/[id]/edit
  *
  * Peras y manzanas:
- * - Actualiza licencia, territorios, plazo, media buy, MFN, Content ID, master,
- *   restricciones y el Publishing split (writer/publisher) empaquetado en
- *   Track.publishingSplit como JSON.
+ * - Actualiza:
+ *     • Licencia, territorios, plazo, media buy, MFN.
+ *     • Master (titular del master).
+ *     • Content ID (enrolled + admin + whitelist).
+ *     • Restricciones de uso (como string[] en Track.restrictions).
+ *     • Publishing split (Writer / Publisher) usando solo la tabla
+ *       `PublishingShare` (fuente de verdad).
  */
 
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { PublishingRole } from "@prisma/client";
 import { db } from "@/server/db";
 
-export async function updateRights(formData: FormData) {
+type UpdateRightsResult = {
+  ok: boolean;
+  message: string;
+};
+
+/** Normaliza string opcional → string | null (vacío → null) */
+function normalizeSimple(raw: FormDataEntryValue | null): string | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  return trimmed.length ? trimmed : null;
+}
+
+/** Normaliza int opcional → number | null */
+function normalizeNullableInt(raw: FormDataEntryValue | null): number | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const n = Number(trimmed);
+  return Number.isNaN(n) ? null : n;
+}
+
+/** Normaliza checkbox HTML ("on" → true) */
+function normalizeCheckbox(raw: FormDataEntryValue | null): boolean {
+  return raw === "on";
+}
+
+/**
+ * Convierte el textarea de restricciones en string[] para Prisma.
+ * - Recibe el valor crudo del form.
+ * - Lo separa por líneas.
+ * - trim().
+ * - Filtra líneas vacías.
+ */
+function normalizeRestrictionsList(
+  raw: FormDataEntryValue | null,
+): string[] {
+  if (typeof raw !== "string") return [];
+  return raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+}
+
+/**
+ * Server Action principal.
+ *
+ * Recibe el FormData del formulario de RightsFormClient y:
+ * - Actualiza campos de Track.
+ * - Reemplaza completamente los PublishingShare (writer/publisher) de ese track.
+ */
+export async function updateRights(
+  formData: FormData,
+): Promise<UpdateRightsResult> {
   try {
-    const id = (formData.get("id") as string | null)?.trim();
-    if (!id) {
-      return { ok: false, message: "ID de track inválido" };
+    // -----------------------------------------------------------------------
+    // 1) ID del track
+    // -----------------------------------------------------------------------
+    const rawId = formData.get("id");
+    if (!rawId || typeof rawId !== "string") {
+      console.error(
+        "[track:rights:updateRights] id inválido en FormData:",
+        rawId,
+      );
+      return {
+        ok: false,
+        message: "ID de track inválido al guardar derechos.",
+      };
     }
+    const trackId = rawId;
 
-    // -------- Campos básicos de licencia / alcance --------
-    const licenseType =
-      (formData.get("licenseType") as string | null)?.trim() || null;
-    const territories =
-      (formData.get("territories") as string | null)?.trim() || null;
-    const term = (formData.get("term") as string | null)?.trim() || null;
-    const mediaBuy =
-      (formData.get("mediaBuy") as string | null)?.trim() || null;
+    // -----------------------------------------------------------------------
+    // 2) Campos de Track (licencia, territorios, master, etc.)
+    // -----------------------------------------------------------------------
+    const licenseType = normalizeSimple(formData.get("licenseType"));
+    const territories = normalizeSimple(formData.get("territories"));
+    const term = normalizeSimple(formData.get("term"));
+    const mediaBuy = normalizeSimple(formData.get("mediaBuy"));
 
-    // -------- Master --------
-    const master = (formData.get("master") as string | null)?.trim() || null;
+    const mfn = normalizeCheckbox(formData.get("mfn"));
+    const master = normalizeSimple(formData.get("master"));
 
-    // -------- MFN / Content ID (booleanos) --------
-    const mfn = formData.get("mfn") === "on";
-    const contentIdEnrolled = formData.get("contentIdEnrolled") === "on";
+    const contentIdEnrolled = normalizeCheckbox(
+      formData.get("contentIdEnrolled"),
+    );
+    const contentIdAdmin = normalizeSimple(formData.get("contentIdAdmin"));
+    const contentIdWhitelist = normalizeSimple(
+      formData.get("contentIdWhitelist"),
+    );
 
-    // -------- Admin / whitelist Content ID --------
-    const contentIdAdmin =
-      (formData.get("contentIdAdmin") as string | null)?.trim() || null;
-    const contentIdWhitelist =
-      (formData.get("contentIdWhitelist") as string | null)?.trim() || null;
+    // 🔴 IMPORTANTE: restricciones es string[] en Prisma
+    const restrictionsList = normalizeRestrictionsList(
+      formData.get("restrictions"),
+    );
 
-    // -------- Restricciones (array de strings) --------
-    const restrictionsRaw =
-      (formData.get("restrictions") as string | null) ?? "";
-    const restrictions = restrictionsRaw
-      .split(/\r?\n/)
-      .map((s) => s.trim())
-      .filter(Boolean);
+    // -----------------------------------------------------------------------
+    // 3) Campos de Publishing (Writer / Publisher)
+    // -----------------------------------------------------------------------
+    const writerName = normalizeSimple(formData.get("writerName")) ?? "";
+    const writerSharePct = normalizeNullableInt(
+      formData.get("writerSharePct"),
+    );
+    const writerIpiNumber = normalizeSimple(
+      formData.get("writerIpiNumber"),
+    ); // string | null
 
-    // -------- Publishing split (writer / publisher) --------
-    const writerName =
-      (formData.get("writerName") as string | null)?.trim() ?? "";
     const publisherName =
-      (formData.get("publisherName") as string | null)?.trim() ?? "";
+      normalizeSimple(formData.get("publisherName")) ?? "";
+    const publisherSharePct = normalizeNullableInt(
+      formData.get("publisherSharePct"),
+    );
+    const publisherIpiNumber = normalizeSimple(
+      formData.get("publisherIpiNumber"),
+    ); // string | null
 
-    const writerShareRaw =
-      (formData.get("writerSharePct") as string | null)?.trim() ?? "";
-    const publisherShareRaw =
-      (formData.get("publisherSharePct") as string | null)?.trim() ?? "";
+    // -----------------------------------------------------------------------
+    // 4) Preparamos las filas de PublishingShare que vamos a crear
+    // -----------------------------------------------------------------------
+    const sharesToCreate: {
+      role: PublishingRole;
+      name: string;
+      ipiNumber: string | null;
+      sharePct: number | null;
+    }[] = [];
 
-    const writerSharePct = writerShareRaw
-      ? Number.parseInt(writerShareRaw, 10)
-      : null;
-    const publisherSharePct = publisherShareRaw
-      ? Number.parseInt(publisherShareRaw, 10)
-      : null;
-
-    type SplitSide = { name: string; sharePct: number | null };
-
-    const publishingSplitObj: {
-      writer?: SplitSide;
-      publisher?: SplitSide;
-    } = {};
-
-    if (writerName || writerSharePct !== null) {
-      publishingSplitObj.writer = {
+    // Writer principal
+    if (writerName || writerSharePct !== null || writerIpiNumber) {
+      sharesToCreate.push({
+        role: PublishingRole.WRITER,
         name: writerName,
+        ipiNumber: writerIpiNumber,
         sharePct: writerSharePct,
-      };
+      });
     }
 
-    if (publisherName || publisherSharePct !== null) {
-      publishingSplitObj.publisher = {
+    // Publisher principal
+    if (publisherName || publisherSharePct !== null || publisherIpiNumber) {
+      sharesToCreate.push({
+        role: PublishingRole.PUBLISHER,
         name: publisherName,
+        ipiNumber: publisherIpiNumber,
         sharePct: publisherSharePct,
-      };
+      });
     }
 
-    const publishingSplit =
-      publishingSplitObj.writer || publishingSplitObj.publisher
-        ? JSON.stringify(publishingSplitObj)
-        : null;
+    // -----------------------------------------------------------------------
+    // 5) Transacción:
+    //    - Actualizar Track.
+    //    - Borrar PublishingShare previos (WRITER/PUBLISHER).
+    //    - Crear los nuevos.
+    // -----------------------------------------------------------------------
+    const tx = [];
 
-    // -------- Escritura en BD --------
-    await db.track.update({
-      where: { id },
-      data: {
-        licenseType,
-        territories,
-        term,
-        mediaBuy,
-        master,
-        mfn,
-        contentIdEnrolled,
-        contentIdAdmin,
-        contentIdWhitelist,
-        restrictions,
-        publishingSplit,
-      },
-      select: { id: true },
-    });
+    // 5.1) Actualizar Track
+    tx.push(
+      db.track.update({
+        where: { id: trackId },
+        data: {
+          licenseType,
+          territories,
+          term,
+          mediaBuy,
+          mfn,
+          master,
+          contentIdEnrolled,
+          contentIdAdmin,
+          contentIdWhitelist,
+          restrictions: restrictionsList, // ✅ AHORA ES string[]
+        },
+        select: { id: true },
+      }),
+    );
 
-    // Revalidamos las vistas que usan estos datos
-    revalidatePath(`/admin/track/${id}/edit`);
-    revalidatePath(`/admin/track/${id}/rights`);
+    // 5.2) Borrar shares existentes de este track (solo WRITER/PUBLISHER)
+    tx.push(
+      db.publishingShare.deleteMany({
+        where: {
+          trackId,
+          role: { in: [PublishingRole.WRITER, PublishingRole.PUBLISHER] },
+        },
+      }),
+    );
+
+    // 5.3) Crear nuevas filas si corresponde
+    if (sharesToCreate.length > 0) {
+      tx.push(
+        db.publishingShare.createMany({
+          data: sharesToCreate.map((s) => ({
+            trackId,
+            role: s.role,
+            name: s.name,
+            ipiNumber: s.ipiNumber,
+            sharePct: s.sharePct,
+          })),
+        }),
+      );
+    }
+
+    await db.$transaction(tx);
+
+    // -----------------------------------------------------------------------
+    // 6) Revalidar rutas relacionadas
+    // -----------------------------------------------------------------------
+    revalidatePath(`/admin/track/${trackId}/edit`);
+    revalidatePath(`/admin/track/${trackId}/rights`);
     revalidatePath("/admin/analyze");
 
     return { ok: true, message: "Derechos actualizados" };

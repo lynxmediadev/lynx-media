@@ -22,7 +22,7 @@
 
 import { notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import CreativeForm from "@/components/admin/CreativeForm";
+import CreativeForm from "@/components/admin/track/CreativeForm";
 import { db } from "@/server/db";
 
 export const dynamic = "force-dynamic"; // ← forzamos evaluación dinámica en cada request

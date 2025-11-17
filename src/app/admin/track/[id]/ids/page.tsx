@@ -13,7 +13,7 @@
 
 import { notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import IdsForm from "@/components/admin/IdsForm";
+import IdsForm from "@/components/admin/track/IdsForm";
 import { db } from "@/server/db";
 
 type Props = {
