@@ -15,15 +15,17 @@
  */
 
 import * as React from "react";
+import clsx from "clsx";
 
 type FormFieldProps = {
+  htmlFor?: string;
   label: React.ReactNode;
   description?: React.ReactNode;
-  children: React.ReactNode;
+  descriptionPosition?: "above" | "below";
   className?: string;
   titleClass?: string;
-  htmlFor?: string;
-  descriptionPosition?: "above" | "below";
+  children: React.ReactNode;
+  error?: string | null; // NUEVO: mensaje de error por campo
 };
 
 export default function FormField({
@@ -34,12 +36,15 @@ export default function FormField({
   className,
   htmlFor,
   descriptionPosition = "above",
+  error,
 }: FormFieldProps) {
+  const rootClassName = clsx("space-y-1", className);
+
   return (
-    <div className={`space-y-1 ${className ?? ""}`}>
+    <div className={rootClassName}>
       <label
         htmlFor={htmlFor}
-        className={`block ${titleClass ?? "text-xs font-medium text-zinc-200"}`}
+        className="block text-[11px] font-medium text-zinc-300"
       >
         {label}
       </label>
@@ -49,6 +54,9 @@ export default function FormField({
       )}
 
       {children}
+
+      {/* Mensaje de error, si existe */}
+      {error && <p className="mt-1 text-[11px] text-red-400">{error}</p>}
 
       {description && descriptionPosition === "below" && (
         <p className="text-[11px] text-zinc-500">{description}</p>

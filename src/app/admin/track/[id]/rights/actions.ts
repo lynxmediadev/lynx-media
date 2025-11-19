@@ -21,11 +21,14 @@
 import { revalidatePath } from "next/cache";
 import { PublishingRole } from "@prisma/client";
 import { db } from "@/server/db";
+import { rightsFormSchema, type RightsFormValues } from "@/lib/validation/trackSchemas";
 
 type UpdateRightsResult = {
   ok: boolean;
   message: string;
+  fieldErrors?: Record<string, string[]>;
 };
+
 
 /** Normaliza string opcional → string | null (vacío → null) */
 function normalizeSimple(raw: FormDataEntryValue | null): string | null {
@@ -75,66 +78,55 @@ function normalizeRestrictionsList(
 export async function updateRights(
   formData: FormData,
 ): Promise<UpdateRightsResult> {
-  try {
+    try {
     // -----------------------------------------------------------------------
-    // 1) ID del track
+    // 1) Validar & normalizar el FormData con Zod
     // -----------------------------------------------------------------------
-    const rawId = formData.get("id");
-    if (!rawId || typeof rawId !== "string") {
-      console.error(
-        "[track:rights:updateRights] id inválido en FormData:",
-        rawId,
-      );
+    const rawObject = Object.fromEntries(formData.entries());
+
+    const parsed = rightsFormSchema.safeParse(rawObject);
+
+    if (!parsed.success) {
+      const fieldErrors = parsed.error.flatten().fieldErrors;
       return {
-        ok: false,
-        message: "ID de track inválido al guardar derechos.",
+        ok: false as const,
+        message: "Hay errores de validación en Derechos & explotación.",
+        fieldErrors,
       };
     }
-    const trackId = rawId;
+
+    const data: RightsFormValues = parsed.data;
+
+    const trackId = data.id;
 
     // -----------------------------------------------------------------------
     // 2) Campos de Track (licencia, territorios, master, etc.)
-    // -----------------------------------------------------------------------
-    const licenseType = normalizeSimple(formData.get("licenseType"));
-    const territories = normalizeSimple(formData.get("territories"));
-    const term = normalizeSimple(formData.get("term"));
-    const mediaBuy = normalizeSimple(formData.get("mediaBuy"));
-
-    const mfn = normalizeCheckbox(formData.get("mfn"));
-    const master = normalizeSimple(formData.get("master"));
-
-    const contentIdEnrolled = normalizeCheckbox(
-      formData.get("contentIdEnrolled"),
-    );
-    const contentIdAdmin = normalizeSimple(formData.get("contentIdAdmin"));
-    const contentIdWhitelist = normalizeSimple(
-      formData.get("contentIdWhitelist"),
-    );
-
-    // 🔴 IMPORTANTE: restricciones es string[] en Prisma
-    const restrictionsList = normalizeRestrictionsList(
-      formData.get("restrictions"),
-    );
+    //    (YA normalizados por Zod)
+// -----------------------------------------------------------------------
+    const {
+      licenseType,
+      territories,
+      term,
+      mediaBuy,
+      mfn,
+      master,
+      contentIdEnrolled,
+      contentIdAdmin,
+      contentIdWhitelist,
+      restrictions,
+      writerName,
+      writerSharePct,
+      writerIpiNumber,
+      publisherName,
+      publisherSharePct,
+      publisherIpiNumber,
+    } = data;
 
     // -----------------------------------------------------------------------
     // 3) Campos de Publishing (Writer / Publisher)
-    // -----------------------------------------------------------------------
-    const writerName = normalizeSimple(formData.get("writerName")) ?? "";
-    const writerSharePct = normalizeNullableInt(
-      formData.get("writerSharePct"),
-    );
-    const writerIpiNumber = normalizeSimple(
-      formData.get("writerIpiNumber"),
-    ); // string | null
+    //    (seguimos usando la misma lógica de creación de PublishingShare)
+// -----------------------------------------------------------------------
 
-    const publisherName =
-      normalizeSimple(formData.get("publisherName")) ?? "";
-    const publisherSharePct = normalizeNullableInt(
-      formData.get("publisherSharePct"),
-    );
-    const publisherIpiNumber = normalizeSimple(
-      formData.get("publisherIpiNumber"),
-    ); // string | null
 
     // -----------------------------------------------------------------------
     // 4) Preparamos las filas de PublishingShare que vamos a crear
@@ -188,7 +180,7 @@ export async function updateRights(
           contentIdEnrolled,
           contentIdAdmin,
           contentIdWhitelist,
-          restrictions: restrictionsList, // ✅ AHORA ES string[]
+          restrictions: restrictions, // ✅ AHORA ES string[]
         },
         select: { id: true },
       }),

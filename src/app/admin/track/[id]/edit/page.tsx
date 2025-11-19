@@ -31,6 +31,13 @@ import { TrackAnalyzeHeaderButtons } from "@/components/admin/AnalyzeActions";
 import { DeleteTrackButton } from "@/components/admin/track/DeleteTrackButton.client";
 import { deleteObjectFromS3 } from "@/lib/storage/delete-object";
 
+import {
+  creativeFormSchema,
+  idsFormSchema,
+  type CreativeFormValues,
+  type IdsFormValues,
+} from "@/lib/validation/trackSchemas";
+
 export const dynamic = "force-dynamic";
 
 type Params = { id: string } | Promise<{ id: string }>;
@@ -41,7 +48,7 @@ function bytesToBase64(buf: Buffer | Uint8Array | null): string | null {
   return Buffer.from(buf).toString("base64");
 }
 
-/** Normaliza lista desde textarea o input (comas / saltos de línea) → array único */
+/** Normaliza lista desde textarea o input (comas / saltos de línea) → array único, UPPERCASE */
 function toCleanList(input: string | null | undefined): string[] {
   if (!input) return [];
   return Array.from(
@@ -49,7 +56,8 @@ function toCleanList(input: string | null | undefined): string[] {
       input
         .split(/[\n,]/g)
         .map((s) => s.trim())
-        .filter((s) => s.length > 0),
+        .filter((s) => s.length > 0)
+        .map((s) => s.toUpperCase()),
     ),
   );
 }
@@ -222,53 +230,121 @@ export default async function AdminTrackEditPage({
 
   async function updateCreative(formData: FormData) {
     "use server";
-    try {
-      const title = (formData.get("title") as string | null)?.trim() || null;
-      const artist = (formData.get("artist") as string | null)?.trim() || null;
-      const moods = toCleanList(formData.get("moods") as string | null);
-      const uses = toCleanList(formData.get("uses") as string | null);
 
+    try {
+      // 1) Tomamos los valores crudos del FormData
+      const raw = {
+        title: formData.get("title"),
+        artist: formData.get("artist"),
+        moods: formData.get("moods"),
+        uses: formData.get("uses"),
+      };
+
+      // 2) Validamos & normalizamos con Zod
+      const parsed = creativeFormSchema.safeParse(raw);
+
+      if (!parsed.success) {
+        const fieldErrors = parsed.error.flatten().fieldErrors;
+        // Peras y manzanas:
+        // - No actualizamos nada en BD.
+        // - Devolvemos errores por campo para que el cliente pueda mostrarlos.
+        return {
+          ok: false as const,
+          message: "Hay errores de validación en el formulario creativo.",
+          fieldErrors,
+        };
+      }
+
+      const data: CreativeFormValues = parsed.data;
+
+      // 3) Persistimos en Prisma con datos ya normalizados
       await db.track.update({
         where: { id: track.id },
-        data: { title, artist, moods, uses },
+        data: {
+          title: data.title,
+          artist: data.artist,
+          moods: data.moods,
+          uses: data.uses,
+        },
         select: { id: true },
       });
 
+      // 4) Revalidamos rutas relacionadas
       revalidatePath(`/admin/track/${track.id}/edit`);
       revalidatePath(`/admin/track/${track.id}/creative`);
       revalidatePath(`/admin/analyze`);
 
-      return { ok: true, message: "Guardado" };
+      return {
+        ok: true as const,
+        message: "Guardado",
+        fieldErrors: {},
+      };
     } catch (err) {
       console.error("[track:edit:updateCreative] fatal:", err);
-      return { ok: false, message: "Error al guardar" };
+      return {
+        ok: false as const,
+        message: "Error al guardar",
+      };
     }
   }
 
   async function updateIds(formData: FormData) {
     "use server";
-    try {
-      const isrc = normalizeISRC(formData.get("isrc") as string | null);
-      const iswc = normalizeSimple(formData.get("iswc") as string | null);
-      const upc = normalizeSimple(formData.get("upc") as string | null);
 
+    try {
+      // 1) Valores crudos del FormData
+      const raw = {
+        isrc: formData.get("isrc"),
+        iswc: formData.get("iswc"),
+        upc: formData.get("upc"),
+      };
+
+      // 2) Validación & normalización con Zod
+      const parsed = idsFormSchema.safeParse(raw);
+
+      if (!parsed.success) {
+        const fieldErrors = parsed.error.flatten().fieldErrors;
+        return {
+          ok: false as const,
+          message: "Hay errores de validación en los identificadores.",
+          fieldErrors,
+        };
+      }
+
+      const data: IdsFormValues = parsed.data;
+
+      // 3) Persistir en Prisma con datos ya normalizados
       await db.track.update({
         where: { id: track.id },
-        data: { isrc, iswc, upc },
+        data: {
+          isrc: data.isrc,
+          iswc: data.iswc,
+          upc: data.upc,
+        },
         select: { id: true },
       });
 
+      // 4) Revalidar rutas relacionadas
       revalidatePath(`/admin/track/${track.id}/edit`);
       revalidatePath(`/admin/track/${track.id}/ids`);
       revalidatePath(`/admin/analyze`);
 
-      return { ok: true, message: "Identificadores actualizados" };
+      return {
+        ok: true as const,
+        message: "Identificadores actualizados",
+        fieldErrors: {},
+      };
     } catch (err) {
       console.error("[track:edit:updateIds] fatal:", err);
-      return { ok: false, message: "Error al guardar" };
+      return {
+        ok: false as const,
+        message: "Error al guardar",
+      };
     }
   }
 
+
+  
   /**
    * Server Action para eliminar track.
    *
@@ -401,44 +477,40 @@ export default async function AdminTrackEditPage({
               </p>
             )}
 
-            {/* Identificadores clave (solo lectura) */}
-            {/* <div className="mt-2 grid gap-2 rounded-md border border-zinc-800 bg-zinc-950/80 p-2">
-              <div>
-                <div className="text-[11px] tracking-wide text-zinc-500 uppercase">
-                  ISRC
-                </div>
-                <div className="font-mono text-xs break-all text-zinc-100">
-                  {track.isrc ?? "—"}
-                </div>
-              </div>
-            </div> */}
-
             {/* Ficha técnica básica del archivo */}
             <div className="grid gap-2 rounded-lg border border-zinc-800 bg-zinc-950/80 p-3 text-xs text-zinc-200 md:grid-cols-4">
               <div className="rounded-md border border-zinc-800 bg-zinc-900/70 p-2">
                 <div className="text-[10px] tracking-wide text-zinc-500 uppercase">
                   ISRC
                 </div>
-                <div className="">{(track.isrc ?? "—").trim().toUpperCase()}</div>
+                <div className="">
+                  {(track.isrc ?? "—").trim().toUpperCase()}
+                </div>
               </div>
 
               <div className="rounded-md border border-zinc-800 bg-zinc-900/70 p-2">
                 <div className="text-[10px] tracking-wide text-zinc-500 uppercase">
                   ISWC
                 </div>
-                <div className="">{(track.iswc ?? "—").trim().toUpperCase()}</div>
+                <div className="">
+                  {(track.iswc ?? "—").trim().toUpperCase()}
+                </div>
               </div>
               <div className="rounded-md border border-zinc-800 bg-zinc-900/70 p-2">
                 <div className="text-[10px] tracking-wide text-zinc-500 uppercase">
                   TIPO DE LICENCIA
                 </div>
-                <div className="">{(track.licenseType ?? "—").trim().toUpperCase()}</div>
+                <div className="">
+                  {(track.licenseType ?? "—").trim().toUpperCase()}
+                </div>
               </div>
               <div className="rounded-md border border-zinc-800 bg-zinc-900/70 p-2">
                 <div className="text-[10px] tracking-wide text-zinc-500 uppercase">
                   COMPOSITOR
                 </div>
-                <div className="">{(primaryWriter?.name ?? "—").trim().toUpperCase()}</div>
+                <div className="">
+                  {(primaryWriter?.name ?? "—").trim().toUpperCase()}
+                </div>
               </div>
             </div>
           </div>
@@ -462,7 +534,9 @@ export default async function AdminTrackEditPage({
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-[11px] text-zinc-500">Loudness Range</dt>
+                  <dt className="text-[11px] font-black text-zinc-400">
+                    Loudness Range
+                  </dt>
                   <dd className="font-mono text-xs">
                     {typeof track.loudnessRangeLu === "number"
                       ? `${track.loudnessRangeLu.toFixed(2)} LU`
@@ -470,7 +544,9 @@ export default async function AdminTrackEditPage({
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-[11px] text-zinc-500">True Peak</dt>
+                  <dt className="text-[11px] font-black text-zinc-400">
+                    True Peak
+                  </dt>
                   <dd className="font-mono text-xs">
                     {typeof track.truePeakDbfs === "number"
                       ? `${track.truePeakDbfs.toFixed(2)} dBFS`
@@ -479,7 +555,9 @@ export default async function AdminTrackEditPage({
                 </div>
 
                 <div>
-                  <dt className="text-[11px] text-zinc-500">Duración</dt>
+                  <dt className="text-[11px] font-black text-zinc-400">
+                    Duración
+                  </dt>
                   <dd className="font-mono text-xs">
                     {typeof track.durationSec === "number"
                       ? `${track.durationSec.toFixed(2)} s`
@@ -487,7 +565,9 @@ export default async function AdminTrackEditPage({
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-[11px] text-zinc-500">Sample Rate</dt>
+                  <dt className="text-[11px] font-black text-zinc-400">
+                    Sample Rate
+                  </dt>
                   <dd className="font-mono text-xs">
                     {typeof track.sampleRateHz === "number"
                       ? `${track.sampleRateHz.toFixed(2)} Hz`
@@ -495,7 +575,9 @@ export default async function AdminTrackEditPage({
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-[11px] text-zinc-500">Bitrate</dt>
+                  <dt className="text-[11px] font-black text-zinc-400">
+                    Bitrate
+                  </dt>
                   <dd className="font-mono text-xs">
                     {typeof track.bitrateKbps === "number"
                       ? `${track.bitrateKbps.toFixed(2)} kbps`
@@ -503,7 +585,9 @@ export default async function AdminTrackEditPage({
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-[11px] text-zinc-500">Último análisis</dt>
+                  <dt className="text-[11px] font-black text-zinc-400">
+                    Último análisis
+                  </dt>
                   <dd className="font-mono text-[11px]">
                     {track.analysisAt
                       ? new Date(track.analysisAt).toLocaleString()

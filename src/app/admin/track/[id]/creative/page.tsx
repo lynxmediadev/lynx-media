@@ -32,15 +32,13 @@ type Props = {
 };
 
 // Helper porque Next 15 a veces entrega params como Promise
-async function readParams(
-  params: Props["params"],
-): Promise<{ id: string }> {
+async function readParams(params: Props["params"]): Promise<{ id: string }> {
   return "then" in (params as any)
     ? await (params as Promise<{ id: string }>)
     : (params as { id: string });
 }
 
-// Convierte “texto con comas o saltos de línea” → array único, sin vacíos ni duplicados
+// Convierte “texto con comas o saltos de línea” → array único, UPPERCASE, sin vacíos ni duplicados
 function toCleanList(input: string | null | undefined): string[] {
   if (!input) return [];
   return Array.from(
@@ -48,7 +46,8 @@ function toCleanList(input: string | null | undefined): string[] {
       input
         .split(/[\n,]/g)
         .map((s) => s.trim())
-        .filter(Boolean),
+        .filter(Boolean)
+        .map((s) => s.toUpperCase()),
     ),
   );
 }
@@ -64,7 +63,7 @@ export default async function CreativePage({ params }: Props) {
       title: true,
       artist: true,
       moods: true, // string[] o JSON en tu esquema
-      uses: true,  // string[] o JSON en tu esquema
+      uses: true, // string[] o JSON en tu esquema
       updatedAt: true, // ← Prisma @updatedAt (lo usamos para key)
     },
   });
@@ -81,7 +80,7 @@ export default async function CreativePage({ params }: Props) {
 
       // Moods/Uses vienen como texto (comas/saltos de línea) → lista limpia
       const moods = toCleanList(formData.get("moods") as string | null);
-      const uses  = toCleanList(formData.get("uses") as string | null);
+      const uses = toCleanList(formData.get("uses") as string | null);
 
       // Guardamos. Si en tu esquema moods/uses son JSONB, string[] funciona como InputJsonValue
       await db.track.update({
@@ -106,13 +105,18 @@ export default async function CreativePage({ params }: Props) {
       <header>
         <h1 className="text-xl font-semibold">Creativo</h1>
         <p className="text-sm text-gray-500">
-          Edición de título, artista, moods y uses (para mejorar búsqueda/descubrimiento).
+          Edición de título, artista, moods y uses (para mejorar
+          búsqueda/descubrimiento).
         </p>
       </header>
 
       {/* CLAVE: forzamos el remount del formulario cuando cambia updatedAt */}
       <CreativeForm
-        key={track.updatedAt ? new Date(track.updatedAt).toISOString() : "no-updatedAt"}
+        key={
+          track.updatedAt
+            ? new Date(track.updatedAt).toISOString()
+            : "no-updatedAt"
+        }
         track={track}
         updateCreative={updateCreative}
       />
@@ -120,8 +124,13 @@ export default async function CreativePage({ params }: Props) {
       <section className="rounded-md border border-gray-200 p-4">
         <h2 className="mb-2 text-lg font-medium">Sugerencias</h2>
         <ul className="list-inside list-disc text-sm text-gray-600">
-          <li>Usa 3–6 “moods” claros (ej. enérgico, íntimo, épico, nostálgico).</li>
-          <li>“Uses” orienta al sync (publicidad, tráiler, documental, social, gaming…).</li>
+          <li>
+            Usa 3–6 “moods” claros (ej. enérgico, íntimo, épico, nostálgico).
+          </li>
+          <li>
+            “Uses” orienta al sync (publicidad, tráiler, documental, social,
+            gaming…).
+          </li>
         </ul>
       </section>
     </div>

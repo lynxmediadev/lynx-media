@@ -54,10 +54,20 @@ type RightsTrackFormProps = {
   };
 };
 
+type FieldErrors = Record<string, string[]>;
+
 type StatusState = {
   ok?: boolean;
   message?: string;
+  fieldErrors?: FieldErrors;
 } | null;
+
+// Helper para leer el primer error de un campo específico
+function firstError(fieldErrors: FieldErrors | undefined, key: string) {
+  if (!fieldErrors) return null;
+  const arr = fieldErrors[key];
+  return arr && arr.length > 0 ? arr[0] : null;
+}
 
 /**
  * Botón de envío que refleja el estado de guardado.
@@ -92,15 +102,22 @@ export default function RightsFormClient({ track }: RightsTrackFormProps) {
 
     try {
       const result = (await updateRights(formData)) as StatusState;
-      setStatus(result ?? { ok: true, message: "Guardado" });
+      setStatus(
+        result ?? {
+          ok: true,
+          message: "Guardado",
+          fieldErrors: {},
+        },
+      );
 
-      // Refresca la ruta actual (/edit o /rights) y el listado
-      router.refresh();
+      if (result?.ok) {
+        router.refresh();
+      }
     } catch (err) {
-      console.error("[RightsFormClient] error al guardar derechos:", err);
+      console.error("[RightsFormClient] handleAction error", err);
       setStatus({
         ok: false,
-        message: "Error al guardar derechos. Revisa consola/servidor.",
+        message: "Error al guardar derechos.",
       });
     } finally {
       setPending(false);
@@ -155,6 +172,7 @@ export default function RightsFormClient({ track }: RightsTrackFormProps) {
             {/* Tipo de licencia */}
             <FormField
               htmlFor="licenseType"
+              error={firstError(status?.fieldErrors, "licenseType")}
               label="Tipo de licencia"
               descriptionPosition="above"
               description={
@@ -178,6 +196,7 @@ export default function RightsFormClient({ track }: RightsTrackFormProps) {
             {/* Plazo (term) */}
             <FormField
               htmlFor="term"
+              error={firstError(status?.fieldErrors, "term")}
               label="Plazo (term)"
               descriptionPosition="above"
               description={
@@ -201,6 +220,7 @@ export default function RightsFormClient({ track }: RightsTrackFormProps) {
             {/* territories */}
             <FormField
               htmlFor="territories"
+              error={firstError(status?.fieldErrors, "territories")}
               label="Territorios"
               descriptionPosition="above"
               description={
@@ -224,6 +244,7 @@ export default function RightsFormClient({ track }: RightsTrackFormProps) {
             {/* mediaBuy */}
             <FormField
               htmlFor="mediaBuy"
+              error={firstError(status?.fieldErrors, "mediaBuy")}
               label="Media buy / Paid media"
               descriptionPosition="above"
               description={
@@ -261,6 +282,7 @@ export default function RightsFormClient({ track }: RightsTrackFormProps) {
           {/* Master */}
           <FormField
             htmlFor="master"
+            error={firstError(status?.fieldErrors, "master")}
             label="Master (titular)"
             descriptionPosition="above"
             description={
@@ -303,6 +325,7 @@ export default function RightsFormClient({ track }: RightsTrackFormProps) {
 
                 <FormField
                   htmlFor="writerName"
+                  error={firstError(status?.fieldErrors, "writerName")}
                   label="Nombre / entidad"
                   descriptionPosition="above"
                   description={<></>}
@@ -339,6 +362,12 @@ export default function RightsFormClient({ track }: RightsTrackFormProps) {
                         className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-2 py-1.5 pr-6 text-right text-xs text-zinc-50 placeholder:text-zinc-500 focus:outline-none"
                         placeholder="50"
                       />
+                      {firstError(status?.fieldErrors, "writerSharePct") && (
+                        <p className="mt-1 text-[11px] text-red-400">
+                          {firstError(status?.fieldErrors, "writerSharePct")}
+                        </p>
+                      )}
+
                       <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[11px] text-zinc-400">
                         %
                       </span>
@@ -373,6 +402,7 @@ export default function RightsFormClient({ track }: RightsTrackFormProps) {
 
                 <FormField
                   htmlFor="publisherName"
+                  error={firstError(status?.fieldErrors, "publisherName")}
                   label="Nombre / entidad"
                   descriptionPosition="above"
                   description={<></>}
@@ -434,8 +464,6 @@ export default function RightsFormClient({ track }: RightsTrackFormProps) {
                   </div>
                 </div>
               </div>
-
-              
             </div>
           </div>
           <div className="space-y-2 pt-1">
@@ -508,6 +536,7 @@ export default function RightsFormClient({ track }: RightsTrackFormProps) {
           {/* Admin Content ID - contentIdAdmin */}
           <FormField
             htmlFor="contentIdAdmin"
+            error={firstError(status?.fieldErrors, "contentIdAdmin")}
             label="Admin Content ID"
             descriptionPosition="above"
             className="mb-5"
@@ -534,6 +563,7 @@ export default function RightsFormClient({ track }: RightsTrackFormProps) {
 
           <FormField
             htmlFor="contentIdWhitelist"
+            error={firstError(status?.fieldErrors, "contentIdWhitelist")}
             label="Whitelist Content ID"
             descriptionPosition="above"
             description={
@@ -560,9 +590,12 @@ cliente_youtube_channel`}
         {/* Sub-sección derecha: Restricciones de uso */}
 
         <div className="space-y-1 rounded-lg border border-zinc-800 bg-zinc-950/70 p-3">
-          <h3 className="text-sm font-semibold text-zinc-50">
+          <label
+            htmlFor="restrictions"
+            className="text-sm font-semibold text-zinc-50"
+          >
             Restricciones de uso
-          </h3>
+          </label>
           <p className="mb-3 text-[11px] text-zinc-500">
             Indica usos que NO están permitidos para este master. Una
             restricción por línea.

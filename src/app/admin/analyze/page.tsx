@@ -65,7 +65,7 @@ export default async function Page() {
   });
 
   return (
-    <main className="mx-auto w-full max-w-7xl p-6 space-y-6">
+    <main className="mx-auto w-full max-w-7xl space-y-6 p-6">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold text-zinc-50">
           Análisis técnico de tracks
@@ -78,21 +78,19 @@ export default async function Page() {
 
       {/* Contenedor rígido de la tabla: nada puede pintarse fuera del borde */}
       <section className="relative overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/70 backdrop-blur">
-        <div className="border-b border-zinc-800 px-4 py-3 text-xs font-medium uppercase tracking-wide text-zinc-400">
+        <div className="border-b border-zinc-800 px-4 py-3 text-xs font-medium tracking-wide text-zinc-400 uppercase">
           {tracks.length} track{tracks.length === 1 ? "" : "s"} en catálogo
         </div>
 
         <table className="w-full table-auto text-sm">
-          <thead className="bg-zinc-900/80 text-xs uppercase tracking-wide text-zinc-400">
+          <thead className="bg-zinc-900/80 text-xs tracking-wide text-zinc-400 uppercase">
             <tr>
               <th className="px-4 py-3 text-left align-middle">Track</th>
               <th className="px-4 py-3 text-left align-middle">Estado</th>
               <th className="px-4 py-3 text-left align-middle">Asset</th>
               <th className="px-4 py-3 text-left align-middle">Audio</th>
               <th className="px-4 py-3 text-left align-middle">Analizado</th>
-              <th className="px-4 py-3 text-right align-middle">
-                Acciones
-              </th>
+              <th className="px-4 py-3 text-right align-middle">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -120,7 +118,7 @@ export default async function Page() {
                       <span className="text-xs text-zinc-400">
                         {t.artist || "(sin artista)"}
                       </span>
-                      <span className="mt-1 text-[10px] font-mono text-zinc-500 break-words">
+                      <span className="mt-1 font-mono text-[10px] break-words text-zinc-500">
                         ID: {t.id}
                       </span>
                     </div>
@@ -146,15 +144,11 @@ export default async function Page() {
                     <div className="flex flex-col text-xs text-zinc-400">
                       {t.analysisAt ? (
                         <>
-                          <span className="text-emerald-400">
-                            Analizado
-                          </span>
+                          <span className="text-emerald-400">Analizado</span>
                           <span>{formatDateTime(t.analysisAt)}</span>
                         </>
                       ) : (
-                        <span className="text-amber-400">
-                          Sin análisis
-                          </span>
+                        <span className="text-amber-400">Sin análisis</span>
                       )}
                     </div>
                   </td>
@@ -190,8 +184,7 @@ function EstadoChip({ row }: { row: AnalyzeRow }) {
     return (
       <span
         className={
-          baseClass +
-          " border border-zinc-700 bg-zinc-900 text-zinc-300"
+          baseClass + " border border-zinc-700 bg-zinc-900 text-zinc-300"
         }
       >
         Sin audio
@@ -236,8 +229,8 @@ function AssetInfo({ row }: { row: AnalyzeRow }) {
     const url = getS3PublicUrl(row.assetKey);
 
     return (
-      <div className="flex flex-col text-[11px] space-y-1">
-        <span className="text-emerald-400 font-medium">R2</span>
+      <div className="flex flex-col space-y-1 text-[11px]">
+        <span className="font-medium text-emerald-400">R2</span>
         <a
           href={url}
           target="_blank"
@@ -253,8 +246,8 @@ function AssetInfo({ row }: { row: AnalyzeRow }) {
   // Caso 2: solo URL externa
   if (row.audioUrl) {
     return (
-      <div className="flex flex-col text-[11px] space-y-1">
-        <span className="text-sky-400 font-medium">URL externa</span>
+      <div className="flex flex-col space-y-1 text-[11px]">
+        <span className="font-medium text-sky-400">URL externa</span>
         <a
           href={row.audioUrl}
           target="_blank"
@@ -268,11 +261,7 @@ function AssetInfo({ row }: { row: AnalyzeRow }) {
   }
 
   // Caso 3: sin audio
-  return (
-    <span className="text-xs text-zinc-500">
-      Sin audio
-    </span>
-  );
+  return <span className="text-xs text-zinc-500">Sin audio</span>;
 }
 
 /**
@@ -298,40 +287,28 @@ function AudioInfo({ row }: { row: AnalyzeRow }) {
   }
 
   const lufs =
-    typeof row.loudnessLufs === "number"
-      ? row.loudnessLufs.toFixed(2)
-      : null;
+    typeof row.loudnessLufs === "number" ? row.loudnessLufs.toFixed(2) : null;
   const lra =
     typeof row.loudnessRangeLu === "number"
       ? row.loudnessRangeLu.toFixed(2)
       : null;
   const tp =
-    typeof row.truePeakDbfs === "number"
-      ? row.truePeakDbfs.toFixed(2)
-      : null;
+    typeof row.truePeakDbfs === "number" ? row.truePeakDbfs.toFixed(2) : null;
 
   const dur =
     typeof row.durationSec === "number"
       ? `${Math.round(row.durationSec)} s`
       : null;
   const sr =
-    typeof row.sampleRateHz === "number"
-      ? `${row.sampleRateHz} Hz`
-      : null;
+    typeof row.sampleRateHz === "number" ? `${row.sampleRateHz} Hz` : null;
 
   return (
-    <div className="flex flex-col text-[11px] text-zinc-200 space-y-1">
+    <div className="flex flex-col space-y-1 text-[11px] text-zinc-200">
       {/* Línea 1: LUFS / LRA / TP */}
       <div className="flex flex-wrap gap-x-2 gap-y-0.5">
-        <span className="font-mono">
-          LUFS: {lufs ?? "–"}
-        </span>
-        <span className="font-mono">
-          LRA: {lra ?? "–"}
-        </span>
-        <span className="font-mono">
-          TP: {tp ?? "–"}
-        </span>
+        <span className="font-mono">LUFS: {lufs ?? "–"}</span>
+        <span className="font-mono">LRA: {lra ?? "–"}</span>
+        <span className="font-mono">TP: {tp ?? "–"}</span>
       </div>
 
       {/* Línea 2: Duración / Sample rate */}

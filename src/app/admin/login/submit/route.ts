@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
   const token = signAdminTokenV1(payload, SECRET);
 
   // Setear nueva cookie y limpiar la antigua
-  const res = NextResponse.redirect(new URL("/admin/licensing", req.url), {
+  const res = NextResponse.redirect(new URL("/admin/analyze", req.url), {
     status: 303,
   });
   const c = await cookies();
