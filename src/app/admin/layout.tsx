@@ -28,8 +28,8 @@ export default function AdminLayout({
           </div>
 
           <nav className="flex items-center gap-4 text-xs md:text-sm">
-            <Link href="/admin/licensing" className="hover:underline">
-              Licensing
+            <Link href="/admin/uploads" className="hover:underline">
+              Upload Track
             </Link>
             <Link href="/admin/tracks" className="hover:underline">
               Tracks

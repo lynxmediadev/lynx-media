@@ -12,11 +12,16 @@ type IdsActionResult = {
   fieldErrors?: FieldErrors;
 };
 
+// Definir estado de errores cliente:
+type ClientErrors = {
+  isrc?: string | null;
+  iswc?: string | null;
+  upc?: string | null;
+};
+
 type IdsFormProps = {
   track: {
     id: string;
-    title: string | null;
-    artist: string | null;
     isrc: string | null;
     iswc: string | null;
     upc: string | null;
@@ -40,7 +45,49 @@ function SubmitButton({ pending }: { pending: boolean }) {
 export default function IdsForm({ track, updateIds }: IdsFormProps) {
   const [pending, setPending] = React.useState(false);
   const [status, setStatus] = React.useState<IdsActionResult | null>(null);
+  const [clientErrors, setClientErrors] = React.useState<ClientErrors>({});
+
   const fieldErrors: FieldErrors = status?.fieldErrors ?? {};
+
+  function validateField(
+    name: keyof ClientErrors,
+    value: string,
+  ): string | null {
+    const trimmed = value.trim();
+
+    if (name === "isrc" && trimmed.length === 0) {
+      return "El código ISRC es obligatorio.";
+    }
+
+    if (name === "iswc" && trimmed.length === 0) {
+      return "El código ISWC es obligatorio.";
+    }
+
+    // if (name === "upc" && trimmed.length === 0) {
+    //   return "El código UPC es obligatorio.";
+    // }
+    return null;
+  }
+
+  function handleBlur(
+    e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) {
+    const { name, value } = e.target;
+    if (!["isrc", "iswc", "upc"].includes(name)) return;
+
+    const error = validateField(name as keyof ClientErrors, value);
+    setClientErrors((prev) => ({ ...prev, [name]: error }));
+  }
+
+  function handleChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) {
+    const { name, value } = e.target;
+    if (!["title", "artist", "moods", "uses"].includes(name)) return;
+
+    const error = validateField(name as keyof ClientErrors, value);
+    setClientErrors((prev) => ({ ...prev, [name]: error }));
+  }
 
   async function handleAction(formData: FormData) {
     setPending(true);
@@ -49,6 +96,9 @@ export default function IdsForm({ track, updateIds }: IdsFormProps) {
     try {
       const result = await updateIds(formData);
       setStatus(result);
+      if (result.ok) {
+        setClientErrors({});
+      }
     } catch (err) {
       console.error("[IdsForm] handleAction error", err);
       setStatus({
@@ -91,7 +141,6 @@ export default function IdsForm({ track, updateIds }: IdsFormProps) {
         <FormField
           label="ISRC"
           htmlFor="isrc"
-          error={fieldErrors.isrc?.[0] ?? null}
           descriptionPosition="below"
           description={
             <>
@@ -99,12 +148,14 @@ export default function IdsForm({ track, updateIds }: IdsFormProps) {
               espacios/guiones.
             </>
           }
+          error={clientErrors.isrc ?? fieldErrors.isrc?.[0] ?? null}
         >
           <input
             id="isrc"
             name="isrc"
             type="text"
             defaultValue={track.isrc ?? ""}
+            onBlur={handleBlur}
             className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 placeholder:text-zinc-500 focus:ring-1 focus:ring-zinc-500 focus:outline-none"
             placeholder="CL-XXX-24-00001"
           />
@@ -114,7 +165,6 @@ export default function IdsForm({ track, updateIds }: IdsFormProps) {
         <FormField
           label="ISWC"
           htmlFor="iswc"
-          error={fieldErrors.iswc?.[0] ?? null}
           descriptionPosition="below"
           description={
             <>
@@ -122,12 +172,14 @@ export default function IdsForm({ track, updateIds }: IdsFormProps) {
               en una sociedad.
             </>
           }
+          error={clientErrors.iswc ?? fieldErrors.iswc?.[0] ?? null}
         >
           <input
             id="iswc"
             name="iswc"
             type="text"
             defaultValue={track.iswc ?? ""}
+            onBlur={handleBlur}
             className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 placeholder:text-zinc-500 focus:ring-1 focus:ring-zinc-500 focus:outline-none"
             placeholder="T-123.456.789-Z"
           />
@@ -137,17 +189,18 @@ export default function IdsForm({ track, updateIds }: IdsFormProps) {
         <FormField
           label="UPC / EAN"
           htmlFor="upc"
-          error={fieldErrors.upc?.[0] ?? null}
           descriptionPosition="below"
           description={
             <>Identificador del producto (álbum / single) si aplica.</>
           }
+          error={clientErrors.upc ?? fieldErrors.upc?.[0] ?? null}
         >
           <input
             id="upc"
             name="upc"
             type="text"
             defaultValue={track.upc ?? ""}
+            onBlur={handleBlur}
             className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 placeholder:text-zinc-500 focus:ring-1 focus:ring-zinc-500 focus:outline-none"
             placeholder="123456789012"
           />

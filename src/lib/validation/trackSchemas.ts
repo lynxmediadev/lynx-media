@@ -107,50 +107,53 @@ function normalizeRestrictions(raw: unknown): string[] {
  * Luego .transform() devuelve el shape listo para Prisma.
  */
 const creativeFormBaseSchema = z.object({
+  // SI QUISIERA EL TÍTULO [NO OBLIGATORIO]
+  //  title: z.union([z.string(), z.null(), z.undefined()]),
+
   title: z
     .string({
-      required_error: "El título es obligatorio.",
-      invalid_type_error: "El título debe ser texto.",
+      required_error: "El Título es obligatorio.",
+      invalid_type_error: "El Título debe ser texto.",
     })
-    .min(1, "El título es obligatorio."),
+    .min(1, "El Título es obligatorio."),
   artist: z
     .string({
-      required_error: "El artista / proyecto es obligatorio.",
-      invalid_type_error: "El artista / proyecto debe ser texto.",
+      required_error: "El Artista / proyecto es obligatorio.",
+      invalid_type_error: "El Artista / proyecto debe ser texto.",
     })
-    .min(1, "El artista / proyecto es obligatorio."),
+    .min(1, "El Artista / proyecto es obligatorio."),
   moods: z.union([z.string(), z.null(), z.undefined()]),
   uses: z.union([z.string(), z.null(), z.undefined()]),
 });
 
-export const creativeFormSchema = creativeFormBaseSchema
-  .transform((values) => {
-    return {
-      title: values.title.trim(),
-      artist: values.artist.trim(),
-      moods: normalizeList(values.moods),
-      uses: normalizeList(values.uses),
-    };
-  })
-  .superRefine((values, ctx) => {
-    // Aquí SOLO haces validaciones extra de moods/uses
+export const creativeFormSchema = creativeFormBaseSchema.transform((values) => {
+  return {
+    title: values.title.trim(),
+    artist: values.artist.trim(),
+    moods: normalizeList(values.moods),
+    uses: normalizeList(values.uses),
+  };
+});
+// Aquí SOLO haces validaciones extra de moods/uses
+// El superRefine puede quedar vacío, sólo basta con comentar los campos que no quiero como obligatorios.
+// .superRefine((values, ctx) => {
 
-    if (!values.moods || values.moods.length === 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Debes ingresar al menos un mood.",
-        path: ["moods"],
-      });
-    }
+// if (!values.moods || values.moods.length === 0) {
+//   ctx.addIssue({
+//     code: z.ZodIssueCode.custom,
+//     message: "Debes ingresar al menos un mood.",
+//     path: ["moods"],
+//   });
+// }
 
-    if (!values.uses || values.uses.length === 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Debes ingresar al menos un uso recomendado.",
-        path: ["uses"],
-      });
-    }
-  });
+// if (!values.uses || values.uses.length === 0) {
+//   ctx.addIssue({
+//     code: z.ZodIssueCode.custom,
+//     message: "Debes ingresar al menos un uso recomendado.",
+//     path: ["uses"],
+//   });
+// }
+// });
 
 export type CreativeFormValues = z.infer<typeof creativeFormSchema>;
 
@@ -159,8 +162,20 @@ export type CreativeFormValues = z.infer<typeof creativeFormSchema>;
 // ───────────────────────────────────────────────────────────────────────────────
 
 const idsFormBaseSchema = z.object({
-  isrc: z.union([z.string(), z.null(), z.undefined()]),
-  iswc: z.union([z.string(), z.null(), z.undefined()]),
+  // TÍTULO YA NO OBLIGATORIO
+  // title: z.union([z.string(), z.null(), z.undefined()]),
+
+  isrc: z
+    .string()
+    .trim()
+    .min(1, "El ISRC es obligatorio.")
+    .regex(/^[A-Z0-9]+$/, "El ISRC solo puede contener letras y números."),
+  iswc: z
+    .string()
+    .trim()
+    .min(1, "El ISWC es obligatorio.")
+    .regex(/^[A-Z0-9]+$/, "El ISWC solo puede contener letras y números."),
+
   upc: z.union([z.string(), z.null(), z.undefined()]),
 });
 
@@ -238,6 +253,7 @@ export const rightsFormSchema = rightsFormBaseSchema.transform((values) => {
     writerShare == null || (writerShare >= 0 && writerShare <= 100)
       ? writerShare
       : null;
+
   const safePublisherShare =
     publisherShare == null || (publisherShare >= 0 && publisherShare <= 100)
       ? publisherShare

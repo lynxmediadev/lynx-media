@@ -48,9 +48,7 @@ type UploadedAsset = {
   size: number;
 };
 
-export default function AdminTrackIngestPage(
-  props: AdminTrackIngestPageProps,
-) {
+export default function AdminTrackIngestPage(props: AdminTrackIngestPageProps) {
   const router = useRouter();
 
   // Metadata básica
@@ -59,15 +57,14 @@ export default function AdminTrackIngestPage(
   const [coverUrl, setCoverUrl] = React.useState("");
 
   // Moods y usos con valores iniciales útiles (se pueden sobrescribir al tiro)
-  const [moodsInput, setMoodsInput] = React.useState("dark\ncinematic");
-  const [usesInput, setUsesInput] = React.useState("trailer\nserie drama");
+  const [moodsInput, setMoodsInput] = React.useState("");
+  const [usesInput, setUsesInput] = React.useState("");
 
   // Archivo local + estado de subida
   const [file, setFile] = React.useState<File | null>(null);
   const [uploading, setUploading] = React.useState(false);
-  const [uploadedAsset, setUploadedAsset] = React.useState<UploadedAsset | null>(
-    null,
-  );
+  const [uploadedAsset, setUploadedAsset] =
+    React.useState<UploadedAsset | null>(null);
 
   // Creación de track
   const [creating, setCreating] = React.useState(false);
@@ -136,7 +133,10 @@ export default function AdminTrackIngestPage(
 
       if (!signRes.ok) {
         const errText = await signRes.text().catch(() => "");
-        console.error("[AdminTrackIngest] error en /api/uploads/sign:", errText);
+        console.error(
+          "[AdminTrackIngest] error en /api/uploads/sign:",
+          errText,
+        );
         setStatusMsg("Error al obtener firma de subida.");
         return;
       }
@@ -144,8 +144,13 @@ export default function AdminTrackIngestPage(
       const signJson = (await signRes.json()) as SignUploadResponse;
 
       if (!signJson.url || !signJson.assetKey || !signJson.publicUrl) {
-        console.error("[AdminTrackIngest] respuesta de sign incompleta:", signJson);
-        setStatusMsg("Respuesta de firma incompleta (falta assetKey/publicUrl).");
+        console.error(
+          "[AdminTrackIngest] respuesta de sign incompleta:",
+          signJson,
+        );
+        setStatusMsg(
+          "Respuesta de firma incompleta (falta assetKey/publicUrl).",
+        );
         return;
       }
 
@@ -201,7 +206,12 @@ export default function AdminTrackIngestPage(
    */
   async function handleCreateTrack() {
     if (!title.trim()) {
-      setStatusMsg("El título es obligatorio.");
+      setStatusMsg("El Título es obligatorio.");
+      return;
+    }
+
+    if (!artist.trim()) {
+      setStatusMsg("El Artista es obligatorio.");
       return;
     }
 
@@ -222,7 +232,7 @@ export default function AdminTrackIngestPage(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim(),
-          artist: artist.trim() || null,
+          artist: artist.trim(),
 
           audio: {
             url: uploadedAsset.publicUrl,
@@ -241,9 +251,13 @@ export default function AdminTrackIngestPage(
 
       if (!res.ok) {
         const json = await res.json().catch(() => null);
-        console.error("[AdminTrackIngest] error al crear track:", json ?? res.status);
+        console.error(
+          "[AdminTrackIngest] error al crear track:",
+          json ?? res.status,
+        );
         setStatusMsg(
-          json?.error ?? "Error al crear el track. Revisa la consola del servidor.",
+          json?.error ??
+            "Error al crear el track. Revisa la consola del servidor.",
         );
         return;
       }
@@ -359,18 +373,18 @@ export default function AdminTrackIngestPage(
               Moods
             </label>
             <p className="text-[11px] text-zinc-500">
-              Una entrada por línea o separadas por comas. Ej:{" "}
-              <span className="font-mono">
-                dark, cinematic, tense, hopeful
-              </span>
-              .
+              Una entrada por línea o separadas por comas. .
             </p>
             <textarea
               value={moodsInput}
               onChange={(e) => setMoodsInput(e.target.value)}
-              rows={3}
-              className="mt-0.5 w-full resize-y rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
+              rows={5}
+              className="mt-0.5 mb-0 w-full resize-y rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
+              placeholder={`SAD\nCINEMATIC`}
             />
+            <p className="font-mono text-[10px] text-zinc-500">
+              Ej: DARK, CINEMATIC, TENSE, HOPEFULL
+            </p>
           </div>
 
           <div className="space-y-1">
@@ -378,29 +392,41 @@ export default function AdminTrackIngestPage(
               Usos previstos
             </label>
             <p className="text-[11px] text-zinc-500">
-              Una entrada por línea o separadas por comas. Ej:{" "}
-              <span className="font-mono">
-                trailer, serie drama, documental, ad tech
-              </span>
-              .
+              Una entrada por línea o separadas por comas.
             </p>
+
             <textarea
               value={usesInput}
               onChange={(e) => setUsesInput(e.target.value)}
-              rows={3}
-              className="mt-0.5 w-full resize-y rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
+              rows={5}
+              className="mt-0.5 mb-0 w-full resize-y rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
+              placeholder={`TRAILER\nSERIE\nDOCUMENTAL\nAD TECH`}
             />
+            <p className="font-mono text-[10px] text-zinc-500">
+              Ej: TRAILER, SERIE, DOCUMENTAL, AD TECH
+            </p>
           </div>
         </div>
 
         {/* Footer: estado + botón crear */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-800 pt-3">
-          <p className="text-[11px] text-zinc-500">
-            1) Selecciona archivo · 2) Sube a R2 · 3) Crea track
-          </p>
+          <div className="rounded-xs border p-2 px-4">
+            <h4 className="text-[15px] font-black text-zinc-300">
+              Instrucciones:
+            </h4>
+            <p className="pl-1 text-[12px] font-black text-zinc-400">
+              1) Selecciona archivo
+            </p>
+            <p className="pl-1 text-[12px] font-black text-zinc-400">
+              2) Sube a R2
+            </p>
+            <p className="pl-1 text-[12px] font-black text-zinc-400">
+              3) Crea track
+            </p>
+          </div>
           <div className="flex items-center gap-3">
             {statusMsg && (
-              <span className="text-[11px] text-zinc-400">{statusMsg}</span>
+              <span className="text-[11px] text-red-300">{statusMsg}</span>
             )}
             <button
               type="button"

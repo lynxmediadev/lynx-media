@@ -73,13 +73,13 @@ export default function CreativeForm({
       return "El artista / proyecto es obligatorio.";
     }
 
-    if (name === "moods" && trimmed.length === 0) {
-      return "Debes ingresar al menos un mood.";
-    }
+    // if (name === "moods" && trimmed.length === 0) {
+    //   return "Debes ingresar al menos un mood.";
+    // }
 
-    if (name === "uses" && trimmed.length === 0) {
-      return "Debes ingresar al menos un uso recomendado.";
-    }
+    // if (name === "uses" && trimmed.length === 0) {
+    //   return "Debes ingresar al menos un uso recomendado.";
+    // }
 
     return null;
   }
@@ -224,7 +224,7 @@ export default function CreativeForm({
             onBlur={handleBlur}
             rows={5}
             className="w-full resize-y rounded-sm border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 placeholder:text-zinc-500 focus:ring-1 focus:ring-zinc-500 focus:outline-none"
-            placeholder={"Ejemplo:\ncinemático\noscuro\norgánico\nsuspenso"}
+            placeholder={`SAD\nDARK\nEMOTIONAL\nHOPENESS\nSUSPENSE`}
           />
         </FormField>
 
@@ -247,9 +247,7 @@ export default function CreativeForm({
             onBlur={handleBlur}
             rows={5}
             className="w-full resize-y rounded-sm border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 placeholder:text-zinc-500 focus:ring-1 focus:ring-zinc-500 focus:outline-none"
-            placeholder={
-              "Ejemplo:\ntráiler\nserie TV\npublicidad digital\nvideojuego"
-            }
+            placeholder={`TRAILER\nSERIE\nDOCUMENTAL\nPUBLICIDAD\nVIDEO GAME`}
           />
         </FormField>
       </div>

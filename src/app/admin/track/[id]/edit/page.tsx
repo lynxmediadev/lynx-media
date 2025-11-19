@@ -343,8 +343,6 @@ export default async function AdminTrackEditPage({
     }
   }
 
-
-  
   /**
    * Server Action para eliminar track.
    *

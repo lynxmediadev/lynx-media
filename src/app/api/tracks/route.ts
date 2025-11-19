@@ -32,8 +32,8 @@ import { db } from "@/server/db";
  *   el audio viene de R2 es MUY recomendable enviarlos.
  */
 const incomingTrackSchema = z.object({
-  title: z.string().min(1, "El título es obligatorio"),
-  artist: z.string().optional().nullable(),
+  title: z.string().min(1, "El Título es obligatorio"),
+  artist: z.string().min(1, "El Artista es obligatorio"),
 
   audio: z
     .object({
@@ -64,18 +64,11 @@ const incomingTrackSchema = z.object({
  */
 function normalizeIncoming(input: z.infer<typeof incomingTrackSchema>) {
   const title = input.title.trim();
-  const artist =
-    (input.artist ?? "")
-      .toString()
-      .trim() || null;
+  const artist = input.artist.trim();
 
-  const audioUrl =
-    input.audio?.url?.toString().trim() || null;
+  const audioUrl = input.audio?.url?.toString().trim() || null;
 
-  const coverUrl =
-    (input.coverUrl ?? "")
-      .toString()
-      .trim() || null;
+  const coverUrl = (input.coverUrl ?? "").toString().trim() || null;
 
   const moods = (input.moods ?? []).map((m) => m.trim()).filter(Boolean);
   const uses = (input.uses ?? []).map((u) => u.trim()).filter(Boolean);
@@ -101,15 +94,9 @@ function normalizeIncoming(input: z.infer<typeof incomingTrackSchema>) {
   }
 
   // NUEVO: metadatos de asset en R2/S3
-  const assetKey =
-    (input.assetKey ?? "")
-      .toString()
-      .trim() || "";
+  const assetKey = (input.assetKey ?? "").toString().trim() || "";
 
-  const assetMime =
-    (input.assetMime ?? "")
-      .toString()
-      .trim() || "";
+  const assetMime = (input.assetMime ?? "").toString().trim() || "";
 
   const assetSize =
     typeof input.assetSize === "number" && input.assetSize >= 0
