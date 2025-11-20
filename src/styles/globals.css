@@ -133,3 +133,28 @@ body {
   *   { @apply border-border outline-ring/50; }
   body{ @apply bg-background text-foreground; }
 }
+
+
+/* Scrollbar discreto para regiones de scroll del dashboard */
+.scroll-region::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scroll-region::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-region::-webkit-scrollbar-thumb {
+  background-color: rgba(107, 114, 128, 0.45); /* gray-500 ~45% */
+  border-radius: 999px;
+}
+
+.scroll-region::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.7); /* gray-400 ~70% */
+}
+
+/* Firefox */
+.scroll-region {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(107, 114, 128, 0.45) transparent;
+}
