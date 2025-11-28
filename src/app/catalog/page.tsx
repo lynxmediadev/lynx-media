@@ -79,7 +79,7 @@ export default function CatalogPage() {
           </p>
         </div>
         <div className="flex flex-col items-start gap-1 text-xs text-slate-600 md:items-end">
-          <span className="rounded-full border border-slate-300 bg-slate-50 px-3 py-1">
+          <span className="rounded-xs border border-slate-300 bg-slate-50 px-3 py-1">
             Demo · {MOCK_TRACKS.length} tracks mock
           </span>
           <span className="text-[11px] text-slate-500">

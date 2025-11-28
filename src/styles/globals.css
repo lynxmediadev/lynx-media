@@ -10,7 +10,7 @@
 @theme {
   /* Colores “marca” */
   --color-light: #e6e5dd; /* Texto/elementos sobre fondo oscuro */
-  --color-dark:  #181618; /* Fondo principal */
+  --color-dark: #181618; /* Fondo principal */
 
   /* Tipografías (inyectadas por next/font en <html>) */
   --font-inter: var(--font-inter);
@@ -18,8 +18,9 @@
   --font-body: var(--font-hanken-grotesk);
   --font-elegant: var(--font-dancing-script);
   --font-cinema-title: var(--font-anton);
-  --font-sans-fallbacks: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-    Roboto, Arial, "Helvetica Neue", "Noto Sans", "Liberation Sans", sans-serif,
+  --font-sans-fallbacks:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial,
+    "Helvetica Neue", "Noto Sans", "Liberation Sans", sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji";
 }
 
@@ -53,8 +54,8 @@
 
   /* Borde/Input/Ring: visibles en dark */
   --border: color-mix(in oklab, var(--color-dark) 78%, var(--color-light));
-  --input:  var(--border);
-  --ring:   color-mix(in oklab, var(--color-light) 35%, black);
+  --input: var(--border);
+  --ring: color-mix(in oklab, var(--color-light) 35%, black);
 
   /* Radio global */
   --radius: 0.625rem;
@@ -73,19 +74,53 @@
 /* ===========================
    TRANSICIONES / TIPOGRAFÍA / SISTEMA
    =========================== */
-html, body { transition: background-color .3s ease, color .3s ease; }
+html,
+body {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
 
 /* Sugerencia: ayuda a controles nativos (inputs, scrollbars) en dark */
-:root { color-scheme: dark; }
+:root {
+  color-scheme: dark;
+  /* Layout general */
+  --lm-page-bg: #f5f6fb; /* Fondo claro general del catálogo */
+  --lm-surface-bg: #ffffff; /* Cards, tabla, header */
+  --lm-surface-border: #e0e3f0; /* Bordes suaves de superficies */
+
+  /* Sidebar */
+  --lm-sidebar-bg: #464876; /* Dusty Grape – fondo sidebar */
+  --lm-sidebar-border: rgba(0, 0, 0, 0.18);
+
+  /* Acentos principales */
+  --lm-accent: #9b8bce; /* Soft Periwinkle – acento principal */
+  --lm-accent-alt: #7386c4; /* Glaucous – acento secundario */
+  --lm-accent-soft: rgba(155, 139, 206, 0.14);
+
+  /* Texto */
+  --lm-text-main: #111827; /* Texto principal en contenido claro */
+  --lm-text-muted: #6b7280; /* Texto secundario */
+
+  --lm-play-bg: #9b8bce; /* verde Spotify */
+  --lm-play-bg-hover: #464876; /* verde un poco más claro para hover */
+  --lm-play-icon: #ffffff; /* icono blanco */
+}
 
 body {
   font-family: var(--font-body), var(--font-sans-fallbacks);
 }
 
 /* Roles tipográficos opcionales */
-.font-display { font-family: var(--font-inter), var(--font-sans-fallbacks); }
-.font-ui      { font-family: var(--font-lato),  var(--font-sans-fallbacks); }
-.font-body    { font-family: var(--font-body),  var(--font-sans-fallbacks); }
+.font-display {
+  font-family: var(--font-inter), var(--font-sans-fallbacks);
+}
+.font-ui {
+  font-family: var(--font-lato), var(--font-sans-fallbacks);
+}
+.font-body {
+  font-family: var(--font-body), var(--font-sans-fallbacks);
+}
 
 /* ===========================
    MAPEOS A @theme (Tailwind v4)
@@ -130,10 +165,13 @@ body {
    =========================== */
 @layer base {
   /* Usa tokens, no fuerces currentColor en bordes */
-  *   { @apply border-border outline-ring/50; }
-  body{ @apply bg-background text-foreground; }
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }
-
 
 /* Scrollbar discreto para regiones de scroll del dashboard */
 .scroll-region::-webkit-scrollbar {
@@ -158,3 +196,9 @@ body {
   scrollbar-width: thin;
   scrollbar-color: rgba(107, 114, 128, 0.45) transparent;
 }
+
+/* =========================================
+ * Lynx Media – tokens de diseño catálogo público
+ * Sólo afectan a las vistas que usen estas variables.
+ * Aquí puedes cambiar los colores del FRONTEND.
+ * ======================================= */
