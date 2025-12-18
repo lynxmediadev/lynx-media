@@ -1,18 +1,21 @@
 // src/app/layout.tsx
 import "./../styles/globals.css";
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 
 // Fuentes globales (según tu src/app/fonts.ts)
 import { inter, lato, hankenGrotesk, dancingScript, anton } from "./fonts";
 
-import SmoothScroll from "@/components/common/SmoothScroll"; // Smooth scrolling
+import SmoothScroll from "@/components/common/SmoothScroll";
+import FrontendShell from "@/components/site/FrontendShell";
 
-// Proveedor pasante (si en el futuro agregas uno real, reemplázalo 1:1)
-function AppThemeProvider({ children }: { children: React.ReactNode }) {
+function AppThemeProvider({ children }: { children: ReactNode }) {
   return (
     <>
+      {/* Scroll suave global (client component) */}
       <SmoothScroll />
-      {children}
+      {/* Shell público que decide si muestra navbar o no */}
+      <FrontendShell>{children}</FrontendShell>
     </>
   );
 }
@@ -26,7 +29,7 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   // Carga de variables de fuente (coinciden con tus nombres reales)
   const fontVars = `${inter.variable} ${lato.variable} ${hankenGrotesk.variable} ${dancingScript.variable} ${anton.variable}`;
