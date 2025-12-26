@@ -1,5 +1,4 @@
 // src/components/site/SiteHeader.tsx
-
 import Link from "next/link";
 
 const navLinks = [
@@ -12,38 +11,38 @@ const navLinks = [
 /**
  * Encabezado público global:
  * - Navbar minimal, sobrio y elegante.
- * - Usa tokens de color definidos en globals.css (var(--color-*), var(--border), etc.).
+ * - Usa tokens/clases semánticas definidas en globals.css.
  * - Incluye CTA hacia catálogo y contacto.
  */
 export default function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--color-dark)]">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 md:px-6 lg:px-8">
+    <header className="lm-header">
+      <div className="lm-container flex items-center justify-between gap-4 py-3">
         {/* Branding */}
         <Link href="/" className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--color-dark)]">
-            <span className="text-[10px] font-semibold tracking-[0.18em] text-[var(--accent-foreground)]">
+          <div className="lm-brand-badge">
+            <span className="text-foreground text-[16px] font-semibold tracking-[0.18em]">
               LM
             </span>
           </div>
+
           <div className="flex flex-col leading-tight">
-            <span className="text-sm font-medium text-[var(--foreground)]">
+            <span className="text-foreground text-sm font-black">
               Lynx Media
             </span>
-            <span className="text-[11px] text-[var(--muted-foreground)]">
-              Audio & sync para cine, TV y marcas
-            </span>
+            <p className="text-muted-foreground text-[10px]">
+              Audio Profesional
+            </p>
+            <p className="text-muted-foreground text-[10px]">
+              Música Original para Cine, TV y Marcas
+            </p>
           </div>
         </Link>
 
         {/* Navegación principal (desktop) */}
-        <nav className="hidden items-center gap-6 text-xs font-medium text-[var(--muted-foreground)] md:flex">
+        <nav className="lm-nav">
           {navLinks.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="transition-colors hover:text-[var(--foreground)]"
-            >
+            <Link key={item.href} href={item.href} className="lm-navlink">
               {item.label}
             </Link>
           ))}
@@ -53,15 +52,16 @@ export default function SiteHeader() {
         <div className="flex items-center gap-2">
           <Link
             href="/catalog"
-            className="hidden rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--foreground)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent-foreground)] md:inline-flex"
+            className="border-border text-foreground hover:border-primary hidden rounded-full border px-3 py-1.5 text-xs font-medium transition-colors md:inline-flex"
           >
             Ver catálogo
           </Link>
+
           <Link
             href="/contact"
-            className="inline-flex items-center rounded-full bg-[var(--accent)] px-3.5 py-1.5 text-xs font-semibold text-[var(--accent-foreground)] transition-transform transition-colors hover:scale-[1.02] hover:bg-[var(--accent)]"
+            className="lm-btn lm-btn-primary px-3.5 py-1.5 text-xs font-semibold"
           >
-            Agenda una llamada
+            Agenda una reunión
           </Link>
         </div>
       </div>

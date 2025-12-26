@@ -43,6 +43,7 @@ export default tseslint.config(
       // Ajustes prácticos para tu base hoy:
       '@typescript-eslint/no-misused-promises': ['error', { checksVoidReturn: { attributes: false } }],
       '@typescript-eslint/require-await': 'off', // si tienes funciones async sin await
+      "tailwindcss/enforces-shorthand": "off",
 
     },
   },

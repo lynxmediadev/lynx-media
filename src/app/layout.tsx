@@ -26,12 +26,7 @@ export const metadata: Metadata = {
   icons: { icon: "/favicon.ico" },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
-  // Carga de variables de fuente (coinciden con tus nombres reales)
+export default function RootLayout({ children }: { children: ReactNode }) {
   const fontVars = `${inter.variable} ${lato.variable} ${hankenGrotesk.variable} ${dancingScript.variable} ${anton.variable}`;
 
   return (

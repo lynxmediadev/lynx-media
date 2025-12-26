@@ -2,15 +2,14 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* No usamos tema claro/oscuro dinámico ni variantes .dark */
-
-/* ===========================
-   PALETA BASE (FIJA, DARK POR DEFECTO)
-   =========================== */
+/* =========================================================
+   Lynx Media – Setup base (fuentes y constantes generales)
+   ======================================================= */
 @theme {
-  /* Colores “marca” */
-  --color-light: #e6e5dd; /* Texto/elementos sobre fondo oscuro */
-  --color-dark: #181618; /* Fondo principal */
+  /* Colores “legacy” mínimos (por si algún componente antiguo los usa)
+     NOTA: Los alineamos con la paleta actual para evitar desfaces. */
+  --color-light: #f3f1ea; /* papel / blanco cálido */
+  --color-dark: #141414; /* negro base */
 
   /* Tipografías (inyectadas por next/font en <html>) */
   --font-inter: var(--font-inter);
@@ -24,44 +23,115 @@
     "Apple Color Emoji", "Segoe UI Emoji";
 }
 
-/* ===========================
-   TOKENS (mapeo para shadcn/ui)
-   =========================== */
-:root {
-  /* Dark por defecto */
-  --background: var(--color-dark);
-  --foreground: var(--color-light);
+/* =========================================================
+   Lynx Media – Paleta global (arquitectura de tokens)
+   ======================================================= */
+/*
+  Este archivo tiene 3 capas de “colores”:
 
-  /* Derivados coherentes */
-  --card: var(--background);
+  (A) Tokens de marca Lynx:         --lm-*
+      - Fuente de verdad estética (paleta, superficies, overlays, glass).
+
+  (B) Tokens semánticos del sistema: --background, --foreground, --card, etc.
+      - Compatibilidad con Tailwind + shadcn (bg-background, text-foreground, etc.)
+      - Se derivan desde (A).
+
+  (C) Puente Tailwind v4:           @theme inline ( --color-* )
+      - No es “diseño”, es plomería: habilita clases como bg-background.
+
+  REGLA PRÁCTICA:
+  - En TSX: usa lm-* o clases semánticas Tailwind (bg-background, text-muted-foreground).
+  - Evita: text-[var(...)] / bg-[var(...)] salvo casos MUY excepcionales.
+  - En CSS: sí es correcto usar var(--lm-*) para definir estilos.
+*/
+
+:root {
+  /* Core brand */
+  --lm-ink: #141414;
+  --lm-paper: #f3f1ea;
+
+  /* Accent brand (más sobrio) */
+  --lm-accent: #28348e;
+  --lm-accent-hover: #3140a4;
+  --lm-accent-outline: #5e70ff;
+
+  /* DARK: más neutro, menos tinte */
+  --lm-bg-deep: #141414;
+  --lm-bg-main: #161616;
+  --lm-bg-alt: #1a1a1c;
+
+  --lm-surface-soft: #191a1d;
+  --lm-surface-strong: #1d1f24;
+  --lm-surface-elevated: #23262e;
+
+  --lm-border-subtle: #2b2e38;
+  --lm-border-strong: #3a4050;
+
+  --lm-text-main: #f3f1ea;
+  --lm-text-main-2: #b3b3b3;
+  --lm-text-muted: #d1cec5;
+  --lm-text-soft: #a7a39a;
+
+  --lm-accent-soft: #111322;
+
+  --lm-info: #63b3ff;
+  --lm-success: #44d6b4;
+  --lm-warning: #f1c27d;
+  --lm-danger: #ff5c7c;
+
+  --lm-overlay-strong: color-mix(in oklab, black 60%, transparent);
+  --lm-overlay-soft: color-mix(in oklab, black 0%, transparent);
+
+  --lm-glass-bg: color-mix(in oklab, white 5%, transparent);
+  --lm-glass-bg-hover: color-mix(in oklab, white 8%, transparent);
+  --lm-glass-border: color-mix(in oklab, white 11%, transparent);
+  --lm-glass-text: color-mix(in oklab, var(--lm-text-main) 94%, transparent);
+
+  --lm-play-bg: var(--lm-accent);
+  --lm-play-bg-hover: var(--lm-accent-hover);
+  --lm-play-icon: var(--lm-ink);
+
+  /* Invert: más “paper editorial” */
+  --lm-bg-invert: #f3f1ea;
+  --lm-surface-invert: #fbfaf6;
+  --lm-border-invert: #d7d2c7;
+
+  --lm-text-invert: #141414;
+  --lm-text-muted-invert: #2f2f2f;
+  --lm-text-soft-invert: #5a5a5a;
+
+  --lm-page-bg: var(--lm-bg-deep);
+  --lm-surface-bg: var(--lm-surface-soft);
+  --lm-surface-border: var(--lm-border-subtle);
+
+  --background: var(--lm-bg-deep);
+  --foreground: var(--lm-text-main);
+
+  --card: var(--lm-surface-soft);
   --card-foreground: var(--foreground);
-  --popover: var(--background);
+
+  --popover: var(--lm-surface-strong);
   --popover-foreground: var(--foreground);
 
-  /* En dark, primario claro para contraste */
-  --primary: var(--color-light);
-  --primary-foreground: var(--color-dark);
+  --primary: var(--lm-accent);
+  --primary-foreground: var(--lm-text-main);
 
-  /* Variantes (suaves respecto de background) */
-  --secondary: color-mix(in oklab, var(--color-dark) 88%, var(--color-light));
-  --secondary-foreground: var(--color-light);
+  --secondary: var(--lm-bg-alt);
+  --secondary-foreground: var(--foreground);
 
-  --muted: color-mix(in oklab, var(--color-dark) 92%, var(--color-light));
-  --muted-foreground: var(--color-light);
+  --muted: color-mix(in oklab, var(--lm-bg-alt) 82%, var(--lm-bg-deep));
+  --muted-foreground: var(--lm-text-muted);
 
-  --accent: color-mix(in oklab, var(--color-dark) 86%, var(--color-light));
-  --accent-foreground: var(--color-light);
+  --accent: var(--lm-accent-soft);
+  --accent-foreground: var(--foreground);
 
-  /* Borde/Input/Ring: visibles en dark */
-  --border: color-mix(in oklab, var(--color-dark) 78%, var(--color-light));
+  --border: var(--lm-border-subtle);
   --input: var(--border);
-  --ring: color-mix(in oklab, var(--color-light) 35%, black);
+  --ring: color-mix(in oklab, var(--lm-accent-outline) 30%, black);
 
-  /* Radio global */
-  --radius: 0.625rem;
+  --radius: 0.75rem;
 
-  /* Sidebar (si aplica) */
-  --sidebar: var(--background);
+  --sidebar: var(--lm-bg-alt);
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
@@ -69,11 +139,32 @@
   --sidebar-accent-foreground: var(--accent-foreground);
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
+
+  color-scheme: dark;
 }
 
-/* ===========================
-   TRANSICIONES / TIPOGRAFÍA / SISTEMA
-   =========================== */
+
+
+/* =========================================================
+   Tipografía base
+   ======================================================= */
+body {
+  font-family: var(--font-body), var(--font-sans-fallbacks);
+}
+
+.font-display {
+  font-family: var(--font-inter), var(--font-sans-fallbacks);
+}
+
+.font-ui {
+  font-family: var(--font-lato), var(--font-sans-fallbacks);
+}
+
+.font-body {
+  font-family: var(--font-body), var(--font-sans-fallbacks);
+}
+
+/* Transición suave al cambiar colores globales */
 html,
 body {
   transition:
@@ -81,50 +172,10 @@ body {
     color 0.3s ease;
 }
 
-/* Sugerencia: ayuda a controles nativos (inputs, scrollbars) en dark */
-:root {
-  color-scheme: dark;
-  /* Layout general */
-  --lm-page-bg: #f5f6fb; /* Fondo claro general del catálogo */
-  --lm-surface-bg: #ffffff; /* Cards, tabla, header */
-  --lm-surface-border: #e0e3f0; /* Bordes suaves de superficies */
-
-  /* Sidebar */
-  --lm-sidebar-bg: #464876; /* Dusty Grape – fondo sidebar */
-  --lm-sidebar-border: rgba(0, 0, 0, 0.18);
-
-  /* Acentos principales */
-  --lm-accent: #9b8bce; /* Soft Periwinkle – acento principal */
-  --lm-accent-alt: #7386c4; /* Glaucous – acento secundario */
-  --lm-accent-soft: rgba(155, 139, 206, 0.14);
-
-  /* Texto */
-  --lm-text-main: #111827; /* Texto principal en contenido claro */
-  --lm-text-muted: #6b7280; /* Texto secundario */
-
-  --lm-play-bg: #9b8bce; /* verde Spotify */
-  --lm-play-bg-hover: #464876; /* verde un poco más claro para hover */
-  --lm-play-icon: #ffffff; /* icono blanco */
-}
-
-body {
-  font-family: var(--font-body), var(--font-sans-fallbacks);
-}
-
-/* Roles tipográficos opcionales */
-.font-display {
-  font-family: var(--font-inter), var(--font-sans-fallbacks);
-}
-.font-ui {
-  font-family: var(--font-lato), var(--font-sans-fallbacks);
-}
-.font-body {
-  font-family: var(--font-body), var(--font-sans-fallbacks);
-}
-
-/* ===========================
-   MAPEOS A @theme (Tailwind v4)
-   =========================== */
+/* =========================================================
+   (C) Mapeos para Tailwind v4 (@theme inline)
+   (habilita bg-background, text-foreground, border-border, etc.)
+   ======================================================= */
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -134,22 +185,32 @@ body {
   /* Colores consumidos por Tailwind/shadcn */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
+
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
+
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--primary); /* opcional */
+
+  --color-destructive: var(--lm-danger);
+  --color-destructive-foreground: var(--lm-ink);
+
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -158,47 +219,271 @@ body {
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Estados */
+  --color-info: var(--lm-info);
+  --color-success: var(--lm-success);
+  --color-warning: var(--lm-warning);
+  --color-danger: var(--lm-danger);
 }
 
-/* ===========================
-   BASE LAYER TAILWIND
-   =========================== */
+/* =========================================================
+   Base layer Tailwind
+   ======================================================= */
 @layer base {
-  /* Usa tokens, no fuerces currentColor en bordes */
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
 }
 
-/* Scrollbar discreto para regiones de scroll del dashboard */
+/* =========================================================
+   Componentes semánticos Lynx (para reducir hardcodes en TSX)
+   ======================================================= */
+@layer components {
+  /* ---------- Layout ---------- */
+  .lm-container {
+    @apply mx-auto w-full max-w-6xl px-4 lg:px-6;
+  }
+
+  .lm-section {
+    @apply py-16 lg:py-20;
+  }
+
+  .lm-page {
+    min-height: 100vh;
+    background: var(--lm-page-bg);
+    color: var(--foreground);
+  }
+
+  /* ---------- Header ---------- */
+  .lm-header {
+    @apply sticky top-0 z-40 border-b;
+    border-color: var(--border);
+    background: color-mix(in oklab, var(--background) 88%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: none;
+  }
+
+  .lm-nav {
+    @apply hidden gap-6 text-xs font-medium md:flex;
+    color: var(--muted-foreground);
+  }
+
+  .lm-navlink {
+    @apply transition-colors;
+  }
+  .lm-navlink:hover {
+    color: var(--foreground);
+  }
+
+  .lm-brand-badge {
+    @apply flex h-12 w-12 items-center justify-center rounded-full border;
+    border-color: var(--border);
+    background: var(--card);
+  }
+
+  /* ---------- Kicker / Prose (evita repetir utilidades en TSX) ---------- */
+  .lm-kicker {
+    @apply text-xs font-semibold tracking-[0.22em] uppercase;
+  }
+  .lm-kicker-muted {
+    @apply text-muted-foreground;
+  }
+  .lm-kicker-accent {
+    @apply text-primary;
+  }
+
+  .lm-prose {
+    @apply text-muted-foreground text-sm leading-relaxed;
+  }
+  .lm-prose-xs {
+    @apply text-muted-foreground text-xs leading-relaxed;
+  }
+
+  /* ---------- UI atoms ---------- */
+  .lm-card {
+    @apply bg-card rounded-3xl border px-5 py-6 shadow-sm;
+  }
+
+  .lm-card-tight {
+    @apply bg-card rounded-3xl border p-5 shadow-sm;
+  }
+
+  .lm-card-frame {
+    @apply bg-card overflow-hidden rounded-[2rem] border shadow-sm;
+  }
+
+  .lm-chip {
+    @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold tracking-[0.22em] uppercase;
+    background: var(--lm-glass-bg);
+    border: 1px solid var(--lm-glass-border);
+    color: var(--lm-glass-text);
+  }
+
+  .lm-badge {
+    @apply inline-flex rounded-full px-3 py-1 text-[0.7rem] font-semibold tracking-[0.16em] uppercase;
+    background: color-mix(in oklab, var(--primary) 14%, var(--background));
+    border: 1px solid color-mix(in oklab, var(--primary) 22%, transparent);
+    color: var(--primary);
+  }
+
+  .lm-btn {
+    @apply focus-visible:ring-offset-background inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-transform focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none;
+  }
+
+  .lm-btn-primary {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+  .lm-btn-primary:hover {
+    background: var(--lm-accent-hover);
+    transform: scale(1.02);
+  }
+
+  /* “Ghost” pensado como glass (ideal en hero / sobre imagen) */
+  .lm-btn-ghost {
+    @apply border;
+    border-color: var(--lm-glass-border);
+    background: var(--lm-glass-bg);
+    color: var(--foreground);
+  }
+  .lm-btn-ghost:hover {
+    background: var(--lm-glass-bg-hover);
+  }
+
+  /* Outline pensado para secciones normales (y para lm-invert) */
+  .lm-btn-outline {
+    @apply border bg-transparent;
+    border-color: var(--border);
+    color: var(--foreground);
+  }
+  .lm-btn-outline:hover {
+    background: var(--muted);
+  }
+
+  .lm-icon-btn {
+    @apply inline-flex h-11 w-11 items-center justify-center rounded-full border transition-colors;
+    border-color: var(--lm-glass-border);
+    background: var(--lm-glass-bg);
+    color: var(--foreground);
+  }
+  .lm-icon-btn:hover {
+    background: var(--lm-glass-bg-hover);
+  }
+
+  .lm-hero-overlay {
+    background: var(--lm-overlay-soft);
+  }
+
+  .lm-hero-lead {
+    @apply max-w-lg text-sm leading-relaxed sm:text-base;
+    color: var(--lm-glass-text);
+  }
+
+  .lm-media-overlay {
+    background: var(--lm-overlay-soft);
+  }
+
+  .lm-caption {
+    @apply absolute right-4 bottom-4 left-4 rounded-2xl px-4 py-3 text-xs backdrop-blur;
+    background: var(--lm-overlay-strong);
+    color: color-mix(in oklab, var(--lm-text-main) 92%, transparent);
+  }
+
+  /* ---------- Sección invertida (clara) ----------
+     Clave: sobreescribe tokens del sistema LOCALMENTE.
+     Así dentro puedes seguir usando bg-card, text-muted-foreground, etc. */
+  .lm-invert {
+    background: var(--lm-bg-invert);
+    color: var(--lm-text-invert);
+
+    --background: var(--lm-bg-invert);
+    --foreground: var(--lm-text-invert);
+
+    --card: var(--lm-surface-invert);
+    --card-foreground: var(--lm-text-invert);
+
+    --popover: var(--lm-surface-invert);
+    --popover-foreground: var(--lm-text-invert);
+
+    --secondary: color-mix(
+      in oklab,
+      var(--lm-bg-invert) 92%,
+      var(--lm-text-invert)
+    );
+    --secondary-foreground: var(--lm-text-invert);
+
+    --muted: color-mix(
+      in oklab,
+      var(--lm-bg-invert) 94%,
+      var(--lm-text-invert)
+    );
+    --muted-foreground: var(--lm-text-muted-invert);
+
+    --accent: color-mix(in oklab, var(--primary) 12%, var(--lm-bg-invert));
+    --accent-foreground: var(--lm-text-invert);
+
+    --border: var(--lm-border-invert);
+    --input: var(--lm-border-invert);
+    --ring: color-mix(in oklab, var(--primary) 35%, var(--lm-text-invert));
+  }
+
+  /* ---------- Footer oscuro ----------
+     Igual que lm-invert, pero “oscuro consistente”.
+     Permite usar clases semánticas Tailwind dentro del footer. */
+  .lm-footer-dark {
+    background: var(--lm-bg-deep);
+    border-top: 1px solid color-mix(in oklab, white 10%, transparent);
+
+    --background: var(--lm-bg-deep);
+    --foreground: color-mix(in oklab, white 90%, transparent);
+    --muted-foreground: color-mix(in oklab, white 70%, transparent);
+    --border: color-mix(in oklab, white 10%, transparent);
+
+    color: var(--foreground);
+  }
+}
+
+/* =========================================================
+   Scrollbars discretos para zonas de scroll (tokenizados)
+   ======================================================= */
 .scroll-region::-webkit-scrollbar {
   width: 6px;
 }
-
 .scroll-region::-webkit-scrollbar-track {
   background: transparent;
 }
-
 .scroll-region::-webkit-scrollbar-thumb {
-  background-color: rgba(107, 114, 128, 0.45); /* gray-500 ~45% */
+  background-color: color-mix(in oklab, var(--primary) 35%, transparent);
   border-radius: 999px;
 }
-
 .scroll-region::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(156, 163, 175, 0.7); /* gray-400 ~70% */
+  background-color: color-mix(in oklab, var(--primary) 55%, transparent);
 }
-
-/* Firefox */
 .scroll-region {
   scrollbar-width: thin;
-  scrollbar-color: rgba(107, 114, 128, 0.45) transparent;
+  scrollbar-color: color-mix(in oklab, var(--primary) 35%, transparent)
+    transparent;
 }
 
-/* =========================================
- * Lynx Media – tokens de diseño catálogo público
- * Sólo afectan a las vistas que usen estas variables.
- * Aquí puedes cambiar los colores del FRONTEND.
- * ======================================= */
+/* =========================================================
+   Notas de uso rápida
+   ======================================================= */
+/*
+  - Página base:           className="lm-page" (lo pone el FrontendShell)
+  - Contenedor:            className="lm-container"
+  - Sección:               className="lm-section"
+  - Sección invertida:     className="lm-invert" (en el wrapper <section>)
+  - Card:                  className="lm-card"
+  - Card con imagen:       className="lm-card-frame"
+  - Kicker:                "lm-kicker lm-kicker-muted" | "lm-kicker lm-kicker-accent"
+  - Párrafo:               className="lm-prose"
+  - Botón primario:        className="lm-btn lm-btn-primary"
+  - Botón glass (hero):    className="lm-btn lm-btn-ghost"
+  - Botón outline (normal):className="lm-btn lm-btn-outline"
+*/

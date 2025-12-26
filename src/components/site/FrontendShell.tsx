@@ -21,9 +21,9 @@ export default function FrontendShell({ children }: FrontendShellProps) {
     pathname.startsWith("/catalog") || pathname.startsWith("/admin");
 
   return (
-    <div className="min-h-screen bg-[var(--color-dark)] text-[var(--foreground)]">
+    <div className="lm-page">
       {!hideHeader && <SiteHeader />}
-      {children}
+      <main>{children}</main>
     </div>
   );
 }
