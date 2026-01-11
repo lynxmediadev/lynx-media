@@ -1,0 +1,502 @@
+/* src/styles/globals.css */
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* =========================================================
+   Lynx Media – Setup base (fuentes y constantes generales)
+   ======================================================= */
+@theme {
+  /* Colores “legacy” mínimos (por si algún componente antiguo los usa)
+     NOTA: Los alineamos con la paleta actual para evitar desfaces. */
+  --color-light: #f3f1ea; /* papel / blanco cálido */
+  --color-dark: #141414; /* negro base */
+
+  /* Tipografías (inyectadas por next/font en <html>) */
+  --font-inter: var(--font-inter);
+  --font-lato: var(--font-lato);
+  --font-body: var(--font-hanken-grotesk);
+  --font-elegant: var(--font-dancing-script);
+  --font-cinema-title: var(--font-anton);
+  --font-sans-fallbacks:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial,
+    "Helvetica Neue", "Noto Sans", "Liberation Sans", sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+/* =========================================================
+   Lynx Media – Paleta global (arquitectura de tokens)
+   ======================================================= */
+/*
+  Este archivo tiene 3 capas de “colores”:
+
+  (A) Tokens de marca Lynx:         --lm-*
+      - Fuente de verdad estética (paleta, superficies, overlays, glass).
+
+  (B) Tokens semánticos del sistema: --background, --foreground, --card, etc.
+      - Compatibilidad con Tailwind + shadcn (bg-background, text-foreground, etc.)
+      - Se derivan desde (A).
+
+  (C) Puente Tailwind v4:           @theme inline ( --color-* )
+      - No es “diseño”, es plomería: habilita clases como bg-background.
+
+  REGLA PRÁCTICA:
+  - En TSX: usa lm-* o clases semánticas Tailwind (bg-background, text-muted-foreground).
+  - Evita: text-[var(...)] / bg-[var(...)] salvo casos MUY excepcionales.
+  - En CSS: sí es correcto usar var(--lm-*) para definir estilos.
+*/
+
+:root {
+  /* Core brand */
+  --lm-ink: #141414;
+  --lm-paper: #f3f1ea;
+  --lm-white-bg: #f5f5f5;
+
+  /* Accent brand (más sobrio) */
+  --lm-accent: #fac0d4;
+  --lm-accent-hover: #3140a4;
+  --lm-accent-outline: #5e70ff;
+
+  /* DARK: más neutro, menos tinte */
+  --lm-bg-deep: #141414;
+  --lm-bg-main: #161616;
+  --lm-bg-alt: #1a1a1c;
+
+  --lm-surface-soft: #191a1d;
+  --lm-surface-strong: #1d1f24;
+  --lm-surface-elevated: #23262e;
+
+  --lm-border-subtle: #2b2e38;
+  --lm-border-strong: #3a4050;
+
+  --lm-text-main: #f3f1ea;
+  --lm-text-main-2: #b3b3b3;
+  --lm-text-muted: #d1cec5;
+  --lm-text-soft: #a7a39a;
+
+  --lm-accent-soft: #111322;
+
+  --lm-info: #63b3ff;
+  --lm-success: #44d6b4;
+  --lm-warning: #f1c27d;
+  --lm-danger: #ff5c7c;
+
+  --lm-overlay-strong: color-mix(in oklab, black 60%, transparent);
+  --lm-overlay-soft: color-mix(in oklab, black 0%, transparent);
+
+  --lm-glass-bg: color-mix(in oklab, white 5%, transparent);
+  --lm-glass-bg-hover: color-mix(in oklab, white 8%, transparent);
+  --lm-glass-border: color-mix(in oklab, white 11%, transparent);
+  --lm-glass-text: color-mix(in oklab, var(--lm-text-main) 94%, transparent);
+
+  --lm-play-bg: var(--lm-accent);
+  --lm-play-bg-hover: var(--lm-accent-hover);
+  --lm-play-icon: var(--lm-ink);
+
+  /* Invert: más “paper editorial” */
+  --lm-bg-invert: #f3f1ea;
+  --lm-surface-invert: #fbfaf6;
+  --lm-border-invert: #d7d2c7;
+
+  --lm-text-invert: #141414;
+  --lm-text-muted-invert: #2f2f2f;
+  --lm-text-soft-invert: #5a5a5a;
+
+  --lm-page-bg: var(--lm-bg-deep);
+  --lm-light-bg: var(--lm-paper);
+  --lm-surface-bg: var(--lm-surface-soft);
+  --lm-surface-border: var(--lm-border-subtle);
+
+  --background: var(--lm-bg-deep);
+  --foreground: var(--lm-text-main);
+
+  --card: var(--lm-surface-soft);
+  --card-foreground: var(--foreground);
+
+  --popover: var(--lm-surface-strong);
+  --popover-foreground: var(--foreground);
+  
+  --dark: var(--lm-ink);
+
+  --primary: var(--lm-accent);
+  --primary-foreground: var(--lm-text-main);
+
+  --secondary: var(--lm-bg-alt);
+  --secondary-foreground: var(--foreground);
+
+  --muted: color-mix(in oklab, var(--lm-bg-alt) 82%, var(--lm-bg-deep));
+  --muted-foreground: var(--lm-text-muted);
+
+  --accent: var(--lm-accent-soft);
+  --accent-foreground: var(--foreground);
+
+  --border: var(--lm-border-subtle);
+  --input: var(--border);
+  --ring: color-mix(in oklab, var(--lm-accent-outline) 30%, black);
+
+  --radius: 0.75rem;
+
+  --sidebar: var(--lm-bg-alt);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+
+  color-scheme: dark;
+}
+
+
+
+/* =========================================================
+   Tipografía base
+   ======================================================= */
+body {
+  font-family: var(--font-body), var(--font-sans-fallbacks);
+}
+
+.font-display {
+  font-family: var(--font-inter), var(--font-sans-fallbacks);
+}
+
+.font-ui {
+  font-family: var(--font-lato), var(--font-sans-fallbacks);
+}
+
+.font-body {
+  font-family: var(--font-body), var(--font-sans-fallbacks);
+}
+
+/* Transición suave al cambiar colores globales */
+html,
+body {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+/* =========================================================
+   (C) Mapeos para Tailwind v4 (@theme inline)
+   (habilita bg-background, text-foreground, border-border, etc.)
+   ======================================================= */
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Colores consumidos por Tailwind/shadcn */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--lm-danger);
+  --color-destructive-foreground: var(--lm-ink);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Estados */
+  --color-info: var(--lm-info);
+  --color-success: var(--lm-success);
+  --color-warning: var(--lm-warning);
+  --color-danger: var(--lm-danger);
+}
+
+/* =========================================================
+   Base layer Tailwind
+   ======================================================= */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* =========================================================
+   Componentes semánticos Lynx (para reducir hardcodes en TSX)
+   ======================================================= */
+@layer components {
+  /* ---------- Layout ---------- */
+  .lm-container {
+    @apply mx-auto w-full max-w-6xl px-4 lg:px-6;
+  }
+
+  .lm-section {
+    @apply py-16 lg:py-20;
+  }
+
+  .lm-page {
+    min-height: 100vh;
+    background: var(--lm-light-bg);
+    color: var(--foreground);
+  }
+
+  /* ---------- Header ---------- */
+  .lm-header-dark {
+    @apply sticky top-0 z-40 border-b;
+    border-color: var(--border);
+    background: color-mix(in oklab, var(--background) 88%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: none;
+  }
+
+    .lm-header-light {
+    @apply sticky top-0 z-40 border-b;
+    border-color: none;
+    background: transparent;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: none;
+  }
+
+  .lm-nav {
+    @apply hidden gap-6 text-xs font-medium md:flex;
+    color: var(--muted-foreground);
+  }
+
+  .lm-navlink {
+    @apply transition-colors;
+  }
+  .lm-navlink:hover {
+    color: var(--foreground);
+  }
+
+  .lm-brand-badge {
+    @apply flex h-12 w-12 items-center justify-center rounded-full border;
+    border-color: var(--border);
+    background: transparent;
+  }
+
+  /* ---------- Kicker / Prose (evita repetir utilidades en TSX) ---------- */
+  .lm-kicker {
+    @apply text-xs font-semibold tracking-[0.22em] uppercase;
+  }
+  .lm-kicker-muted {
+    @apply text-muted-foreground;
+  }
+  .lm-kicker-accent {
+    @apply text-primary;
+  }
+
+  .lm-prose {
+    @apply text-muted-foreground text-sm leading-relaxed;
+  }
+  .lm-prose-xs {
+    @apply text-muted-foreground text-xs leading-relaxed;
+  }
+
+  /* ---------- UI atoms ---------- */
+  .lm-card {
+    @apply bg-card rounded-3xl border px-5 py-6 shadow-sm;
+  }
+
+  .lm-card-tight {
+    @apply bg-card rounded-3xl border p-5 shadow-sm;
+  }
+
+  .lm-card-frame {
+    @apply bg-card overflow-hidden rounded-[2rem] border shadow-sm;
+  }
+
+  .lm-chip {
+    @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold tracking-[0.22em] uppercase;
+    background: var(--lm-glass-bg);
+    border: 1px solid var(--lm-glass-border);
+    color: var(--lm-glass-text);
+  }
+
+  .lm-badge {
+    @apply inline-flex rounded-full px-3 py-1 text-[0.7rem] font-semibold tracking-[0.16em] uppercase;
+    background: color-mix(in oklab, var(--primary) 14%, var(--background));
+    border: 1px solid color-mix(in oklab, var(--primary) 22%, transparent);
+    color: var(--primary);
+  }
+
+  .lm-btn {
+    @apply focus-visible:ring-offset-background inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-transform focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none;
+  }
+
+  .lm-btn-primary {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+  .lm-btn-primary:hover {
+    background: var(--lm-accent-hover);
+    transform: scale(1.02);
+  }
+
+  /* “Ghost” pensado como glass (ideal en hero / sobre imagen) */
+  .lm-btn-ghost {
+    @apply border;
+    border-color: var(--lm-glass-border);
+    background: var(--lm-glass-bg);
+    color: var(--foreground);
+  }
+  .lm-btn-ghost:hover {
+    background: var(--lm-glass-bg-hover);
+  }
+
+  /* Outline pensado para secciones normales (y para lm-invert) */
+  .lm-btn-outline {
+    @apply border bg-transparent;
+    border-color: var(--border);
+    color: var(--foreground);
+  }
+  .lm-btn-outline:hover {
+    background: var(--muted);
+  }
+
+  .lm-icon-btn {
+    @apply inline-flex h-11 w-11 items-center justify-center rounded-full border transition-colors;
+    border-color: var(--lm-glass-border);
+    background: var(--lm-glass-bg);
+    color: var(--foreground);
+  }
+  .lm-icon-btn:hover {
+    background: var(--lm-glass-bg-hover);
+  }
+
+  .lm-hero-overlay {
+    background: var(--lm-overlay-soft);
+  }
+
+  .lm-hero-lead {
+    @apply max-w-lg text-sm leading-relaxed sm:text-base;
+    color: var(--lm-glass-text);
+  }
+
+  .lm-media-overlay {
+    background: var(--lm-overlay-soft);
+  }
+
+  .lm-caption {
+    @apply absolute right-4 bottom-4 left-4 rounded-2xl px-4 py-3 text-xs backdrop-blur;
+    background: var(--lm-overlay-strong);
+    color: color-mix(in oklab, var(--lm-text-main) 92%, transparent);
+  }
+
+  /* ---------- Sección invertida (clara) ----------
+     Clave: sobreescribe tokens del sistema LOCALMENTE.
+     Así dentro puedes seguir usando bg-card, text-muted-foreground, etc. */
+  .lm-invert {
+    background: var(--lm-bg-invert);
+    color: var(--lm-text-invert);
+
+    --background: var(--lm-bg-invert);
+    --foreground: var(--lm-text-invert);
+
+    --card: var(--lm-surface-invert);
+    --card-foreground: var(--lm-text-invert);
+
+    --popover: var(--lm-surface-invert);
+    --popover-foreground: var(--lm-text-invert);
+
+    --secondary: color-mix(
+      in oklab,
+      var(--lm-bg-invert) 92%,
+      var(--lm-text-invert)
+    );
+    --secondary-foreground: var(--lm-text-invert);
+
+    --muted: color-mix(
+      in oklab,
+      var(--lm-bg-invert) 94%,
+      var(--lm-text-invert)
+    );
+    --muted-foreground: var(--lm-text-muted-invert);
+
+    --accent: color-mix(in oklab, var(--primary) 12%, var(--lm-bg-invert));
+    --accent-foreground: var(--lm-text-invert);
+
+    --border: var(--lm-border-invert);
+    --input: var(--lm-border-invert);
+    --ring: color-mix(in oklab, var(--primary) 35%, var(--lm-text-invert));
+  }
+
+  /* ---------- Footer oscuro ----------
+     Igual que lm-invert, pero “oscuro consistente”.
+     Permite usar clases semánticas Tailwind dentro del footer. */
+  .lm-footer-dark {
+    background: var(--lm-bg-deep);
+    border-top: 1px solid color-mix(in oklab, white 10%, transparent);
+
+    --background: var(--lm-bg-deep);
+    --foreground: color-mix(in oklab, white 90%, transparent);
+    --muted-foreground: color-mix(in oklab, white 70%, transparent);
+    --border: color-mix(in oklab, white 10%, transparent);
+
+    color: var(--foreground);
+  }
+}
+
+/* =========================================================
+   Scrollbars discretos para zonas de scroll (tokenizados)
+   ======================================================= */
+.scroll-region::-webkit-scrollbar {
+  width: 6px;
+}
+.scroll-region::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-region::-webkit-scrollbar-thumb {
+  background-color: color-mix(in oklab, var(--primary) 35%, transparent);
+  border-radius: 999px;
+}
+.scroll-region::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklab, var(--primary) 55%, transparent);
+}
+.scroll-region {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--primary) 35%, transparent)
+    transparent;
+}
+
+/* =========================================================
+   Notas de uso rápida
+   ======================================================= */
+/*
+  - Página base:           className="lm-page" (lo pone el FrontendShell)
+  - Contenedor:            className="lm-container"
+  - Sección:               className="lm-section"
+  - Sección invertida:     className="lm-invert" (en el wrapper <section>)
+  - Card:                  className="lm-card"
+  - Card con imagen:       className="lm-card-frame"
+  - Kicker:                "lm-kicker lm-kicker-muted" | "lm-kicker lm-kicker-accent"
+  - Párrafo:               className="lm-prose"
+  - Botón primario:        className="lm-btn lm-btn-primary"
+  - Botón glass (hero):    className="lm-btn lm-btn-ghost"
+  - Botón outline (normal):className="lm-btn lm-btn-outline"
+*/
