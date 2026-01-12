@@ -28,9 +28,17 @@ export default function HomeDotsNav({
   return (
     <nav
       aria-label="Navegación por secciones"
-      className="fixed right-4 top-1/2 z-40 -translate-y-1/2"
+      className={[
+        "fixed bottom-4 left-1/2 z-40 -translate-x-1/2",
+        "md:bottom-auto md:left-auto md:right-4 md:top-1/2 md:-translate-x-0 md:-translate-y-1/2",
+      ].join(" ")}
     >
-      <ul className="flex flex-col gap-3 items-end md:mr-5">
+      <ul
+        className={[
+          "flex items-center gap-3 rounded-full bg-background/70 px-4 py-2 backdrop-blur",
+          "md:flex-col md:items-end md:bg-transparent md:px-0 md:py-0 md:backdrop-blur-0 md:mr-5",
+        ].join(" ")}
+      >
         {sections.map((s) => {
           const isActive = s.id === activeId;
 
@@ -48,7 +56,7 @@ export default function HomeDotsNav({
                     : "text-muted-foreground hover:text-foreground",
                 ].join(" ")}
               >
-                <span className="hidden sm:inline">{s.label}</span>
+                <span className="hidden md:inline">{s.label}</span>
 
                 <span
                   aria-hidden="true"
