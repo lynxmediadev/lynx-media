@@ -213,3 +213,27 @@ enum RequestPriority {
   MEDIUM
   HIGH
 }
+
+// ───────────────────────────────────────────────────────────────────────────────
+// Modelo para solicitudes de contacto generales (homepage)
+// ───────────────────────────────────────────────────────────────────────────────
+model ContactRequest {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name        String
+  email       String
+  serviceType String
+  details     String
+  urgency     Int
+  deadlineAt  DateTime?
+
+  pageUrl    String?
+  rawPayload Json?
+
+  status RequestStatus @default(NEW)
+
+  @@index([createdAt, status])
+  @@index([serviceType])
+}

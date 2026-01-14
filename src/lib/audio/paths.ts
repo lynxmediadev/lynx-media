@@ -27,10 +27,26 @@ function exists(p?: string | null) {
   if (!p) return false;
   try { fs.accessSync(p); return true; } catch { return false; }
 }
+function isExecutable(p?: string | null) {
+  if (!p) return false;
+  if (process.platform === "win32") return exists(p);
+  try { fs.accessSync(p, fs.constants.X_OK); return true; } catch { return false; }
+}
+function ensureExecutable(p?: string | null) {
+  if (!p) return false;
+  if (isExecutable(p)) return true;
+  if (process.platform === "win32") return false;
+  try {
+    fs.chmodSync(p, 0o755);
+    return isExecutable(p);
+  } catch {
+    return false;
+  }
+}
 function pick(candidates: Array<string | undefined>, fallbackCmd: string) {
   for (const c of candidates) {
     const fixed = fixRootPrefix(c);
-    if (exists(fixed)) return fixed;
+    if (exists(fixed) && ensureExecutable(fixed)) return fixed;
   }
   return fallbackCmd;
 }

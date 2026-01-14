@@ -30,13 +30,13 @@ export default function HomeDotsNav({
       aria-label="Navegación por secciones"
       className={[
         "fixed bottom-4 left-1/2 z-40 -translate-x-1/2",
-        "md:bottom-auto md:left-auto md:right-4 md:top-1/2 md:-translate-x-0 md:-translate-y-1/2",
+        "2xl:bottom-auto 2xl:left-auto 2xl:right-4 2xl:top-1/2 2xl:-translate-x-0 2xl:-translate-y-1/2",
       ].join(" ")}
     >
       <ul
         className={[
           "flex items-center gap-3 rounded-full bg-background/70 px-4 py-2 backdrop-blur",
-          "md:flex-col md:items-end md:bg-transparent md:px-0 md:py-0 md:backdrop-blur-0 md:mr-5",
+          "2xl:flex-col 2xl:items-end 2xl:bg-transparent 2xl:px-0 2xl:py-0 2xl:backdrop-blur-0 2xl:mr-5",
         ].join(" ")}
       >
         {sections.map((s) => {
@@ -56,7 +56,7 @@ export default function HomeDotsNav({
                     : "text-muted-foreground hover:text-foreground",
                 ].join(" ")}
               >
-                <span className="hidden md:inline">{s.label}</span>
+                <span className="hidden 2xl:inline">{s.label}</span>
 
                 <span
                   aria-hidden="true"

@@ -3,8 +3,7 @@
  * Formulario reutilizable de "Derechos & explotación" (admin).
  *
  * Peras y manzanas:
- * - Se usa tanto en:
- *     • /admin/track/[id]/rights
+ * - Se usa en:
  *     • /admin/track/[id]/edit
  * - Dibuja la sección completa:
  *     • Header con título + descripción + botón "Guardar derechos"
@@ -25,7 +24,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { updateRights } from "@/app/admin/track/[id]/rights/actions";
+import { updateRights } from "@/app/admin/track/actions/rights";
 import FormField from "../ui/FormField";
 
 type RightsTrackFormProps = {

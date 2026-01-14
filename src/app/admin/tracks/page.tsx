@@ -9,20 +9,20 @@
  * │ Peras y manzanas                                                            │
  * │ - Server Component (sin hooks).                                             │
  * │ - Ordena por `updatedAt` desc y limita a 100.                               │
- * │ - FIX: el import correcto del `db` es `@/server/db`.                        │
+ * │ - Usa el cliente Prisma común vía `@/lib/prisma`.                           │
  * └─────────────────────────────────────────────────────────────────────────────┘
  */
 
 import React from "react";
 import Link from "next/link";
-import { db } from "@/server/db"; // ✅ FIX de alias
+import prisma from "@/lib/prisma";
 import AnalyzeActions from "@/components/admin/AnalyzeActions";
 import { formatBytes } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 export default async function TracksListPage() {
-  const tracks = await db.track.findMany({
+  const tracks = await prisma.track.findMany({
     orderBy: { updatedAt: "desc" },
     take: 100,
     select: {
@@ -96,7 +96,7 @@ export default async function TracksListPage() {
                     <div className="flex items-center justify-end gap-2">
                       <AnalyzeActions id={t.id} />
                       <Link
-                        href={`/admin/track/${t.id}/tech`}
+                        href={`/admin/track/${t.id}/edit`}
                         className="px-2 py-1 text-xs rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
                       >
                         Ficha

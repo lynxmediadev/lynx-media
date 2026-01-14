@@ -16,10 +16,11 @@
  * └─────────────────────────────────────────────────────────────────────────────┘
  */
 
-import { PrismaClient, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import type { Metadata } from "next";
 import LicensingAdminClient from "./_client"; // Client Component (UI y filtro)
 import { cookies } from "next/headers";
+import prisma from "@/lib/prisma";
 
 export const metadata: Metadata = { title: "Licensing — Admin" };
 export const dynamic = "force-dynamic";
@@ -81,8 +82,6 @@ function normalizePriorityFromQS(
   }
   return undefined;
 }
-
-const prisma = new PrismaClient();
 
 export default async function Page(props: {
   searchParams: Promise<SearchDict>;

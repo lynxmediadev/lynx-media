@@ -22,7 +22,8 @@
  * └─────────────────────────────────────────────────────────────────────────────┘
  */
 
-import { prisma } from "@/server/prisma";
+import Link from "next/link";
+import prisma from "@/lib/prisma";
 import AnalyzeActions from "@/components/admin/AnalyzeActions";
 import { getS3PublicUrl } from "@/lib/storage/s3";
 
@@ -44,25 +45,54 @@ type AnalyzeRow = {
   truePeakDbfs: number | null;
 };
 
-export default async function Page() {
-  const tracks = await prisma.track.findMany({
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      title: true,
-      artist: true,
-      createdAt: true,
-      updatedAt: true,
-      analysisAt: true,
-      assetKey: true,
-      audioUrl: true,
-      durationSec: true,
-      sampleRateHz: true,
-      loudnessLufs: true,
-      loudnessRangeLu: true,
-      truePeakDbfs: true,
-    },
-  });
+type SearchDict = Record<string, string | string[] | undefined>;
+
+function first(v?: string | string[]) {
+  return Array.isArray(v) ? v[0] : v;
+}
+
+export default async function Page(props: {
+  searchParams: Promise<SearchDict>;
+}) {
+  const sp = await props.searchParams;
+  const page = Math.max(1, parseInt(first(sp.page) ?? "1", 10) || 1);
+  const per = Math.min(100, Math.max(10, parseInt(first(sp.per) ?? "50", 10) || 50));
+  const skip = (page - 1) * per;
+
+  const [tracks, total] = await Promise.all([
+    prisma.track.findMany({
+      orderBy: { createdAt: "desc" },
+      take: per,
+      skip,
+      select: {
+        id: true,
+        title: true,
+        artist: true,
+        createdAt: true,
+        updatedAt: true,
+        analysisAt: true,
+        assetKey: true,
+        audioUrl: true,
+        durationSec: true,
+        sampleRateHz: true,
+        loudnessLufs: true,
+        loudnessRangeLu: true,
+        truePeakDbfs: true,
+      },
+    }),
+    prisma.track.count(),
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(total / per));
+  const prevPage = Math.max(1, page - 1);
+  const nextPage = Math.min(totalPages, page + 1);
+
+  const buildHref = (target: number) => {
+    const qs = new URLSearchParams();
+    qs.set("page", String(target));
+    qs.set("per", String(per));
+    return `/admin/analyze?${qs.toString()}`;
+  };
 
   return (
     <main className="mx-auto w-full max-w-7xl space-y-6 p-6">
@@ -74,12 +104,34 @@ export default async function Page() {
           Panel de control para revisar el estado de análisis de cada track,
           métricas de audio y acceso rápido a la ficha técnica.
         </p>
+        <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-400">
+          <span>
+            Página {page} de {totalPages} · {total} track
+            {total === 1 ? "" : "s"}
+          </span>
+          <div className="flex items-center gap-2">
+            <Link
+              href={buildHref(prevPage)}
+              className="rounded-full border border-zinc-800 px-3 py-1 text-xs text-zinc-300 hover:bg-zinc-900/60"
+              aria-disabled={page <= 1}
+            >
+              ← Anterior
+            </Link>
+            <Link
+              href={buildHref(nextPage)}
+              className="rounded-full border border-zinc-800 px-3 py-1 text-xs text-zinc-300 hover:bg-zinc-900/60"
+              aria-disabled={page >= totalPages}
+            >
+              Siguiente →
+            </Link>
+          </div>
+        </div>
       </header>
 
       {/* Contenedor rígido de la tabla: nada puede pintarse fuera del borde */}
       <section className="relative overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/70 backdrop-blur">
         <div className="border-b border-zinc-800 px-4 py-3 text-xs font-medium tracking-wide text-zinc-400 uppercase">
-          {tracks.length} track{tracks.length === 1 ? "" : "s"} en catálogo
+          {tracks.length} track{tracks.length === 1 ? "" : "s"} en esta página
         </div>
 
         <table className="w-full table-auto text-sm">

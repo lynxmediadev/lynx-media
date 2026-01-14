@@ -21,7 +21,7 @@ import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 
-import { db } from "@/server/db";
+import prisma from "@/lib/prisma";
 import PublicAudioBar from "@/components/public/PublicAudioBar";
 import CreativeForm from "@/components/admin/track/CreativeForm";
 import IdsForm from "@/components/admin/track/IdsForm";
@@ -147,7 +147,7 @@ export default async function AdminTrackEditPage({
 
   const { id } = p;
 
-  const track = await db.track.findUnique({
+  const track = await prisma.track.findUnique({
     where: { id },
     select: {
       id: true,
@@ -258,7 +258,7 @@ export default async function AdminTrackEditPage({
       const data: CreativeFormValues = parsed.data;
 
       // 3) Persistimos en Prisma con datos ya normalizados
-      await db.track.update({
+      await prisma.track.update({
         where: { id: track.id },
         data: {
           title: data.title,
@@ -314,7 +314,7 @@ export default async function AdminTrackEditPage({
       const data: IdsFormValues = parsed.data;
 
       // 3) Persistir en Prisma con datos ya normalizados
-      await db.track.update({
+      await prisma.track.update({
         where: { id: track.id },
         data: {
           isrc: data.isrc,
@@ -370,7 +370,7 @@ export default async function AdminTrackEditPage({
 
     try {
       // 1) Eliminar de BD
-      await db.track.delete({
+      await prisma.track.delete({
         where: { id: idFromForm },
       });
 
@@ -604,15 +604,8 @@ export default async function AdminTrackEditPage({
             )}
 
             <p className="text-[11px] text-zinc-500">
-              Para ver el detalle completo del análisis (histograma de loudness,
-              métricas avanzadas, etc.), ve a{" "}
-              <Link
-                href={`/admin/track/${track.id}/tech`}
-                className="text-emerald-400 underline underline-offset-2"
-              >
-                ficha técnica
-              </Link>
-              .
+              El detalle completo del análisis se muestra en este panel tras
+              ejecutar “Analizar”.
             </p>
           </div>
         </section>
