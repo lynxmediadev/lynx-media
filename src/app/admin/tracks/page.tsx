@@ -1,188 +1,302 @@
+// src/app/admin/tracks/page.tsx
 /**
  * ┌─────────────────────────────────────────────────────────────────────────────┐
- * │ Título: src/app/admin/tracks/page.tsx                                       │
+ * │ Admin · /admin/tracks                                                      │
  * ├─────────────────────────────────────────────────────────────────────────────┤
  * │ Qué hace                                                                    │
- * │ - Lista de tracks con chips de estado (Analizado / Faltan datos / Falta     │
- * │   normalización) y acciones rápidas: Analizar, Analizar+Normalizar, Ficha.  │
+ * │ - Lista tracks con foco en su estado técnico de análisis.                  │
+ * │ - Muestra: título, artista, estado (audio/análisis), métricas de audio     │
+ * │   (LUFS, LRA, True Peak, duración, sample rate) y acciones.                │
  * ├─────────────────────────────────────────────────────────────────────────────┤
  * │ Peras y manzanas                                                            │
- * │ - Server Component (sin hooks).                                             │
- * │ - Ordena por `updatedAt` desc y limita a 100.                               │
- * │ - Usa el cliente Prisma común vía `@/lib/prisma`.                           │
+ * │ - Tabla contenida en una card con overflow-hidden.                         │
+ * │ - Paginación simple con ?page=&per=.                                       │
  * └─────────────────────────────────────────────────────────────────────────────┘
  */
 
-import React from "react";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
 import AnalyzeActions from "@/components/admin/AnalyzeActions";
-import { formatBytes } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function TracksListPage() {
-  const tracks = await prisma.track.findMany({
-    orderBy: { updatedAt: "desc" },
-    take: 100,
-    select: {
-      id: true,
-      title: true,
-      artist: true,
-      analysisAt: true,
-      updatedAt: true,
-      assetKey: true,
-      assetMime: true,
-      assetSize: true,
-      audioUrl: true,
-      loudnessLufs: true,
-      loudnessRangeLu: true,
-      truePeakDbfs: true,
-      waveform: true, // Bytes (Buffer)
-    },
-  });
-
-  return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Admin · Tracks</h1>
-        <Link href="/admin/analyze" className="text-sm text-indigo-600 hover:underline">
-          ← Volver a Analizar / Normalizar
-        </Link>
-      </div>
-
-      <div className="overflow-x-auto rounded border border-gray-200">
-        <table className="min-w-full divide-y divide-gray-200 text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              <Th>Track</Th>
-              <Th className="hidden md:table-cell">LUFS</Th>
-              <Th className="hidden md:table-cell">LRA</Th>
-              <Th className="hidden md:table-cell">TP</Th>
-              <Th>Estado</Th>
-              <Th className="hidden lg:table-cell">Asset</Th>
-              <Th className="text-right">Acciones</Th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {tracks.map((t) => {
-              const st = deriveStatus(t);
-              return (
-                <tr key={t.id} className="hover:bg-gray-50">
-                  <Td>
-                    <div className="font-medium">{t.title ?? "Sin título"}</div>
-                    <div className="text-gray-500">{t.artist ?? "Sin artista"}</div>
-                    <div className="text-[11px] text-gray-400">ID: {t.id}</div>
-                  </Td>
-                  <Td className="hidden md:table-cell">{fmtMaybe(t.loudnessLufs)}</Td>
-                  <Td className="hidden md:table-cell">{fmtMaybe(t.loudnessRangeLu)}</Td>
-                  <Td className="hidden md:table-cell">{fmtMaybe(t.truePeakDbfs)}</Td>
-                  <Td>
-                    <StatusChips status={st} />
-                  </Td>
-                  <Td className="hidden lg:table-cell">
-                    {t.assetKey ? (
-                      <div className="text-xs">
-                        <div className="font-mono break-all">{t.assetKey}</div>
-                        <div className="text-gray-500">
-                          {t.assetMime ?? "—"} · {t.assetSize != null ? formatBytes(t.assetSize) : "—"}
-                        </div>
-                      </div>
-                    ) : (
-                      <span className="text-gray-400 text-xs">Sin asset normalizado</span>
-                    )}
-                  </Td>
-                  <Td className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <AnalyzeActions id={t.id} />
-                      <Link
-                        href={`/admin/track/${t.id}/edit`}
-                        className="px-2 py-1 text-xs rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
-                      >
-                        Ficha
-                      </Link>
-                    </div>
-                  </Td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-/* ============================
- * Helpers de UI
- * ============================ */
-
-function Th({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <th className={`px-3 py-2 text-left font-medium text-gray-600 ${className}`}>{children}</th>;
-}
-function Td({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <td className={`px-3 py-2 align-top ${className}`}>{children}</td>;
-}
-
-type Row = {
+type AnalyzeRow = {
+  id: string;
+  title: string | null;
+  artist: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  analysisAt: Date | null;
   assetKey: string | null;
-  assetMime: string | null;
-  assetSize: number | null;
-  waveform: Buffer | null;
+  audioUrl: string | null;
+  durationSec: number | null;
+  sampleRateHz: number | null;
   loudnessLufs: number | null;
   loudnessRangeLu: number | null;
   truePeakDbfs: number | null;
-  analysisAt: Date | null;
 };
 
-type Status =
-  | { kind: "ok" }
-  | { kind: "missingData"; reasons: string[] }
-  | { kind: "needsNormalization" };
+type SearchDict = Record<string, string | string[] | undefined>;
 
-function deriveStatus(t: Row): Status {
-  const normalizedOk = !!t.assetKey && !!t.assetMime && !!t.assetSize && t.assetSize > 0;
-  if (!normalizedOk) return { kind: "needsNormalization" };
-
-  const hasWaveform = !!t.waveform && (t.waveform as unknown as Buffer).length > 0;
-  const hasAudioMetrics = t.loudnessLufs != null && t.loudnessRangeLu != null && t.truePeakDbfs != null;
-  const reasons: string[] = [];
-  if (!hasWaveform) reasons.push("waveform");
-  if (!hasAudioMetrics) reasons.push("métricas audio");
-
-  if (reasons.length > 0) return { kind: "missingData", reasons };
-  return { kind: "ok" };
+function first(v?: string | string[]) {
+  return Array.isArray(v) ? v[0] : v;
 }
 
-function StatusChips({ status }: { status: Status }) {
-  if (status.kind === "ok") {
-    return <Chip color="emerald">Analizado</Chip>;
-  }
-  if (status.kind === "needsNormalization") {
-    return <Chip color="rose">Falta normalización</Chip>;
-  }
+export default async function Page(props: {
+  searchParams: Promise<SearchDict>;
+}) {
+  const sp = await props.searchParams;
+  const page = Math.max(1, parseInt(first(sp.page) ?? "1", 10) || 1);
+  const per = Math.min(100, Math.max(10, parseInt(first(sp.per) ?? "50", 10) || 50));
+  const skip = (page - 1) * per;
+
+  const [tracks, total] = await Promise.all([
+    prisma.track.findMany({
+      orderBy: { createdAt: "desc" },
+      take: per,
+      skip,
+      select: {
+        id: true,
+        title: true,
+        artist: true,
+        createdAt: true,
+        updatedAt: true,
+        analysisAt: true,
+        assetKey: true,
+        audioUrl: true,
+        durationSec: true,
+        sampleRateHz: true,
+        loudnessLufs: true,
+        loudnessRangeLu: true,
+        truePeakDbfs: true,
+      },
+    }),
+    prisma.track.count(),
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(total / per));
+  const prevPage = Math.max(1, page - 1);
+  const nextPage = Math.min(totalPages, page + 1);
+
+  const buildHref = (target: number) => {
+    const qs = new URLSearchParams();
+    qs.set("page", String(target));
+    qs.set("per", String(per));
+    return `/admin/tracks?${qs.toString()}`;
+  };
+
   return (
-    <div className="flex flex-wrap gap-1">
-      <Chip color="amber">Faltan datos</Chip>
-      {status.reasons.map((r) => (
-        <Chip key={r} color="gray">
-          {r}
-        </Chip>
-      ))}
+    <main className="mx-auto w-full max-w-7xl space-y-6 p-6">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-semibold text-zinc-50">
+          Análisis técnico de tracks
+        </h1>
+        <p className="text-sm text-zinc-400">
+          Panel de control para revisar el estado de análisis de cada track,
+          métricas de audio y acceso rápido a la ficha técnica.
+        </p>
+        <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-400">
+          <span>
+            Página {page} de {totalPages} · {total} track
+            {total === 1 ? "" : "s"}
+          </span>
+          <div className="flex items-center gap-2">
+            <Link
+              href={buildHref(prevPage)}
+              className="rounded-full border border-zinc-800 px-3 py-1 text-xs text-zinc-300 hover:bg-zinc-900/60"
+              aria-disabled={page <= 1}
+            >
+              ← Anterior
+            </Link>
+            <Link
+              href={buildHref(nextPage)}
+              className="rounded-full border border-zinc-800 px-3 py-1 text-xs text-zinc-300 hover:bg-zinc-900/60"
+              aria-disabled={page >= totalPages}
+            >
+              Siguiente →
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      <section className="relative overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/70 backdrop-blur">
+        <div className="border-b border-zinc-800 px-4 py-3 text-xs font-medium tracking-wide text-zinc-400 uppercase">
+          {tracks.length} track{tracks.length === 1 ? "" : "s"} en esta página
+        </div>
+
+        <table className="w-full table-auto text-sm">
+          <thead className="bg-zinc-900/80 text-xs tracking-wide text-zinc-400 uppercase">
+            <tr>
+              <th className="px-4 py-3 text-left align-middle">Track</th>
+              <th className="px-4 py-3 text-left align-middle">Estado</th>
+              <th className="px-4 py-3 text-left align-middle">Audio</th>
+              <th className="px-4 py-3 text-left align-middle">Analizado</th>
+              <th className="px-4 py-3 text-right align-middle">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tracks.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={5}
+                  className="px-4 py-6 text-center text-xs text-zinc-500"
+                >
+                  No hay tracks registrados todavía.
+                </td>
+              </tr>
+            ) : (
+              tracks.map((t) => (
+                <tr
+                  key={t.id}
+                  className="border-t border-zinc-800/80 hover:bg-zinc-900/50"
+                >
+                  <td className="px-4 py-3 align-top">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-zinc-50">
+                        {t.title || "(sin título)"}
+                      </span>
+                      <span className="text-xs text-zinc-400">
+                        {t.artist || "(sin artista)"}
+                      </span>
+                      <span className="mt-1 font-mono text-[10px] break-words text-zinc-500">
+                        ID: {t.id}
+                      </span>
+                    </div>
+                  </td>
+
+                  <td className="px-4 py-3 align-top">
+                    <EstadoChip row={t} />
+                  </td>
+
+                  <td className="px-4 py-3 align-top">
+                    <AudioInfo row={t} />
+                  </td>
+
+                  <td className="px-4 py-3 align-top">
+                    <div className="flex flex-col text-xs text-zinc-400">
+                      {t.analysisAt ? (
+                        <>
+                          <span className="text-emerald-400">Analizado</span>
+                          <span>{formatDateTime(t.analysisAt)}</span>
+                        </>
+                      ) : (
+                        <span className="text-amber-400">Sin análisis</span>
+                      )}
+                    </div>
+                  </td>
+
+                  <td className="px-4 py-3 align-top">
+                    <AnalyzeActions id={t.id} className="justify-end" />
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </section>
+    </main>
+  );
+}
+
+function EstadoChip({ row }: { row: AnalyzeRow }) {
+  const hasAudio = !!(row.assetKey || row.audioUrl);
+  const analyzed = !!row.analysisAt;
+
+  const baseClass =
+    "inline-flex items-center justify-center rounded-md px-2 py-0.5 text-[11px] font-medium";
+
+  if (!hasAudio) {
+    return (
+      <span
+        className={
+          baseClass + " border border-zinc-700 bg-zinc-900 text-zinc-300"
+        }
+      >
+        Sin audio
+      </span>
+    );
+  }
+
+  if (!analyzed) {
+    return (
+      <span
+        className={
+          baseClass +
+          " border border-amber-500/50 bg-amber-500/10 text-amber-300"
+        }
+      >
+        Sin análisis
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className={
+        baseClass +
+        " border border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
+      }
+    >
+      Analizado
+    </span>
+  );
+}
+
+function AudioInfo({ row }: { row: AnalyzeRow }) {
+  const hasAnalysis =
+    typeof row.loudnessLufs === "number" ||
+    typeof row.loudnessRangeLu === "number" ||
+    typeof row.truePeakDbfs === "number" ||
+    typeof row.durationSec === "number" ||
+    typeof row.sampleRateHz === "number";
+
+  if (!hasAnalysis) {
+    return (
+      <span className="text-xs text-zinc-500">
+        Sin análisis. Usa <span className="font-semibold">Analizar</span>.
+      </span>
+    );
+  }
+
+  const lufs =
+    typeof row.loudnessLufs === "number" ? row.loudnessLufs.toFixed(2) : null;
+  const lra =
+    typeof row.loudnessRangeLu === "number"
+      ? row.loudnessRangeLu.toFixed(2)
+      : null;
+  const tp =
+    typeof row.truePeakDbfs === "number" ? row.truePeakDbfs.toFixed(2) : null;
+
+  const dur =
+    typeof row.durationSec === "number"
+      ? `${Math.round(row.durationSec)} s`
+      : null;
+  const sr =
+    typeof row.sampleRateHz === "number" ? `${row.sampleRateHz} Hz` : null;
+
+  return (
+    <div className="flex flex-col space-y-1 text-[11px] text-zinc-200">
+      <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+        <span className="font-mono">LUFS: {lufs ?? "–"}</span>
+        <span className="font-mono">LRA: {lra ?? "–"}</span>
+        <span className="font-mono">TP: {tp ?? "–"}</span>
+      </div>
+
+      <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-zinc-300">
+        <span>{dur ? `Dur: ${dur}` : "Dur: –"}</span>
+        <span>{sr ? `SR: ${sr}` : "SR: –"}</span>
+      </div>
     </div>
   );
 }
 
-function Chip({ children, color }: { children: React.ReactNode; color: "emerald" | "amber" | "rose" | "gray" }) {
-  const map = {
-    emerald: "bg-emerald-100 text-emerald-900",
-    amber: "bg-amber-100 text-amber-900",
-    rose: "bg-rose-100 text-rose-900",
-    gray: "bg-gray-100 text-gray-700",
-  } as const;
-  return <span className={`inline-flex px-2 py-0.5 text-xs rounded ${map[color]}`}>{children}</span>;
-}
-
-function fmtMaybe(v: number | null) {
-  return v == null || !isFinite(v) ? "—" : Number(v).toFixed(2);
+function formatDateTime(d: Date) {
+  try {
+    return new Intl.DateTimeFormat("es-CL", {
+      dateStyle: "short",
+      timeStyle: "short",
+    }).format(d);
+  } catch {
+    return d.toISOString();
+  }
 }

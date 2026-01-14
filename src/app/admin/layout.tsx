@@ -34,8 +34,8 @@ export default function AdminLayout({
             <Link href="/admin/tracks" className="hover:underline">
               Tracks
             </Link>
-            <Link href="/admin/analyze" className="hover:underline">
-              Análisis
+            <Link href="/admin/licensing" className="hover:underline">
+              Licensing
             </Link>
 
             <form method="POST" action="/admin/logout">

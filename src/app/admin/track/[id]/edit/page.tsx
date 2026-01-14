@@ -30,6 +30,7 @@ import { getS3PublicUrl } from "@/lib/storage/s3";
 import { TrackAnalyzeHeaderButtons } from "@/components/admin/AnalyzeActions";
 import { DeleteTrackButton } from "@/components/admin/track/DeleteTrackButton.client";
 import { deleteObjectFromS3 } from "@/lib/storage/delete-object";
+import { formatBytes } from "@/lib/format";
 
 import {
   creativeFormSchema,
@@ -164,6 +165,8 @@ export default async function AdminTrackEditPage({
       audioUrl: true,
       coverUrl: true,
       assetKey: true,
+      assetMime: true,
+      assetSize: true,
       durationSec: true,
       sampleRateHz: true,
       channels: true,
@@ -272,7 +275,7 @@ export default async function AdminTrackEditPage({
       // 4) Revalidamos rutas relacionadas
       revalidatePath(`/admin/track/${track.id}/edit`);
       revalidatePath(`/admin/track/${track.id}/creative`);
-      revalidatePath(`/admin/analyze`);
+      revalidatePath(`/admin/tracks`);
 
       return {
         ok: true as const,
@@ -327,7 +330,7 @@ export default async function AdminTrackEditPage({
       // 4) Revalidar rutas relacionadas
       revalidatePath(`/admin/track/${track.id}/edit`);
       revalidatePath(`/admin/track/${track.id}/ids`);
-      revalidatePath(`/admin/analyze`);
+      revalidatePath(`/admin/tracks`);
 
       return {
         ok: true as const,
@@ -351,7 +354,7 @@ export default async function AdminTrackEditPage({
    * - Lee id/assetKey/coverUrl desde el FormData.
    * - Elimina el registro en BD.
    * - Intenta borrar el asset en R2 (si hay assetKey).
-   * - Luego revalida y hace redirect a /admin/analyze.
+   * - Luego revalida y hace redirect a /admin/tracks.
    */
   async function deleteTrackAction(formData: FormData) {
     "use server";
@@ -392,8 +395,8 @@ export default async function AdminTrackEditPage({
     }
 
     // 3) Revalidar y REDIRIGIR (fuera del try/catch para no atrapar NEXT_REDIRECT)
-    revalidatePath("/admin/analyze");
-    redirect("/admin/analyze");
+    revalidatePath("/admin/tracks");
+    redirect("/admin/tracks");
   }
 
   // Flag simple: ¿tenemos análisis técnico?
@@ -430,7 +433,7 @@ export default async function AdminTrackEditPage({
           />
           <TrackAnalyzeHeaderButtons id={track.id} />
           <Link
-            href="/admin/analyze"
+            href="/admin/tracks"
             className="rounded-md border border-zinc-700 bg-zinc-900/70 px-3 py-1.5 text-xs font-medium text-zinc-100 hover:bg-zinc-800"
           >
             Volver al listado
@@ -602,6 +605,33 @@ export default async function AdminTrackEditPage({
                 rango (LRA) y True Peak.
               </p>
             )}
+
+            <div className="pt-1 text-[11px]">
+              <div className="text-[11px] font-black text-zinc-400">
+                Asset
+              </div>
+              {track.assetKey || track.audioUrl ? (
+                <div className="flex flex-col gap-1">
+                  <a
+                    href={publicSrc ?? "#"}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="font-mono text-[11px] text-emerald-400 underline underline-offset-2"
+                  >
+                    Abrir audio
+                  </a>
+                  <span className="text-zinc-500">
+                    {track.assetKey ? "R2" : "URL externa"} ·{" "}
+                    {track.assetMime ?? "mime —"} ·{" "}
+                    {track.assetSize != null
+                      ? formatBytes(track.assetSize)
+                      : "size —"}
+                  </span>
+                </div>
+              ) : (
+                <span className="text-zinc-500">Sin audio</span>
+              )}
+            </div>
 
             <p className="text-[11px] text-zinc-500">
               El detalle completo del análisis se muestra en este panel tras

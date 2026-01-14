@@ -259,22 +259,6 @@ export default async function TrackPublicPage({ params }: PageProps) {
             </dl>
           </div>
 
-          {/* CTA licencia */}
-          <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/40 p-4">
-            <h2 className="mb-3 text-lg font-medium">Licencias / contacto</h2>
-            <p className="mb-3 text-sm text-zinc-400">
-              ¿Te interesa usar esta pieza en un proyecto audiovisual? Hablemos.
-              Cuéntame el <strong>uso</strong>, <strong>territorios</strong> y{" "}
-              <strong>plazos</strong>, y te respondo con la licencia adecuada.
-            </p>
-            <Link
-              href={`/contact?track=${encodeURIComponent(track.id)}`}
-              className="inline-flex items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-100 hover:bg-zinc-800"
-            >
-              Solicitar licencia
-            </Link>
-          </div>
-
           {/* Sugerencias */}
           <div className="rounded-2xl border border-zinc-800/80 bg-zinc-950/40 p-4">
             <h2 className="mb-3 text-lg font-medium">Piezas similares</h2>

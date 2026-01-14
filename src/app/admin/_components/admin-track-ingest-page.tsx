@@ -3,7 +3,6 @@
  * AdminTrackIngestPage (componente compartido)
  *
  * Rutas donde se usa:
- *   - /admin/track/new
  *   - /admin/uploads
  *
  * Peras y manzanas:
@@ -267,7 +266,7 @@ export default function AdminTrackIngestPage(props: AdminTrackIngestPageProps) {
       setStatusMsg("Track creado correctamente.");
 
       // Flujo principal: volver al listado técnico
-      router.push("/admin/analyze");
+      router.push("/admin/tracks");
     } catch (err) {
       console.error("[AdminTrackIngest] excepción al crear track:", err);
       setStatusMsg("Error inesperado al crear track.");

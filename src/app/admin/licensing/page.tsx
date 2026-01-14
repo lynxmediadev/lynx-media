@@ -16,7 +16,7 @@
  * └─────────────────────────────────────────────────────────────────────────────┘
  */
 
-import { Prisma } from "@prisma/client";
+import { Prisma, RequestPriority, RequestStatus } from "@prisma/client";
 import type { Metadata } from "next";
 import LicensingAdminClient from "./_client"; // Client Component (UI y filtro)
 import { cookies } from "next/headers";
@@ -34,22 +34,21 @@ function first(v?: string | string[]) {
 
 // Normaliza el status del query hacia el enum real (resistente a minúsculas)
 function normalizeStatusFromQS(
-  value: string | undefined,
-  PrismaNS: typeof Prisma
-): Prisma.RequestStatus | undefined {
+  value: string | undefined
+): RequestStatus | undefined {
   if (!value) return undefined;
   const raw = value.trim();
   // Intento directo por exact match (por si ya viene en upper)
-  if ((PrismaNS.RequestStatus as any)[raw]) {
-    return (PrismaNS.RequestStatus as any)[raw] as Prisma.RequestStatus;
+  if ((RequestStatus as any)[raw]) {
+    return (RequestStatus as any)[raw] as RequestStatus;
   }
   // Intento por case-insensitive (upper)
   const upper = raw.toUpperCase();
-  if ((PrismaNS.RequestStatus as any)[upper]) {
-    return (PrismaNS.RequestStatus as any)[upper] as Prisma.RequestStatus;
+  if ((RequestStatus as any)[upper]) {
+    return (RequestStatus as any)[upper] as RequestStatus;
   }
   // Intento por mapeo legacy (ej: "in-progress" → "IN_PROGRESS")
-  const legacyMap: Record<string, keyof typeof Prisma.RequestStatus> = {
+  const legacyMap: Record<string, keyof typeof RequestStatus> = {
     open: "OPEN",
     "in-progress": "IN_PROGRESS",
     in_progress: "IN_PROGRESS",
@@ -61,24 +60,23 @@ function normalizeStatusFromQS(
     // agrega aquí si tu proyecto viejo tenía variantes adicionales
   };
   const key = legacyMap[raw] ?? legacyMap[upper.toLowerCase()];
-  if (key && (PrismaNS.RequestStatus as any)[key]) {
-    return (PrismaNS.RequestStatus as any)[key] as Prisma.RequestStatus;
+  if (key && (RequestStatus as any)[key]) {
+    return (RequestStatus as any)[key] as RequestStatus;
   }
   return undefined; // si no calza, no aplicamos filtro por status
 }
 
 function normalizePriorityFromQS(
-  value: string | undefined,
-  PrismaNS: typeof Prisma
-): Prisma.RequestPriority | undefined {
+  value: string | undefined
+): RequestPriority | undefined {
   if (!value) return undefined;
   const raw = value.trim();
-  if ((PrismaNS.RequestPriority as any)[raw]) {
-    return (PrismaNS.RequestPriority as any)[raw] as Prisma.RequestPriority;
+  if ((RequestPriority as any)[raw]) {
+    return (RequestPriority as any)[raw] as RequestPriority;
   }
   const upper = raw.toUpperCase();
-  if ((PrismaNS.RequestPriority as any)[upper]) {
-    return (PrismaNS.RequestPriority as any)[upper] as Prisma.RequestPriority;
+  if ((RequestPriority as any)[upper]) {
+    return (RequestPriority as any)[upper] as RequestPriority;
   }
   return undefined;
 }
@@ -94,8 +92,8 @@ export default async function Page(props: {
   // ---- Filtros / paginación desde URL (con defensas) ----
   const q = (first(sp.q) ?? "").trim();
 
-  const statusEnum = normalizeStatusFromQS(first(sp.status), Prisma);
-  const priorityEnum = normalizePriorityFromQS(first(sp.priority), Prisma);
+  const statusEnum = normalizeStatusFromQS(first(sp.status));
+  const priorityEnum = normalizePriorityFromQS(first(sp.priority));
 
   const page = Math.max(1, parseInt(first(sp.page) ?? "1", 10) || 1);
   const per = Math.min(100, Math.max(1, parseInt(first(sp.per) ?? "20", 10) || 20));
@@ -147,8 +145,8 @@ export default async function Page(props: {
   ];
 
   // Leemos opciones de filtro desde los enums reales de Prisma
-  const STATUS_OPTIONS = Object.values(Prisma.RequestStatus) as string[];
-  const PRIORITY_OPTIONS = Object.values(Prisma.RequestPriority) as string[];
+  const STATUS_OPTIONS = Object.values(RequestStatus) as string[];
+  const PRIORITY_OPTIONS = Object.values(RequestPriority) as string[];
 
   // --- Query principal ---
   let rows = [];

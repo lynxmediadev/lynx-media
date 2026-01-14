@@ -10,7 +10,7 @@
  *       recibida por props (deleteAction).
  * - La Server Action:
  *     • Elimina el track de la base de datos.
- *     • Redirige a /admin/analyze.
+ *     • Redirige a /admin/tracks.
  *
  * Notas:
  * - NO toca la lógica de análisis, waveform ni nada técnico de audio.

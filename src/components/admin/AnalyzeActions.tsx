@@ -10,7 +10,7 @@
  * │     • refresca la UI vía router.refresh()                                  │
  * │     • muestra un modal con el JSON (botón "Payload")                       │
  * │ - Exporta dos componentes de UI:                                           │
- * │     1) default AnalyzeActions → para /admin/analyze (tabla)                │
+ * │     1) default AnalyzeActions → para /admin/tracks (tabla)                 │
  * │        - Botones: Analizar, Payload, Ver track                             │
  * │     2) TrackAnalyzeHeaderButtons → para /admin/track/[id]/edit (header)    │
  * │        - Botones: Analizar, Payload (sin "Ver track")                      │
@@ -206,7 +206,7 @@ function PayloadModal({
 }
 
 /**
- * Componente original para /admin/analyze (tabla).
+ * Componente original para /admin/tracks (tabla).
  * - Botones: Analizar, Payload, Ver track
  */
 export default function AnalyzeActions({ id, className = "" }: BaseProps) {

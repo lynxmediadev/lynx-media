@@ -132,7 +132,7 @@ export async function updateRights(
     await prisma.$transaction(tx);
 
     revalidatePath(`/admin/track/${trackId}/edit`);
-    revalidatePath("/admin/analyze");
+    revalidatePath("/admin/tracks");
 
     return { ok: true, message: "Derechos actualizados" };
   } catch (err) {
