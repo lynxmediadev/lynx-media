@@ -1,6 +1,3 @@
-# PROMPT RAPIDO (COPIAR/PEGAR)
-Lee `docs/AI_CONTEXT.md` en este repo y trabaja estrictamente bajo sus reglas. Pide confirmacion antes de ejecutar comandos y manten cambios acotados. No expongas secretos. Prioriza UX cinematografica, minimalista y accesible.
-
 # Contexto de Lynx Media
 
 ## Que es Lynx Media
@@ -17,12 +14,34 @@ Lee `docs/AI_CONTEXT.md` en este repo y trabaja estrictamente bajo sus reglas. P
 - Catalogo sync: exploracion, escucha y licenciamiento de tracks.
 - Back-office/admin: ingestion de tracks, metadata tecnica, gestion de catalogo, assets y licencias.
 
+## Rutas actuales (resumen operativo)
+- Publico:
+  - `/` homepage con secciones (Servicios, Catalogo, Contacto).
+  - `/track/[id]` ficha de track con modal "Licenciar / Contacto".
+- Admin:
+  - `/admin/tracks` es el panel tecnico principal (antes /admin/analyze).
+  - `/admin/track/[id]/edit` es la ficha completa (creativo, IDs, derechos, resumen tecnico + asset).
+  - `/admin/uploads` es el flujo de ingesta (wrapper principal).
+  - `/admin/licensing` bandeja de solicitudes con link a detalle en `/admin/licensing/[id]`.
+  - `/admin/insights` eliminado (no existe).
+  - `/admin/track/new` eliminado (usar /admin/uploads).
+
+## Flujos clave (usuario/admin)
+- Solicitud de licencia:
+  - Usuario: en `/track/[id]` usa el dialog "Licenciar / Contacto".
+  - Backend: POST `/api/contact` guarda en `LicensingRequest`.
+  - Admin: `/admin/licensing` lista solicitudes y detalle en `/admin/licensing/[id]`.
+- Contacto general:
+  - Usuario: formulario en homepage (dialog).
+  - Backend: POST `/api/contact-request` guarda en `ContactRequest`.
+
 ## Stack tecnico
 - Next.js (App Router) + TypeScript.
 - Tailwind CSS v4.
 - Prisma + Postgres (Supabase).
 - Assets de audio y waveforms en Cloudflare R2.
 - Entorno recomendado: Node 20 LTS en WSL.
+ - FFmpeg/FFprobe: usar rutas de Linux en WSL via `FFMPEG_PATH` y `FFPROBE_PATH`.
 
 ## Reglas estrictas para cambios
 - No exponer secretos: nunca pegar valores de `DATABASE_URL`, API keys, tokens, etc. Solo listar nombres y ubicacion (.env.local).
@@ -44,8 +63,34 @@ Lee `docs/AI_CONTEXT.md` en este repo y trabaja estrictamente bajo sus reglas. P
   - `npm run build` si aplica
   - `npx prisma generate` si hay cambios en Prisma
 
+## Notas operativas
+- Archivo local no versionado: `PRE_PROD.md` (checklist antes de prod).
+- Ruta de licencia duplicada eliminada: no existe `/tracks/[id]/license`.
+
 ## Buenas practicas de UX
 - Estetica cinematografica, elegante, minimalista, dark-by-default.
 - Alto contraste y jerarquia tipografica clara.
 - Copy sobrio y tecnico cuando corresponda; evitar clutter.
 - Performance y accesibilidad como prioridades.
+
+## Estado UI actual (catálogo público)
+- Página `/catalog` con tabla compacta: colgroup 22% (Title), 48% (Waveform + play), 10% (Length), 20% (Actions).
+- Bordes casi cuadrados: radio 2px en contenedores, cards, modals; botones de Actions son redondos. Player/badges en lista usan 2px salvo los íconos de Actions (round).
+- Waveform: “Artlist-style” (`WaveformScrubber`), base gris temático, progreso `--foreground`, altura ~28px en la lista, 26px en stems, sin bordes; responde al theme sin refrescar. Usar este nombre en futuros flujos para evitar confusión.
+- Play del track en la lista: botón 8x8 a la izquierda del waveform. Fila con padding vertical 8px (py-2), hover con ring suave y separador horizontal fino.
+- Tooltips (shadcn): delay 200ms, alineados arriba centrado, offset pequeño, colores `bg-card/text-foreground/border`, flecha reducida.
+- Actions actuales: Ver track (ojo) → `/track/[id]`, Ver licencia (card), Stems (card), Probar video (placeholder), Copiar link, Más (dropdown); tooltips cortos.
+- Footer player fijo al bottom del viewport; layout sin `min-h-screen` para evitar scroll fantasma.
+- Catalog header global visible (FrontendShell ya no oculta header en `/catalog`).
+
+## Ficha pública `/track/[id]` (estado actual)
+- Migrada a tokens del theme (`bg-background`, `text-foreground`, `bg-card`, `border`), radio 2px en cards/pills.
+- Reproductor `PublicAudioBar` con waveform Artlist-style (base/progreso según theme), metrics en cards con border 2px.
+- Pills para moods/uses/restrictions con `border border-border` y fondo `bg-card`.
+- Sugerencias y descripción usan cards `bg-card`/`border`; links con hover underline sutil.
+
+## Notas de consistencia visual
+- Preferir radios 2px salvo botones circulares (Actions).
+- Fondos: `bg-background` general, `bg-card` para superficies, `border` para delinear.
+- Waveforms: siempre usar `WaveformScrubber/PublicAudioBar` con esquema base gris + progreso foreground; referirlo como “waveform Artlist-style”.
+- Tooltip shadcn: padding vertical 2, flecha size-2, delay 200ms, colores del tema.

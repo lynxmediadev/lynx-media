@@ -38,6 +38,14 @@ type Props = {
   strokeWidth?: number;
   /** Duración en segundos (opcional) para mostrar tiempo en tooltip. */
   durationSec?: number | null;
+  /** Color opcional del trazo (fallback: currentColor). */
+  strokeColor?: string;
+  /** Color opcional del fondo. */
+  backgroundColor?: string;
+  /** Color opcional de la línea media. */
+  midlineColor?: string;
+  /** Color opcional del texto vacío/tooltip. */
+  textColor?: string;
 };
 
 /** Decodifica base64 → Uint8Array de forma isomórfica (browser + Node SSR). */
@@ -99,6 +107,10 @@ export default function Sparkline({
   className = "",
   strokeWidth = 2,
   durationSec = null,
+  strokeColor,
+  backgroundColor,
+  midlineColor,
+  textColor,
 }: Props) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
 
@@ -158,8 +170,17 @@ export default function Sparkline({
       ? (hoverIdx / Math.max(1, values.length - 1)) * durationSec
       : null;
 
+  const stroke = strokeColor ?? "currentColor";
+  const bg = backgroundColor ?? "rgba(255,255,255,0.06)";
+  const mid = midlineColor ?? "rgba(255,255,255,0.18)";
+  const text = textColor ?? "rgba(255,255,255,0.75)";
+
   return (
-    <div className={`relative w-full ${className}`} ref={wrapRef}>
+    <div
+      className={`relative w-full ${className}`}
+      ref={wrapRef}
+      style={{ color: stroke }}
+    >
       <svg
         viewBox={`0 0 1000 ${height}`}
         width={width}
@@ -169,18 +190,33 @@ export default function Sparkline({
         onPointerMove={onPointerMove}
         onPointerLeave={onPointerLeave}
       >
-        <rect x="0" y="0" width="1000" height={height} rx="6" className="fill-gray-100" />
+        <rect
+          x="0"
+          y="0"
+          width="1000"
+          height={height}
+          rx="6"
+          fill={bg}
+        />
         {/* Línea base */}
-        <line x1="0" y1={height / 2} x2="1000" y2={height / 2} className="stroke-gray-300" strokeWidth={1} />
+        <line
+          x1="0"
+          y1={height / 2}
+          x2="1000"
+          y2={height / 2}
+          stroke={mid}
+          strokeWidth={1}
+        />
         {/* Wave o fallback */}
         {empty ? (
-          <text x="16" y={height / 2 + 4} className="fill-gray-400 text-[12px]">
+          <text x="16" y={height / 2 + 4} fill={text} className="text-[12px]">
             Sin waveform
           </text>
         ) : (
           <polyline
             points={pointsAttr}
-            className="stroke-indigo-600 fill-none"
+            className="fill-none"
+            stroke={stroke}
             strokeWidth={strokeWidth}
             strokeLinejoin="round"
             strokeLinecap="round"

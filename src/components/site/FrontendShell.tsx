@@ -22,8 +22,7 @@ interface FrontendShellProps {
 export default function FrontendShell({ children }: FrontendShellProps) {
   const pathname = usePathname();
 
-  const hideHeader =
-    pathname.startsWith("/catalog") || pathname.startsWith("/admin");
+  const hideHeader = pathname.startsWith("/admin");
 
   return (
     <div className="min-h-dvh">

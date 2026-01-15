@@ -27,9 +27,10 @@ type Props = {
   progress?: number;                          // 0..1, progreso actual
   onSeek?: (timeSec: number) => void;         // callback al click
   className?: string;
+  frameClassName?: string;                     // clases para el contenedor (permite quitar borde)
   colors?: {
-    base?: string;                            // color parte no reproducida
-    progress?: string;                        // color parte reproducida
+    base?: string;                            // color parte no reproducida (acepta currentColor / var(--foreground))
+    progress?: string;                        // color parte reproducida (acepta currentColor / var(--foreground))
   };
   smooth?: boolean;                           // suavizar la silueta (default true)
   smoothWindow?: number;                      // ventana del suavizado (píxeles virtuales)
@@ -80,6 +81,43 @@ function smoothBox(src: Float32Array, window = 3): Float32Array {
   return out;
 }
 
+function isLightTheme(): boolean {
+  const root = document.documentElement;
+  if (root.classList.contains("light")) return true;
+  const cs = getComputedStyle(root);
+  return (cs.colorScheme || "").includes("light");
+}
+
+function resolveColor(input: string | undefined, el: HTMLElement | null): string {
+  if (!input) return "#fff";
+  const fallback = "#fff";
+
+  // Tokens especiales
+  if (input === "__theme_base__") {
+    return isLightTheme() ? "rgba(0,0,0,0.52)" : "#3c3b3f";
+  }
+  if (input === "__theme_progress__") {
+    const fgRoot = getComputedStyle(document.documentElement).getPropertyValue("--foreground");
+    return fgRoot?.trim() || fallback;
+  }
+
+  if (input.includes("currentColor")) {
+    const color = el ? getComputedStyle(el).color : null;
+    return color || fallback;
+  }
+  if (input.includes("var(--foreground)")) {
+    const root = el ? getComputedStyle(el) : getComputedStyle(document.documentElement);
+    const fg = root.getPropertyValue("--foreground");
+    return fg?.trim() || fallback;
+  }
+  if (input.includes("var(--background)")) {
+    const root = el ? getComputedStyle(el) : getComputedStyle(document.documentElement);
+    const bg = root.getPropertyValue("--background");
+    return bg?.trim() || fallback;
+  }
+  return input;
+}
+
 export default function WaveformScrubber({
   waveformB64,
   height = 80,
@@ -87,7 +125,11 @@ export default function WaveformScrubber({
   progress = 0,
   onSeek,
   className = "",
-  colors = { base: "rgba(255,255,255,0.22)", progress: "rgba(255,255,255,0.95)" },
+  frameClassName = "relative select-none rounded-[2px] bg-foreground/5",
+  colors = {
+    base: "__theme_base__",
+    progress: "__theme_progress__",
+  },
   smooth = true,
   smoothWindow = 5,
 }: Props) {
@@ -95,6 +137,7 @@ export default function WaveformScrubber({
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
   const wfRef = React.useRef<Float32Array | null>(null);
   const peaksRef = React.useRef<Float32Array | null>(null); // picos re-muestreados (0..1)
+  const progressRef = React.useRef(0);
 
   /** Recalcula picos al tamaño actual */
   const recompute = React.useCallback(() => {
@@ -130,6 +173,9 @@ export default function WaveformScrubber({
       if (!c || !peaks) return;
       const ctx = c.getContext("2d");
       if (!ctx) return;
+      const frameEl = wrapperRef.current;
+      const baseColor = resolveColor(colors.base, frameEl);
+      const progressColor = resolveColor(colors.progress, frameEl);
 
       const dpr = window.devicePixelRatio || 1;
       const W = c.width;      // px reales (DPR)
@@ -161,7 +207,7 @@ export default function WaveformScrubber({
       ctx.clearRect(0, 0, W, H);
 
       // BASE
-      ctx.fillStyle = colors.base ?? "rgba(255,255,255,0.22)";
+      ctx.fillStyle = baseColor;
       makePath();
       ctx.fill();
 
@@ -173,7 +219,7 @@ export default function WaveformScrubber({
         ctx.rect(0, 0, clipW, H);
         ctx.clip();
 
-        ctx.fillStyle = colors.progress ?? "rgba(255,255,255,0.95)";
+        ctx.fillStyle = progressColor;
         makePath();
         ctx.fill();
 
@@ -218,8 +264,27 @@ export default function WaveformScrubber({
 
   /** Sólo repintamos cuando cambia el progreso */
   React.useEffect(() => {
-    draw(Math.max(0, Math.min(1, progress || 0)));
+    const clamped = Math.max(0, Math.min(1, progress || 0));
+    progressRef.current = clamped;
+    draw(clamped);
   }, [progress, draw]);
+
+  /**
+   * Re-dibuja al cambiar tema/clases en <html> o <body> (para actualizar currentColor/vars).
+   */
+  React.useEffect(() => {
+    const nodes = [document.documentElement, document.body].filter(Boolean) as Element[];
+    const observer = new MutationObserver(() => {
+      draw(progressRef.current);
+    });
+    nodes.forEach((node) =>
+      observer.observe(node, {
+        attributes: true,
+        attributeFilter: ["class", "style", "data-theme"],
+      }),
+    );
+    return () => observer.disconnect();
+  }, [draw]);
 
   /** Click → seek */
   function handleClick(e: React.MouseEvent) {
@@ -234,7 +299,7 @@ export default function WaveformScrubber({
   return (
     <div
       ref={wrapperRef}
-      className={`relative select-none rounded-md bg-zinc-950/60 ring-1 ring-zinc-800 ${className}`}
+      className={`${frameClassName} ${className}`}
       style={{ height }}
       aria-label="Forma de onda (clic para saltar)"
       onClick={handleClick}

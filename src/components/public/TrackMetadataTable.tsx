@@ -39,8 +39,8 @@ type Props = {
     territories: Nullable<string>;
     term: Nullable<string>;
     contentIdEnrolled: Nullable<boolean>;
-    contentIdWhitelist: Nullable<boolean>;
-    contentIdAdmin: Nullable<boolean>;
+    contentIdWhitelist: Nullable<string>;
+    contentIdAdmin: Nullable<string>;
     master: Nullable<string>;
     mfn: Nullable<boolean>;
     publishingSplit: Nullable<string>;
@@ -50,25 +50,28 @@ type Props = {
 
 export default function TrackMetadataTable({ track, className = "" }: Props) {
   const D = (v: React.ReactNode) => (
-    <span className="text-zinc-100">{isNil(v) ? "—" : v}</span>
+    <span className="text-foreground">{isNil(v) ? "—" : v}</span>
   );
 
   return (
     <section
-      className={`mt-6 rounded-xl border border-zinc-800/60 bg-zinc-900/30 p-4 ${className}`}
+      className={`rounded-[2px] border border-border bg-card p-4 shadow-sm ${className}`}
       aria-label="Ficha técnica"
     >
       {/* Cabecera compacta */}
       <header className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-zinc-100">Ficha técnica avanzada</h2>
+        <h2 className="text-lg font-semibold leading-tight">Ficha técnica avanzada</h2>
         {/* Lugares típicos para acciones: copiar link, etc. */}
+        <p className="text-xs text-muted-foreground">Datos listos para sync/licensing</p>
       </header>
 
       {/* GRID por secciones */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {/* CREATIVO */}
         <div>
-          <h3 className="mb-2 text-xs uppercase tracking-wide text-zinc-400">Creativo</h3>
+          <h3 className="mb-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            Creativo
+          </h3>
           <dl className="space-y-1.5 text-sm">
             <Row label="Artista">{D(track.artist)}</Row>
             <Row label="Título">{D(track.title)}</Row>
@@ -85,7 +88,9 @@ export default function TrackMetadataTable({ track, className = "" }: Props) {
 
         {/* TÉCNICO */}
         <div>
-          <h3 className="mb-2 text-xs uppercase tracking-wide text-zinc-400">Técnico</h3>
+          <h3 className="mb-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            Técnico
+          </h3>
           <dl className="space-y-1.5 text-sm">
             <Row label={<abbr title="Integrated Loudness (EBU R128)">Loudness LUFS</abbr>}>
               {D(formatNum(track.loudnessLufs, 1, " LUFS"))}
@@ -102,7 +107,9 @@ export default function TrackMetadataTable({ track, className = "" }: Props) {
 
         {/* DERECHOS */}
         <div>
-          <h3 className="mb-2 text-xs uppercase tracking-wide text-zinc-400">Derechos</h3>
+          <h3 className="mb-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            Derechos
+          </h3>
           <dl className="space-y-1.5 text-sm">
             <Row label="License Type">{D(track.licenseType)}</Row>
             <Row label="Territorios">{D(track.territories)}</Row>
@@ -127,7 +134,7 @@ export default function TrackMetadataTable({ track, className = "" }: Props) {
 function Row({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="grid grid-cols-[9rem,1fr] items-start gap-3">
-      <dt className="text-zinc-400">{label}</dt>
+      <dt className="text-muted-foreground">{label}</dt>
       <dd>{children}</dd>
     </div>
   );
@@ -159,10 +166,14 @@ function booleanTag(b?: Nullable<boolean>) {
   if (b == null) return null;
   return b ? "Sí" : "No";
 }
-function ciSummary(enrolled?: Nullable<boolean>, whitelist?: Nullable<boolean>, admin?: Nullable<boolean>) {
+function ciSummary(
+  enrolled?: Nullable<boolean>,
+  whitelist?: Nullable<string>,
+  admin?: Nullable<string>,
+) {
   const items: string[] = [];
   if (enrolled != null) items.push(`Enrolled: ${enrolled ? "Sí" : "No"}`);
-  if (whitelist != null) items.push(`Whitelist: ${whitelist ? "Sí" : "No"}`);
-  if (admin != null) items.push(`Admin: ${admin ? "Sí" : "No"}`);
+  if (whitelist) items.push(`Whitelist: ${whitelist}`);
+  if (admin) items.push(`Admin: ${admin}`);
   return items.length ? items.join(" · ") : null;
 }

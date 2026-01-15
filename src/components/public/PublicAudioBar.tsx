@@ -20,6 +20,8 @@
 
 import * as React from "react";
 import WaveformScrubber from "./WaveformScrubber";
+import { Pause, Play } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type Props = {
   src: string | null;
@@ -27,6 +29,8 @@ type Props = {
   waveformB64: string | null;
   interactive?: boolean;
   waveformColors?: { base?: string; progress?: string };
+  className?: string;
+  frameClassName?: string;
 };
 
 function fmtTime(sec: number) {
@@ -43,6 +47,8 @@ export default function PublicAudioBar({
   waveformB64,
   interactive = true,
   waveformColors,
+  className,
+  frameClassName,
 }: Props) {
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
@@ -113,32 +119,32 @@ export default function PublicAudioBar({
   const progress = !dur ? 0 : Math.max(0, Math.min(1, cur / dur));
 
   return (
-    <div className="rounded-xl border border-zinc-800/70 bg-zinc-950/40 p-3">
+    <div className={cn("rounded-[2px] border border-border bg-card/80 p-3 shadow-sm", className)}>
       <div className="flex items-stretch gap-3">
         {/* Columna izquierda: Play (arriba) + tiempo (abajo) */}
-        <div className="flex min-h-[56px] w-32 flex-col justify-between py-0">
+        <div className="flex min-h-[64px] w-[128px] min-w-[128px] flex-col justify-between">
           <button
             type="button"
-            className={`h-4/6 rounded-sm border px-auto text-sm ${
+            className={cn(
+              "flex h-10 items-center justify-center rounded-[2px] border border-border bg-background px-3 text-sm font-medium transition",
               disabled
-                ? "cursor-not-allowed border-zinc-800 text-zinc-700"
-                : "border-zinc-700 text-zinc-100 hover:bg-zinc-900"
-            }`}
+                ? "cursor-not-allowed opacity-70"
+                : "text-foreground hover:bg-border/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+            )}
             onClick={toggle}
             disabled={disabled}
           >
-            <span className="text-lg leading-none">
-              {isPlaying ? "❚❚" : "►"}
-            </span>
+            <span className="sr-only">{isPlaying ? "Pausar" : "Reproducir"}</span>
+            {isPlaying ? <Pause size={16} /> : <Play size={16} />}
           </button>
 
-          <div className="mt-1 flex h-2/6 items-center justify-center rounded-sm bg-zinc-900/80 px-auto text-[11px] tabular-nums text-zinc-200">
+          <div className="mt-1 flex h-9 items-center justify-center rounded-[2px] bg-background/70 px-2 text-[11px] tabular-nums text-muted-foreground ring-1 ring-border/70">
             {fmtTime(cur)} / {fmtTime(dur)}
           </div>
         </div>
 
         {/* Columna derecha: waveform (misma “altura visual” que la columna de controles) */}
-        <div className="flex min-h-[56px] flex-1 items-center">
+        <div className="flex min-h-[64px] flex-1 items-center">
           <WaveformScrubber
             waveformB64={waveformB64}
             height={72} // un poco más bajo que 80 para compactar (ajustable)
@@ -146,11 +152,12 @@ export default function PublicAudioBar({
             progress={progress}
             onSeek={interactive ? handleSeek : undefined}
             className="w-full"
-            barWidth={4} // barras más anchas = look sólido
+            barWidth={3} // barras compactas pero sólidas
             gap={0} // sin huecos entre barras
+            frameClassName={frameClassName}
             colors={{
-              base: waveformColors?.base ?? "rgba(255,255,255,0.18)", // COLOR BASE DEL PLAYER
-              progress: waveformColors?.progress ?? "#fff", // COLOR DE AVANCE PLAYER
+              base: waveformColors?.base ?? "__theme_base__", // COLOR BASE DEL PLAYER
+              progress: waveformColors?.progress ?? "__theme_progress__", // COLOR DE AVANCE PLAYER
             }}
           />
         </div>

@@ -9,4 +9,5 @@ export interface Track {
   duration: string;
   key?: string;
   audioUrl: string;
+  waveform?: number[];
 }
