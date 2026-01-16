@@ -125,7 +125,7 @@ export default function WaveformScrubber({
   progress = 0,
   onSeek,
   className = "",
-  frameClassName = "relative select-none rounded-[2px] bg-foreground/5",
+  frameClassName = "relative select-none rounded-[2px] bg-transparent",
   colors = {
     base: "__theme_base__",
     progress: "__theme_progress__",

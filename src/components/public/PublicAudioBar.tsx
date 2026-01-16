@@ -13,8 +13,11 @@
  * │   (play/pause/ended), no al “dedo”; así evitamos el warning de play/pause.  │
  * │ - En `onSeek`: movemos currentTime y, si estaba pausado, llamamos a play(). │
  * │ - Pasamos `progress` (0..1) al WaveformScrubber para colorear el avance.    │
- * │ - Layout adaptado para admin/tech: columna izquierda (Play+tiempo) +        │
- * │   columna derecha (waveform) con alturas equivalentes.                      │
+ * │ - Layout flexible:                                                           │
+ * │   - `layout="stacked"` (default): botón + tiempo a la izquierda, waveform   │
+ * │     a la derecha.                                                           │
+ * │   - `layout="inline"`: solo waveform + tiempo en un contenedor a la derecha │
+ * │     (para heroes públicos con play externo).                                │
  * └─────────────────────────────────────────────────────────────────────────────┘
  */
 
@@ -31,6 +34,9 @@ type Props = {
   waveformColors?: { base?: string; progress?: string };
   className?: string;
   frameClassName?: string;
+  onPlaybackChange?: (isPlaying: boolean) => void;
+  onReady?: (controls: { toggle: () => Promise<void> | void; play: () => Promise<void> | void; pause: () => void }) => void;
+  layout?: "stacked" | "inline";
 };
 
 function fmtTime(sec: number) {
@@ -49,6 +55,9 @@ export default function PublicAudioBar({
   waveformColors,
   className,
   frameClassName,
+  onPlaybackChange,
+  onReady,
+  layout = "stacked",
 }: Props) {
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
@@ -85,7 +94,7 @@ export default function PublicAudioBar({
   }, [durationSec]);
 
   // Botón play/pause
-  async function toggle() {
+  const toggle = React.useCallback(async () => {
     const el = audioRef.current;
     if (!el) return;
     if (el.paused) {
@@ -97,7 +106,23 @@ export default function PublicAudioBar({
     } else {
       el.pause(); // evento “pause” actualizará isPlaying
     }
-  }
+  }, []);
+
+  const play = React.useCallback(async () => {
+    const el = audioRef.current;
+    if (!el) return;
+    try {
+      await el.play();
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const pause = React.useCallback(() => {
+    const el = audioRef.current;
+    if (!el) return;
+    el.pause();
+  }, []);
 
   // Click en waveform → mover el tiempo
   function handleSeek(sec: number) {
@@ -117,51 +142,105 @@ export default function PublicAudioBar({
 
   // Progreso para pintar la parte “reproducida”
   const progress = !dur ? 0 : Math.max(0, Math.min(1, cur / dur));
+  const baseWaveHeight = layout === "inline" ? 86 : 72;
+  const waveHeight = Math.round(baseWaveHeight * 0.45); // altura reducida ~55%
+
+  // Avisar estado al padre si se requiere
+  React.useEffect(() => {
+    if (onPlaybackChange) {
+      onPlaybackChange(isPlaying);
+    }
+  }, [isPlaying, onPlaybackChange]);
+
+  // Registrar controles externos
+  React.useEffect(() => {
+    if (!onReady) return;
+    onReady({ toggle, play, pause });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onReady, play, pause, toggle]);
 
   return (
     <div className={cn("rounded-[2px] border border-border bg-card/80 p-3 shadow-sm", className)}>
-      <div className="flex items-stretch gap-3">
-        {/* Columna izquierda: Play (arriba) + tiempo (abajo) */}
-        <div className="flex min-h-[64px] w-[128px] min-w-[128px] flex-col justify-between">
-          <button
-            type="button"
-            className={cn(
-              "flex h-10 items-center justify-center rounded-[2px] border border-border bg-background px-3 text-sm font-medium transition",
-              disabled
-                ? "cursor-not-allowed opacity-70"
-                : "text-foreground hover:bg-border/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-            )}
-            onClick={toggle}
-            disabled={disabled}
-          >
-            <span className="sr-only">{isPlaying ? "Pausar" : "Reproducir"}</span>
-            {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-          </button>
+      {layout === "stacked" ? (
+        <div className="flex items-stretch gap-3">
+          {/* Columna izquierda: Play (arriba) + tiempo (abajo) */}
+          <div className="flex min-h-[64px] w-[128px] min-w-[128px] flex-col justify-between">
+            <button
+              type="button"
+              className={cn(
+                "flex h-10 items-center justify-center rounded-[2px] border border-border bg-background px-3 text-sm font-medium transition",
+                disabled
+                  ? "cursor-not-allowed opacity-70"
+                  : "text-foreground hover:bg-border/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              )}
+              onClick={toggle}
+              disabled={disabled}
+            >
+              <span className="sr-only">{isPlaying ? "Pausar" : "Reproducir"}</span>
+              {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+            </button>
 
-          <div className="mt-1 flex h-9 items-center justify-center rounded-[2px] bg-background/70 px-2 text-[11px] tabular-nums text-muted-foreground ring-1 ring-border/70">
+            <div className="mt-1 flex h-9 items-center justify-center rounded-[2px] bg-background/70 px-2 text-[11px] tabular-nums text-muted-foreground ring-1 ring-border/70">
+              {fmtTime(cur)} / {fmtTime(dur)}
+            </div>
+            </div>
+
+            {/* Columna derecha: waveform (misma “altura visual” que la columna de controles) */}
+          <div className="flex min-h-[64px] flex-1 items-center">
+            <WaveformScrubber
+              waveformB64={waveformB64}
+              height={waveHeight}
+              durationSec={dur}
+              progress={progress}
+              onSeek={interactive ? handleSeek : undefined}
+              className="w-full"
+              barWidth={3} // barras compactas pero sólidas
+              gap={0} // sin huecos entre barras
+              frameClassName={frameClassName}
+              colors={{
+                base: waveformColors?.base ?? "__theme_base__", // COLOR BASE DEL PLAYER
+                progress: waveformColors?.progress ?? "__theme_progress__", // COLOR DE AVANCE PLAYER
+              }}
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-stretch gap-3">
+          <div className="flex min-w-0 flex-1 items-center" style={{ height: waveHeight }}>
+            <WaveformScrubber
+              waveformB64={waveformB64}
+              height={waveHeight}
+              durationSec={dur}
+              progress={progress}
+              onSeek={interactive ? handleSeek : undefined}
+              className="h-full w-full"
+              barWidth={3}
+              gap={0}
+              frameClassName={frameClassName}
+              colors={{
+                base: waveformColors?.base ?? "__theme_base__",
+                progress: waveformColors?.progress ?? "__theme_progress__",
+              }}
+            />
+          </div>
+          <div
+            aria-hidden="true"
+            className="flex items-center"
+            style={{ height: waveHeight }}
+          >
+            <div
+              className="w-px bg-border"
+              style={{ height: waveHeight }}
+            />
+          </div>
+          <div
+            className="flex w-[132px] min-w-[120px] items-center justify-center rounded-[2px] border border-border bg-background/80 px-3 text-[12px] leading-none font-medium tabular-nums text-foreground"
+            style={{ height: waveHeight, minHeight: waveHeight }}
+          >
             {fmtTime(cur)} / {fmtTime(dur)}
           </div>
         </div>
-
-        {/* Columna derecha: waveform (misma “altura visual” que la columna de controles) */}
-        <div className="flex min-h-[64px] flex-1 items-center">
-          <WaveformScrubber
-            waveformB64={waveformB64}
-            height={72} // un poco más bajo que 80 para compactar (ajustable)
-            durationSec={dur}
-            progress={progress}
-            onSeek={interactive ? handleSeek : undefined}
-            className="w-full"
-            barWidth={3} // barras compactas pero sólidas
-            gap={0} // sin huecos entre barras
-            frameClassName={frameClassName}
-            colors={{
-              base: waveformColors?.base ?? "__theme_base__", // COLOR BASE DEL PLAYER
-              progress: waveformColors?.progress ?? "__theme_progress__", // COLOR DE AVANCE PLAYER
-            }}
-          />
-        </div>
-      </div>
+      )}
 
       {/* Audio real (oculto pero controlado por ref) */}
       <audio ref={audioRef} src={src ?? undefined} preload="metadata" />

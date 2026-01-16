@@ -14,11 +14,9 @@ import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/server/db";
-import PublicAudioBar from "@/components/public/PublicAudioBar";
 import { getS3PublicUrl } from "@/lib/storage/s3";
-import CopyLinkButton from "@/components/public/CopyLinkButton";
 import TrackMetadataTable from "@/components/public/TrackMetadataTable";
-import LicensingDialog from "@/components/public/LicensingDialog";
+import TrackHero from "./TrackHero";
 
 export const dynamic = "force-dynamic";
 
@@ -91,6 +89,7 @@ export default async function TrackPublicPage({ params }: PageProps) {
       id: true,
       title: true,
       artist: true,
+      coverUrl: true,
       durationSec: true,
       assetKey: true,
       audioUrl: true,
@@ -158,129 +157,113 @@ export default async function TrackPublicPage({ params }: PageProps) {
     });
   }
 
+  const licenseUses =
+    track.uses && track.uses.length
+      ? track.uses
+      : ["Uso comercial audiovisual (d)", "Social ads / paid media (d)"];
+  const licenseRestrictions =
+    track.restrictions && track.restrictions.length
+      ? track.restrictions
+      : ["No uso político (d)", "No gambling (d)"];
+
   return (
     <div className="bg-background text-foreground">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 pb-16 pt-10">
         {/* Header minimal */}
-        <header className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
-            <Link
-              href="/catalog"
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-4 transition hover:text-foreground hover:underline"
-            >
-              ← Catálogo
-            </Link>
-            <span aria-label="Última actualización">{formatUpdated(track.updatedAt)}</span>
-          </div>
-          <div className="rounded-[2px] border border-border bg-card px-4 py-3 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="space-y-1">
-                <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
-                  Track público
-                </p>
-                <h1 className="text-3xl font-semibold leading-tight">
-                  {track.title ?? "Sin título"}
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  {track.artist ?? "Artista desconocido"} · {fmtDuration(track.durationSec)}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <CopyLinkButton />
-                <LicensingDialog
-                  className="rounded-[2px]"
-                  track={{
-                    id: track.id,
-                    title: track.title,
-                    artist: track.artist,
-                    durationSec: track.durationSec,
-                    moods: track.moods,
-                    uses: track.uses,
-                    restrictions: track.restrictions,
-                  }}
-                />
-              </div>
-            </div>
-          </div>
+        <header className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+          <Link
+            href="/catalog"
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-4 transition hover:text-foreground hover:underline"
+          >
+            ← Catálogo
+          </Link>
+          <span aria-label="Última actualización">{formatUpdated(track.updatedAt)}</span>
         </header>
+
+        <TrackHero track={track} coverUrl={track.coverUrl} audioSrc={src} waveformB64={waveformB64} />
 
         <div className="grid gap-6 lg:grid-cols-[1.05fr,0.95fr]">
           <section className="space-y-4">
-            <div className="rounded-[2px] border border-border bg-card/80 p-4 shadow-sm">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Waveform Artlist-style</span>
-                <span>{src ? "Click-to-seek habilitado" : "Sin audio disponible"}</span>
-              </div>
-              <div className="mt-3 rounded-[2px] bg-background/60 p-3">
-                <PublicAudioBar
-                  src={src}
-                  durationSec={track.durationSec ?? 0}
-                  waveformB64={waveformB64}
-                  interactive
-                  className="border-0 bg-transparent p-0 shadow-none"
-                  frameClassName="relative select-none rounded-[2px] bg-foreground/5"
+            <div className="rounded-[2px] border border-border bg-card p-4 shadow-sm">
+              <div className="grid gap-2 sm:grid-cols-3">
+                <MetricCard label="Duración" value={fmtDuration(track.durationSec)} />
+                <MetricCard
+                  label="LUFS (I)"
+                  value={
+                    track.loudnessLufs == null ? "—" : track.loudnessLufs.toFixed(2)
+                  }
+                />
+                <MetricCard
+                  label="True Peak"
+                  value={
+                    track.truePeakDbfs == null
+                      ? "—"
+                      : `${track.truePeakDbfs.toFixed(2)} dBFS`
+                  }
                 />
               </div>
-            </div>
 
-            <div className="grid gap-2 sm:grid-cols-3">
-              <MetricCard label="Duración" value={fmtDuration(track.durationSec)} />
-              <MetricCard
-                label="LUFS (I)"
-                value={
-                  track.loudnessLufs == null ? "—" : track.loudnessLufs.toFixed(2)
-                }
-              />
-              <MetricCard
-                label="True Peak"
-                value={
-                  track.truePeakDbfs == null
-                    ? "—"
-                    : `${track.truePeakDbfs.toFixed(2)} dBFS`
-                }
-              />
-            </div>
-
-            <div className="rounded-[2px] border border-border bg-card p-4 shadow-sm">
-              <h2 className="mb-3 text-lg font-medium leading-tight">Brief creativo</h2>
-              <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="mt-4 grid grid-cols-1 gap-4 border-t border-border/60 pt-4 sm:grid-cols-2">
                 <div>
-                  <dt className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                    Moods
-                  </dt>
-                  <dd className="mt-1.5 flex flex-wrap gap-1.5">
+                  <h2 className="text-sm font-semibold leading-tight">Moods</h2>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
                     {(track.moods ?? []).length ? (
                       track.moods!.map((m, i) => <Pill key={i}>{m}</Pill>)
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
-                  </dd>
+                  </div>
                 </div>
                 <div>
-                  <dt className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                    Usos sugeridos
-                  </dt>
-                  <dd className="mt-1.5 flex flex-wrap gap-1.5">
+                  <h2 className="text-sm font-semibold leading-tight">Usos sugeridos</h2>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
                     {(track.uses ?? []).length ? (
                       track.uses!.map((u, i) => <Pill key={i}>{u}</Pill>)
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
-                  </dd>
+                  </div>
                 </div>
                 <div className="sm:col-span-2">
-                  <dt className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                    Restricciones
-                  </dt>
-                  <dd className="mt-1.5 flex flex-wrap gap-1.5">
+                  <h2 className="text-sm font-semibold leading-tight">Restricciones</h2>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
                     {(track.restrictions ?? []).length ? (
                       track.restrictions!.map((r, i) => <Pill key={i}>{r}</Pill>)
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
-                  </dd>
+                  </div>
                 </div>
-              </dl>
+              </div>
+
+              <div className="mt-4 grid gap-3 border-t border-border/60 pt-4 sm:grid-cols-2">
+                <div className="rounded-[2px] border border-border/70 bg-background/60 p-3">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                    Usos permitidos
+                  </p>
+                  <ul className="mt-2 space-y-1 text-sm text-foreground">
+                    {licenseUses.map((u, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-foreground/70" />
+                        <span>{u}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rounded-[2px] border border-border/70 bg-background/60 p-3">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                    Restricciones
+                  </p>
+                  <ul className="mt-2 space-y-1 text-sm text-foreground">
+                    {licenseRestrictions.map((r, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-foreground/70" />
+                        <span>{r}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             </div>
           </section>
 
