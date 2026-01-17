@@ -73,7 +73,7 @@ export default function TrackHero({ track, coverUrl, audioSrc, waveformB64 }: Pr
 
           <div className="flex min-w-0 flex-1 flex-col gap-3">
             <div className="flex flex-wrap items-start justify-between gap-6">
-              <div className="min-w-0 flex-1 space-y-1">
+              <div className="min-w-0 flex-1 space-y-1 border border-amber-500/60">
                 <p className="sr-only">Track público</p>
                 <h1 className="text-3xl font-semibold leading-tight line-clamp-2 break-words">
                   {track.title ?? "Sin título"}
@@ -83,7 +83,7 @@ export default function TrackHero({ track, coverUrl, audioSrc, waveformB64 }: Pr
                 </p>
                 <p className="text-xs text-muted-foreground">{fmtDuration(track.durationSec)}</p>
               </div>
-              <div className="flex shrink-0 flex-nowrap items-start justify-end gap-2">
+              <div className="flex shrink-0 flex-nowrap items-start justify-end gap-2 border border-emerald-500/60">
                 <CopyLinkButton />
                 <LicensingDialog
                   className="rounded-[2px]"
@@ -98,6 +98,11 @@ export default function TrackHero({ track, coverUrl, audioSrc, waveformB64 }: Pr
                   }}
                 />
               </div>
+            </div>
+
+            {/* Bloque dummy para debug (bordes debug) */}
+            <div className="w-full rounded-[2px] border border-sky-500/60 bg-card/40 p-3 text-sm text-muted-foreground">
+              Bloque intermedio (d) · Usa este espacio para métricas, descripción o CTA adicional.
             </div>
           </div>
         </div>

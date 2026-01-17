@@ -88,6 +88,7 @@
 - Reproductor `PublicAudioBar` con waveform Artlist-style (base/progreso según theme), metrics en cards con border 2px.
 - Pills para moods/uses/restrictions con `border border-border` y fondo `bg-card`.
 - Sugerencias y descripción usan cards `bg-card`/`border`; links con hover underline sutil.
+- Hero en iteración: cover a la izquierda, texto/acciones a la derecha; waveform inline (con timer) ocupa el ancho inferior. Bordes debug activos en título/botones/bloque intermedio y un bloque dummy (d) entre header y waveform mientras se define metadata inicial de primera vista.
 
 ## Notas de consistencia visual
 - Preferir radios 2px salvo botones circulares (Actions).
