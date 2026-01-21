@@ -21,7 +21,17 @@ import "./src/env.js";
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: { ignoreDuringBuilds: true }, // desactiva lint en build (solo temporal)
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      const externals = config.externals ?? [];
+      config.externals = Array.isArray(externals) ? externals : [externals];
+      config.externals.push({
+        "ffmpeg-static": "commonjs ffmpeg-static",
+        "ffprobe-static": "commonjs ffprobe-static",
+      });
+    }
+    return config;
+  },
 };
 
 export default nextConfig;
-

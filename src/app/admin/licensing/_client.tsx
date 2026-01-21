@@ -98,10 +98,10 @@ export default function LicensingAdminClient(props: {
     <main className="mx-auto max-w-7xl space-y-6 p-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-zinc-50">
+          <h1 className="text-2xl font-semibold text-foreground">
             Licencias — Bandeja
           </h1>
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-muted-foreground">
             Total: {props.totals.total} · Overdue: {props.totals.cOverdue} · Hoy:{" "}
             {props.totals.cToday} · Mañana: {props.totals.cTomorrow} · 7d:{" "}
             {props.totals.cWeek}
@@ -109,7 +109,7 @@ export default function LicensingAdminClient(props: {
         </div>
         <div className="text-right">
           {props.errorMsg && (
-            <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {props.errorMsg}
             </div>
           )}
@@ -117,17 +117,17 @@ export default function LicensingAdminClient(props: {
       </header>
 
       {/* Filtros */}
-      <section className="rounded-xl border border-zinc-800 bg-zinc-950/70 p-4 backdrop-blur">
+      <section className="rounded-xl border border-border bg-card/80 p-4 backdrop-blur">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
           <input
-            className="col-span-2 rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500/40"
+            className="col-span-2 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             placeholder="Buscar (cliente, email, track...)"
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
 
           <select
-            className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500/40"
+            className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
           >
@@ -140,7 +140,7 @@ export default function LicensingAdminClient(props: {
           </select>
 
           <select
-            className="rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500/40"
+            className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             value={priority}
             onChange={(e) => setPriority(e.target.value)}
           >
@@ -157,13 +157,13 @@ export default function LicensingAdminClient(props: {
           <div className="flex gap-2 md:col-span-2">
             <input
               type="date"
-              className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500/40"
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               value={fupFrom}
               onChange={(e) => setFupFrom(e.target.value)}
             />
             <input
               type="date"
-              className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500/40"
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               value={fupTo}
               onChange={(e) => setFupTo(e.target.value)}
             />
@@ -171,7 +171,7 @@ export default function LicensingAdminClient(props: {
 
           <div className="flex justify-end gap-2 md:col-span-3">
             <button
-              className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800"
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground hover:bg-accent"
               onClick={() => {
                 setQ(""); setStatus(""); setPriority(""); setFupFrom(""); setFupTo("");
                 const params = new URLSearchParams();
@@ -183,7 +183,7 @@ export default function LicensingAdminClient(props: {
               Limpiar
             </button>
             <button
-              className="rounded-md border border-zinc-700 bg-zinc-100 px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-200"
+              className="rounded-md border border-primary/60 bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
               onClick={() => applyFilters(1)}
             >
               Aplicar
@@ -193,14 +193,14 @@ export default function LicensingAdminClient(props: {
       </section>
 
       {/* Lista */}
-      <section className="rounded-xl border border-zinc-800 bg-zinc-950/70 backdrop-blur">
+      <section className="rounded-xl border border-border bg-card/80 backdrop-blur">
         {props.rows.length === 0 ? (
-          <div className="p-6 text-sm text-zinc-500">
+          <div className="p-6 text-sm text-muted-foreground">
             No hay solicitudes para los filtros actuales.
           </div>
         ) : (
           <table className="w-full table-auto text-sm">
-            <thead className="bg-zinc-900/80 text-xs tracking-wide text-zinc-400 uppercase">
+            <thead className="bg-muted/60 text-xs tracking-wide text-muted-foreground uppercase">
               <tr>
                 <th className="px-4 py-3 text-left align-middle">Cliente</th>
                 <th className="px-4 py-3 text-left align-middle">Status</th>
@@ -214,45 +214,45 @@ export default function LicensingAdminClient(props: {
               {props.rows.map((r) => (
                 <tr
                   key={r.id}
-                  className="border-t border-zinc-800/80 hover:bg-zinc-900/50"
+                  className="border-t border-border/80 hover:bg-muted/40"
                 >
                   <td className="px-4 py-3 align-top">
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium text-zinc-50">
+                      <span className="text-sm font-medium text-foreground">
                         {r.name ?? "(Sin nombre)"}
                       </span>
-                      <span className="text-xs text-zinc-400">
+                      <span className="text-xs text-muted-foreground">
                         {r.company ?? "—"}
                       </span>
-                      <span className="text-[11px] text-zinc-500">
+                      <span className="text-[11px] text-muted-foreground">
                         {r.email ?? "—"}
                       </span>
                     </div>
                   </td>
                   <td className="px-4 py-3 align-top">
-                    <div className="text-xs text-zinc-500">Status</div>
-                    <div className="font-medium text-zinc-100">
+                    <div className="text-xs text-muted-foreground">Status</div>
+                    <div className="font-medium text-foreground">
                       {r.status?.replaceAll("_", " ")}
                     </div>
                   </td>
                   <td className="px-4 py-3 align-top">
-                    <div className="text-xs text-zinc-500">Prioridad</div>
-                    <div className="font-medium text-zinc-100">
+                    <div className="text-xs text-muted-foreground">Prioridad</div>
+                    <div className="font-medium text-foreground">
                       {r.priority ?? "—"}
                     </div>
                   </td>
                   <td className="px-4 py-3 align-top">
-                    <div className="text-xs text-zinc-500">Track</div>
-                    <div className="font-medium text-zinc-100">
+                    <div className="text-xs text-muted-foreground">Track</div>
+                    <div className="font-medium text-foreground">
                       {r.trackTitle ?? "—"}
                     </div>
-                    <div className="text-[11px] text-zinc-500">
+                    <div className="text-[11px] text-muted-foreground">
                       {r.trackArtist ?? "—"}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right align-top">
-                    <div className="text-xs text-zinc-500">Follow-up</div>
-                    <div className="font-medium text-zinc-100">
+                    <div className="text-xs text-muted-foreground">Follow-up</div>
+                    <div className="font-medium text-foreground">
                       {r.nextFollowUpAt
                         ? fmt.format(new Date(r.nextFollowUpAt))
                         : "—"}
@@ -261,7 +261,7 @@ export default function LicensingAdminClient(props: {
                   <td className="px-4 py-3 text-right align-top">
                     <Link
                       href={`/admin/licensing/${r.id}`}
-                      className="inline-flex items-center justify-center rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-100 hover:bg-zinc-800"
+                      className="inline-flex items-center justify-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent"
                     >
                       Abrir
                     </Link>

@@ -14,6 +14,7 @@
 
 import Link from "next/link";
 import ThemeToggle from "@/components/site/ThemeToggle";
+import { Button } from "@/components/ui/button";
 
 const homeAnchors = [
   { href: "/#hero", label: "Inicio" },
@@ -27,7 +28,7 @@ export default function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur">
       <div
-        className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4"
+        className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4"
         style={{ height: "var(--header-h)" }}
       >
         {/* Branding */}
@@ -53,12 +54,14 @@ export default function SiteHeader() {
 
         {/* Acciones */}
         <div className="flex items-center gap-2">
-          <Link
-            href="/catalog"
-            className="hidden rounded-md border border-border bg-background px-3 py-2 text-xs font-medium text-foreground shadow-sm transition-colors hover:bg-accent md:inline-flex"
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="hidden shadow-sm md:inline-flex"
           >
-            Ver catálogo
-          </Link>
+            <Link href="/catalog">Ver catálogo</Link>
+          </Button>
 
           <ThemeToggle />
         </div>

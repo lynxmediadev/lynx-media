@@ -73,7 +73,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const row = await prisma.licensingRequest.findUnique({ where: { id } });
   if (!row) {
     return (
-      <main className="mx-auto max-w-5xl px-4 py-10">
+      <main className="mx-auto max-w-7xl px-4 py-10">
         <div className="mb-4">
           {/* ⬇ Volver con <a> para navegación dura */}
           <a href="/admin/licensing" className="text-sm underline underline-offset-2">← Volver al listado</a>
@@ -84,7 +84,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8">
+    <main className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-3">
         {/* ⬇ Volver con <a> para navegación dura */}
         <a href="/admin/licensing" className="text-muted-foreground hover:text-foreground text-sm underline underline-offset-2">← Volver</a>

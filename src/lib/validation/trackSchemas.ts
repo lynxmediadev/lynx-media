@@ -26,6 +26,19 @@ function normalizeText(raw: unknown): string | null {
   return trimmed.length ? trimmed : null;
 }
 
+/** Normaliza lista sin forzar mayúsculas (trim + únicos). */
+function normalizeListRaw(raw: unknown): string[] {
+  if (typeof raw !== "string") return [];
+  return Array.from(
+    new Set(
+      raw
+        .split(/[\n,]/g)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0),
+    ),
+  );
+}
+
 /** Normaliza ISRC a MAYÚSCULAS sin espacios ni guiones */
 function normalizeIsrc(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
@@ -82,6 +95,43 @@ function normalizeNullableInt(raw: unknown): number | null {
   const n = Number(trimmed);
   if (!Number.isFinite(n)) return null;
   return Math.trunc(n);
+}
+
+/** Normaliza número float opcional */
+function normalizeNullableFloat(raw: unknown): number | null {
+  if (raw == null) return null;
+  if (typeof raw === "number") {
+    return Number.isFinite(raw) ? raw : null;
+  }
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const n = Number(trimmed);
+  if (!Number.isFinite(n)) return null;
+  return n;
+}
+
+function normalizeEnum<T extends string>(
+  raw: unknown,
+  allowed: readonly T[],
+): T | null {
+  if (typeof raw !== "string") return null;
+  const normalized = raw.trim().toUpperCase().replace(/\s+/g, "_");
+  return (allowed as readonly string[]).includes(normalized)
+    ? (normalized as T)
+    : null;
+}
+
+function parseDurationToSec(raw: string | null): number | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const parts = trimmed.split(":").map((p) => Number(p));
+  if (parts.some((p) => Number.isNaN(p))) return null;
+  if (parts.length === 1) return Math.round(parts[0]);
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  return null;
 }
 
 /**
@@ -205,13 +255,10 @@ export type IdsFormValues = z.infer<typeof idsFormSchema>;
 const rightsFormBaseSchema = z.object({
   id: z.union([z.string(), z.number()]),
 
-  // Track: licencia & alcance
-  licenseType: z.union([z.string(), z.null(), z.undefined()]),
-  territories: z.union([z.string(), z.null(), z.undefined()]),
-  term: z.union([z.string(), z.null(), z.undefined()]),
-  mediaBuy: z.union([z.string(), z.null(), z.undefined()]),
   mfn: z.union([z.string(), z.boolean(), z.null(), z.undefined()]),
   master: z.union([z.string(), z.null(), z.undefined()]),
+  oneStop: z.union([z.string(), z.boolean(), z.null(), z.undefined()]),
+  clearedForSync: z.union([z.string(), z.boolean(), z.null(), z.undefined()]),
 
   // Track: Content ID & administración
   contentIdEnrolled: z.union([
@@ -222,17 +269,20 @@ const rightsFormBaseSchema = z.object({
   ]),
   contentIdAdmin: z.union([z.string(), z.null(), z.undefined()]),
   contentIdWhitelist: z.union([z.string(), z.null(), z.undefined()]),
-  restrictions: z.union([z.string(), z.null(), z.undefined()]),
 
   // Publishing: Writer
   writerName: z.union([z.string(), z.null(), z.undefined()]),
   writerSharePct: z.union([z.string(), z.number(), z.null(), z.undefined()]),
   writerIpiNumber: z.union([z.string(), z.null(), z.undefined()]),
+  writerPro: z.union([z.string(), z.null(), z.undefined()]),
+  writerCaeNumber: z.union([z.string(), z.null(), z.undefined()]),
 
   // Publishing: Publisher
   publisherName: z.union([z.string(), z.null(), z.undefined()]),
   publisherSharePct: z.union([z.string(), z.number(), z.null(), z.undefined()]),
   publisherIpiNumber: z.union([z.string(), z.null(), z.undefined()]),
+  publisherPro: z.union([z.string(), z.null(), z.undefined()]),
+  publisherCaeNumber: z.union([z.string(), z.null(), z.undefined()]),
 });
 
 /**
@@ -262,26 +312,144 @@ export const rightsFormSchema = rightsFormBaseSchema.transform((values) => {
   return {
     id: String(values.id),
 
-    licenseType: normalizeText(values.licenseType),
-    territories: normalizeText(values.territories),
-    term: normalizeText(values.term),
-    mediaBuy: normalizeText(values.mediaBuy),
     mfn: normalizeCheckbox(values.mfn),
     master: normalizeText(values.master),
+    oneStop: normalizeCheckbox(values.oneStop),
+    clearedForSync: normalizeCheckbox(values.clearedForSync),
 
     contentIdEnrolled: normalizeCheckbox(values.contentIdEnrolled),
     contentIdAdmin: normalizeText(values.contentIdAdmin),
     contentIdWhitelist: normalizeText(values.contentIdWhitelist),
-    restrictions: normalizeRestrictions(values.restrictions),
 
     writerName: normalizeText(values.writerName) ?? "",
     writerSharePct: safeWriterShare,
     writerIpiNumber: normalizeText(values.writerIpiNumber),
+    writerPro: normalizeText(values.writerPro),
+    writerCaeNumber: normalizeText(values.writerCaeNumber),
 
     publisherName: normalizeText(values.publisherName) ?? "",
     publisherSharePct: safePublisherShare,
     publisherIpiNumber: normalizeText(values.publisherIpiNumber),
+    publisherPro: normalizeText(values.publisherPro),
+    publisherCaeNumber: normalizeText(values.publisherCaeNumber),
   };
 });
 
 export type RightsFormValues = z.infer<typeof rightsFormSchema>;
+
+// ───────────────────────────────────────────────────────────────────────────────
+// 4) Sync metadata (BPM, key, géneros, exclusividad, pricing)
+// ───────────────────────────────────────────────────────────────────────────────
+
+const TRACK_TYPE_VALUES = ["INSTRUMENTAL", "VOCAL", "VOCAL_INSTRUMENTAL", "OTHER"] as const;
+const PRICING_TIER_VALUES = ["LOW", "MID", "HIGH", "BESPOKE"] as const;
+const LICENSE_TYPE_VALUES = ["NON_EXCLUSIVE", "EXCLUSIVE", "LIMITED_EXCLUSIVE", "BUYOUT"] as const;
+const CURRENCY_VALUES = ["CLP", "USD", "EUR"] as const;
+
+const syncMetaFormBaseSchema = z.object({
+  id: z.union([z.string(), z.number()]),
+  licenseType: z.union([z.string(), z.null(), z.undefined()]),
+  mediaBuy: z.union([z.string(), z.null(), z.undefined()]),
+  bpm: z.union([z.string(), z.number(), z.null(), z.undefined()]),
+  key: z.union([z.string(), z.null(), z.undefined()]),
+  trackType: z.union([z.string(), z.null(), z.undefined()]),
+  genres: z.union([z.string(), z.null(), z.undefined()]),
+  subgenres: z.union([z.string(), z.null(), z.undefined()]),
+  exclusiveTerritories: z.union([z.string(), z.null(), z.undefined()]),
+  exclusiveTermMonths: z.union([z.string(), z.number(), z.null(), z.undefined()]),
+  restrictedTerritories: z.union([z.string(), z.null(), z.undefined()]),
+  restrictedIndustries: z.union([z.string(), z.null(), z.undefined()]),
+  restrictedPlatforms: z.union([z.string(), z.null(), z.undefined()]),
+  restrictedBrands: z.union([z.string(), z.null(), z.undefined()]),
+  restrictions: z.union([z.string(), z.null(), z.undefined()]),
+  pricingTier: z.union([z.string(), z.null(), z.undefined()]),
+  budgetMin: z.union([z.string(), z.number(), z.null(), z.undefined()]),
+  budgetMax: z.union([z.string(), z.number(), z.null(), z.undefined()]),
+  budgetCurrency: z.union([z.string(), z.null(), z.undefined()]),
+});
+
+export const syncMetaFormSchema = syncMetaFormBaseSchema.transform((values) => {
+  return {
+    id: String(values.id),
+    licenseType: normalizeEnum(values.licenseType, LICENSE_TYPE_VALUES),
+    mediaBuy: normalizeText(values.mediaBuy),
+    bpm: normalizeNullableFloat(values.bpm),
+    key: normalizeText(values.key),
+    trackType: normalizeEnum(values.trackType, TRACK_TYPE_VALUES),
+    genres: normalizeListRaw(values.genres),
+    subgenres: normalizeListRaw(values.subgenres),
+    exclusiveTerritories: normalizeList(values.exclusiveTerritories),
+    exclusiveTermMonths: normalizeNullableInt(values.exclusiveTermMonths),
+    restrictedTerritories: normalizeList(values.restrictedTerritories),
+    restrictedIndustries: normalizeListRaw(values.restrictedIndustries),
+    restrictedPlatforms: normalizeListRaw(values.restrictedPlatforms),
+    restrictedBrands: normalizeListRaw(values.restrictedBrands),
+    restrictions: normalizeRestrictions(values.restrictions),
+    pricingTier: normalizeEnum(values.pricingTier, PRICING_TIER_VALUES),
+    budgetMin: normalizeNullableInt(values.budgetMin),
+    budgetMax: normalizeNullableInt(values.budgetMax),
+    budgetCurrency: normalizeEnum(values.budgetCurrency, CURRENCY_VALUES),
+  };
+});
+
+export type SyncMetaFormValues = z.infer<typeof syncMetaFormSchema>;
+
+// ───────────────────────────────────────────────────────────────────────────────
+// 5) Entregables (versiones y stems)
+// ───────────────────────────────────────────────────────────────────────────────
+
+const VERSION_KIND_VALUES = ["FULL", "CUTDOWN", "ALT_MIX", "INSTRUMENTAL", "VOCAL", "OTHER"] as const;
+const STEM_GROUP_VALUES = ["INSTRUMENT", "VOCAL", "FX", "PERCUSSION", "OTHER"] as const;
+
+function parseVersionLines(raw: string | null | undefined) {
+  if (typeof raw !== "string") return [];
+  const lines = raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  return lines.map((line, index) => {
+    const [labelPart, durationPart, kindPart] = line
+      .split("|")
+      .map((part) => part.trim());
+    return {
+      label: labelPart,
+      durationSec: parseDurationToSec(durationPart ?? null),
+      kind: normalizeEnum(kindPart ?? null, VERSION_KIND_VALUES),
+      sortOrder: index,
+    };
+  });
+}
+
+function parseStemLines(raw: string | null | undefined) {
+  if (typeof raw !== "string") return [];
+  const lines = raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  return lines.map((line, index) => {
+    const [namePart, groupPart] = line.split("|").map((part) => part.trim());
+    return {
+      name: namePart,
+      group: normalizeEnum(groupPart ?? null, STEM_GROUP_VALUES),
+      sortOrder: index,
+    };
+  });
+}
+
+const deliverablesFormBaseSchema = z.object({
+  id: z.union([z.string(), z.number()]),
+  versions: z.union([z.string(), z.null(), z.undefined()]),
+  stems: z.union([z.string(), z.null(), z.undefined()]),
+});
+
+export const deliverablesFormSchema = deliverablesFormBaseSchema.transform((values) => {
+  return {
+    id: String(values.id),
+    versions: parseVersionLines(values.versions),
+    stems: parseStemLines(values.stems),
+  };
+});
+
+export type DeliverablesFormValues = z.infer<typeof deliverablesFormSchema>;

@@ -3,14 +3,9 @@
 
 import * as React from "react";
 import FormField from "../ui/FormField";
+import { Input } from "@/components/ui/input";
 
 type FieldErrors = Record<string, string[]>;
-
-type IdsActionResult = {
-  ok: boolean;
-  message: string;
-  fieldErrors?: FieldErrors;
-};
 
 // Definir estado de errores cliente:
 type ClientErrors = {
@@ -21,33 +16,16 @@ type ClientErrors = {
 
 type IdsFormProps = {
   track: {
-    id: string;
     isrc: string | null;
     iswc: string | null;
     upc: string | null;
-    updatedAt: Date;
   };
-  updateIds: (formData: FormData) => Promise<IdsActionResult>;
+  fieldErrors?: FieldErrors;
 };
 
-function SubmitButton({ pending }: { pending: boolean }) {
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="inline-flex items-center justify-center rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-50 hover:bg-zinc-800 disabled:opacity-50"
-    >
-      {pending ? "Guardando…" : "Guardar IDs"}
-    </button>
-  );
-}
-
-export default function IdsForm({ track, updateIds }: IdsFormProps) {
-  const [pending, setPending] = React.useState(false);
-  const [status, setStatus] = React.useState<IdsActionResult | null>(null);
+export default function IdsForm({ track, fieldErrors }: IdsFormProps) {
   const [clientErrors, setClientErrors] = React.useState<ClientErrors>({});
-
-  const fieldErrors: FieldErrors = status?.fieldErrors ?? {};
+  const serverErrors: FieldErrors = fieldErrors ?? {};
 
   function validateField(
     name: keyof ClientErrors,
@@ -79,61 +57,15 @@ export default function IdsForm({ track, updateIds }: IdsFormProps) {
     setClientErrors((prev) => ({ ...prev, [name]: error }));
   }
 
-  function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) {
-    const { name, value } = e.target;
-    if (!["title", "artist", "moods", "uses"].includes(name)) return;
-
-    const error = validateField(name as keyof ClientErrors, value);
-    setClientErrors((prev) => ({ ...prev, [name]: error }));
-  }
-
-  async function handleAction(formData: FormData) {
-    setPending(true);
-    setStatus(null);
-
-    try {
-      const result = await updateIds(formData);
-      setStatus(result);
-      if (result.ok) {
-        setClientErrors({});
-      }
-    } catch (err) {
-      console.error("[IdsForm] handleAction error", err);
-      setStatus({
-        ok: false,
-        message: "Error al guardar.",
-      });
-    } finally {
-      setPending(false);
-    }
-  }
-
   return (
-    <form action={handleAction} className="space-y-3">
-      <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-        <div>
-          <h2 className="text-base font-semibold text-zinc-50">
-            Identificadores
-          </h2>
-          <p className="mt-1 text-xs text-zinc-400">
-            ISRC / ISWC / UPC para integraciones con distribuidoras y PROs.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {status && (
-            <p
-              className={`text-[11px] ${
-                status.ok ? "text-emerald-400" : "text-red-400"
-              }`}
-            >
-              {status.message ?? (status.ok ? "Guardado" : "Error al guardar")}
-            </p>
-          )}
-          <SubmitButton pending={pending} />
-        </div>
+    <div className="space-y-3">
+      <div className="border-b border-border pb-2">
+        <h2 className="text-base font-semibold text-foreground">
+          Identificadores
+        </h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          ISRC / ISWC / UPC para integraciones con distribuidoras y PROs.
+        </p>
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
@@ -148,15 +80,15 @@ export default function IdsForm({ track, updateIds }: IdsFormProps) {
               espacios/guiones.
             </>
           }
-          error={clientErrors.isrc ?? fieldErrors.isrc?.[0] ?? null}
+          error={clientErrors.isrc ?? serverErrors.isrc?.[0] ?? null}
         >
-          <input
+          <Input
             id="isrc"
             name="isrc"
             type="text"
             defaultValue={track.isrc ?? ""}
             onBlur={handleBlur}
-            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 placeholder:text-zinc-500 focus:ring-1 focus:ring-zinc-500 focus:outline-none"
+            className="w-full text-sm"
             placeholder="CL-XXX-24-00001"
           />
         </FormField>
@@ -172,15 +104,15 @@ export default function IdsForm({ track, updateIds }: IdsFormProps) {
               en una sociedad.
             </>
           }
-          error={clientErrors.iswc ?? fieldErrors.iswc?.[0] ?? null}
+          error={clientErrors.iswc ?? serverErrors.iswc?.[0] ?? null}
         >
-          <input
+          <Input
             id="iswc"
             name="iswc"
             type="text"
             defaultValue={track.iswc ?? ""}
             onBlur={handleBlur}
-            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 placeholder:text-zinc-500 focus:ring-1 focus:ring-zinc-500 focus:outline-none"
+            className="w-full text-sm"
             placeholder="T-123.456.789-Z"
           />
         </FormField>
@@ -193,19 +125,19 @@ export default function IdsForm({ track, updateIds }: IdsFormProps) {
           description={
             <>Identificador del producto (álbum / single) si aplica.</>
           }
-          error={clientErrors.upc ?? fieldErrors.upc?.[0] ?? null}
+          error={clientErrors.upc ?? serverErrors.upc?.[0] ?? null}
         >
-          <input
+          <Input
             id="upc"
             name="upc"
             type="text"
             defaultValue={track.upc ?? ""}
             onBlur={handleBlur}
-            className="w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm text-zinc-50 placeholder:text-zinc-500 focus:ring-1 focus:ring-zinc-500 focus:outline-none"
+            className="w-full text-sm"
             placeholder="123456789012"
           />
         </FormField>
       </div>
-    </form>
+    </div>
   );
 }

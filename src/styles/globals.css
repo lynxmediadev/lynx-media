@@ -99,7 +99,7 @@
 
   --border: var(--lm-border-subtle);
   --input: var(--border);
-  --ring: color-mix(in oklab, var(--lm-accent-outline) 30%, black);
+  --ring: color-mix(in oklab, var(--lm-text-main) 35%, transparent);
 
   --radius: 0.75rem;
 

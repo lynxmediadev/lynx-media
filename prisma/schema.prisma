@@ -38,9 +38,26 @@ model Track {
   moods    String[] // requiere Postgres
   uses     String[]
 
+  // Metadata musical / creativa
+  bpm         Float? // BPM promedio (permite decimales)
+  key         String? // Ej: "C#m", "Bb", "Am"
+  trackType   TrackType?
+  genres      String[] @default([])
+  subgenres   String[] @default([])
+
   // Derechos / licensing
   master          String?
   publishingSplit String? // JSON resumen opcional (legacy/compat)
+  oneStop         Boolean?
+  clearedForSync  Boolean?
+
+  // Exclusividad / restricciones estructuradas
+  exclusiveTerritories String[] @default([])
+  exclusiveTermMonths  Int?
+  restrictedTerritories String[] @default([])
+  restrictedIndustries  String[] @default([])
+  restrictedPlatforms   String[] @default([])
+  restrictedBrands      String[] @default([])
   
   // Publishing Share
   publishingShares PublishingShare[]
@@ -60,15 +77,19 @@ model Track {
   isrc               String?
   iswc               String?
   upc                String?
-  licenseType        String?
-  territories        String?
-  term               String?
+  licenseType        String? // Ej: NON_EXCLUSIVE, EXCLUSIVE, LIMITED_EXCLUSIVE, BUYOUT
   mediaBuy           String?
   mfn                Boolean?
   restrictions       String[]
   contentIdEnrolled  Boolean?
   contentIdAdmin     String?
   contentIdWhitelist String?
+
+  // Pricing / presupuesto (orientativo)
+  pricingTier     PricingTier?
+  budgetMin       Int?
+  budgetMax       Int?
+  budgetCurrency  Currency?
 
   // Info del asset subido
   assetKey  String @default("") // "external://..." si es URL directa
@@ -90,11 +111,82 @@ model Track {
   bitrateKbps     Int?
   analysisAt      DateTime?
 
+  // Versiones y stems (relaciones)
+  versions TrackVersion[]
+  stems    TrackStem[]
+
   @@index([artist])
   @@index([title])
   @@index([createdAt, id]) // ← nuevo
   @@index([moods], type: Gin) // ← nuevo
   @@index([uses], type: Gin) // ← nuevo
+}
+
+enum TrackType {
+  INSTRUMENTAL
+  VOCAL
+  VOCAL_INSTRUMENTAL
+  OTHER
+}
+
+enum PricingTier {
+  LOW
+  MID
+  HIGH
+  BESPOKE
+}
+
+enum TrackVersionKind {
+  FULL
+  CUTDOWN
+  ALT_MIX
+  INSTRUMENTAL
+  VOCAL
+  OTHER
+}
+
+enum StemGroup {
+  INSTRUMENT
+  VOCAL
+  FX
+  PERCUSSION
+  OTHER
+}
+
+model TrackVersion {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trackId String
+  track   Track   @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  label       String
+  durationSec Int?
+  kind        TrackVersionKind?
+  audioUrl    String?
+  assetKey    String?
+  sortOrder   Int?
+
+  @@index([trackId, sortOrder])
+}
+
+model TrackStem {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trackId String
+  track   Track   @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  name        String
+  group       StemGroup?
+  durationSec Int?
+  audioUrl    String?
+  assetKey    String?
+  sortOrder   Int?
+
+  @@index([trackId, sortOrder])
 }
 
 enum PublishingRole {
@@ -113,6 +205,8 @@ model PublishingShare {
 
   role      PublishingRole // WRITER o PUBLISHER
   name      String         // Nombre/entidad
+  pro       String?        // PRO/Sociedad (ej: SCD, ASCAP, BMI)
+  caeNumber String?        // CAE (si aplica)
   ipiNumber String?        // IPI opcional
   sharePct  Int?           // 0–100 (puede ser null mientras no se complete)
   // pro      String?      // (si quieres agregar luego la sociedad PRO)

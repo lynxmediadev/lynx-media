@@ -18,8 +18,8 @@ export type PlayerTrackDTO = {
     master?: string;
     publishingSplit?: string;
     licenseType?: string;
-    territories?: string;
-    term?: string;
+    exclusiveTerritories?: string[];
+    exclusiveTermMonths?: number;
     mediaBuy?: string;
     mfn?: boolean;
     restrictions?: string[];
@@ -38,8 +38,8 @@ const base: Omit<PlayerTrackDTO, "id" | "title"> = {
   rights: {
     master: "Lynx Media (One-Stop)",
     publishingSplit: "100% Lynx Music Collective",
-    licenseType: "No exclusiva",
-    territories: "Worldwide",
+    licenseType: "NON_EXCLUSIVE",
+    exclusiveTerritories: ["WORLDWIDE"],
     restrictions: ["Sin campañas políticas"],
   },
 };

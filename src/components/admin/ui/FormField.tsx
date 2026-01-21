@@ -16,6 +16,7 @@
 
 import * as React from "react";
 import clsx from "clsx";
+import { Label } from "@/components/ui/label";
 
 type FormFieldProps = {
   htmlFor?: string;
@@ -42,24 +43,24 @@ export default function FormField({
 
   return (
     <div className={rootClassName}>
-      <label
+      <Label
         htmlFor={htmlFor}
-        className="block text-[11px] font-medium text-zinc-300"
+        className="text-[11px] font-medium text-foreground/80"
       >
         {label}
-      </label>
+      </Label>
 
       {description && descriptionPosition === "above" && (
-        <p className="text-[11px] text-zinc-500">{description}</p>
+        <p className="text-[11px] text-muted-foreground">{description}</p>
       )}
 
       {children}
 
       {/* Mensaje de error, si existe */}
-      {error && <p className="mt-1 text-[11px] text-red-400">{error}</p>}
+      {error && <p className="mt-1 text-[11px] text-destructive">{error}</p>}
 
       {description && descriptionPosition === "below" && (
-        <p className="text-[11px] text-zinc-500">{description}</p>
+        <p className="text-[11px] text-muted-foreground">{description}</p>
       )}
     </div>
   );

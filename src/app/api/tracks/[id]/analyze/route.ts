@@ -61,6 +61,10 @@ export async function POST(
       error: e?.message ?? "Analyze error",
     };
 
+    if (e?.code) {
+      payload.code = e.code;
+    }
+
     if (process.env.DEBUG_AUDIO) {
       payload.extra = { stack: e?.stack };
     }

@@ -23,9 +23,13 @@ import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
+import { Button } from "@/components/ui/button";
 
 type BaseProps = {
   id: string;
+  audioUrl?: string | null;
+  initialAudioStatus?: "ok" | "invalid";
+  initialAudioMessage?: string | null;
   className?: string;
 };
 
@@ -36,6 +40,8 @@ type TrackAnalysisHook = {
   isModalOpen: boolean;
   lastPayload: any | null;
   trackUrl: string;
+  audioStatus: "unknown" | "checking" | "ok" | "invalid";
+  audioMessage: string | null;
   handleAnalyze: () => Promise<void>;
   handleOpenPayload: () => void;
   handleClosePayload: () => void;
@@ -44,7 +50,12 @@ type TrackAnalysisHook = {
 /**
  * Hook compartido con toda la lógica de análisis/payload.
  */
-function useTrackAnalysisActions(id: string): TrackAnalysisHook {
+function useTrackAnalysisActions(
+  id: string,
+  audioUrl?: string | null,
+  initialAudioStatus?: "ok" | "invalid",
+  initialAudioMessage?: string | null,
+): TrackAnalysisHook {
   const router = useRouter();
 
   const [isLoading, setIsLoading] = React.useState(false);
@@ -53,12 +64,62 @@ function useTrackAnalysisActions(id: string): TrackAnalysisHook {
   const [error, setError] = React.useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [isBrowser, setIsBrowser] = React.useState(false);
+  const [audioStatus, setAudioStatus] = React.useState<
+    "unknown" | "checking" | "ok" | "invalid"
+  >(initialAudioStatus ?? "unknown");
+  const [audioMessage, setAudioMessage] = React.useState<string | null>(
+    initialAudioMessage ?? null,
+  );
 
   const busy = isLoading || isPending;
 
   React.useEffect(() => {
     setIsBrowser(true);
   }, []);
+
+  React.useEffect(() => {
+    if (initialAudioStatus !== undefined) return;
+    let active = true;
+
+    async function validateAudio() {
+      if (!id) return;
+      if (!audioUrl || audioUrl.trim().length === 0) {
+        setAudioStatus("invalid");
+        setAudioMessage("Audio URL vacío.");
+        return;
+      }
+
+      setAudioStatus("checking");
+      setAudioMessage(null);
+
+      try {
+        const res = await fetch(`/api/tracks/${encodeURIComponent(id)}/audio-check`, {
+          method: "GET",
+        });
+        const json = await res.json().catch(() => null);
+
+        if (!active) return;
+
+        if (res.ok && json?.ok) {
+          setAudioStatus("ok");
+          setAudioMessage(null);
+        } else {
+          setAudioStatus("invalid");
+          setAudioMessage(json?.error ?? "Audio no accesible.");
+        }
+      } catch {
+        if (!active) return;
+        setAudioStatus("invalid");
+        setAudioMessage("Audio no accesible.");
+      }
+    }
+
+    validateAudio();
+
+    return () => {
+      active = false;
+    };
+  }, [id, audioUrl, initialAudioStatus]);
 
   const trackUrl = `/admin/track/${encodeURIComponent(id)}/edit`;
 
@@ -77,7 +138,8 @@ function useTrackAnalysisActions(id: string): TrackAnalysisHook {
 
       if (!res.ok || !json?.ok) {
         console.error("[AnalyzeActions] fallo:", json);
-        setError("Error al analizar. Revisa consola/servidor.");
+        const detail = json?.error ? `Error al analizar: ${json.error}` : null;
+        setError(detail ?? "Error al analizar. Revisa consola/servidor.");
       } else {
         setLastPayload(json);
         setError(null);
@@ -88,7 +150,8 @@ function useTrackAnalysisActions(id: string): TrackAnalysisHook {
       }
     } catch (err) {
       console.error("[AnalyzeActions] excepción:", err);
-      setError("Excepción en el análisis. Revisa consola/servidor.");
+      const detail = err instanceof Error ? err.message : null;
+      setError(detail ? `Excepción en el análisis: ${detail}` : "Excepción en el análisis. Revisa consola/servidor.");
     } finally {
       setIsLoading(false);
     }
@@ -112,6 +175,8 @@ function useTrackAnalysisActions(id: string): TrackAnalysisHook {
     isModalOpen,
     lastPayload,
     trackUrl,
+    audioStatus,
+    audioMessage,
     handleAnalyze,
     handleOpenPayload,
     handleClosePayload,
@@ -156,49 +221,55 @@ function PayloadModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
       onClick={handleOverlayClick}
     >
-      <div className="max-h-[80vh] w-full max-w-3xl overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950 shadow-2xl">
-        <header className="border-b border-zinc-800 px-4 py-3">
-          <h2 className="text-sm font-semibold text-zinc-50">
+      <div className="max-h-[80vh] w-full max-w-3xl overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+        <header className="border-b border-border px-4 py-3">
+          <h2 className="text-sm font-semibold text-foreground">
             Payload último análisis
           </h2>
-          <p className="mt-0.5 text-xs text-zinc-500">
+          <p className="mt-0.5 text-xs text-muted-foreground">
             JSON crudo retornado por /api/tracks/[id]/analyze.
           </p>
         </header>
 
         <div className="max-h-[56vh] overflow-auto px-4 py-3">
-          <pre className="whitespace-pre-wrap rounded bg-zinc-900 p-3 text-xs text-zinc-100">
+          <pre className="whitespace-pre-wrap rounded bg-muted/60 p-3 text-xs text-foreground">
             {pretty}
           </pre>
         </div>
 
-        <footer className="flex items-center justify-between gap-3 border-t border-zinc-800 px-4 py-3">
+        <footer className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
           <div className="flex gap-2">
-            <button
+            <Button
               type="button"
               onClick={handleCopy}
-              className="rounded-md border border-zinc-600 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-50 hover:bg-zinc-800"
+              variant="outline"
+              size="sm"
+              className="text-xs"
             >
               Copiar JSON
-            </button>
+            </Button>
 
             {showViewTrack && trackUrl && (
-              <Link
-                href={trackUrl}
-                className="rounded-md border border-zinc-600 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-50 hover:bg-zinc-800"
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="text-xs"
               >
-                Ver track
-              </Link>
+                <Link href={trackUrl}>Ver track</Link>
+              </Button>
             )}
           </div>
 
-          <button
+          <Button
             type="button"
             onClick={onClose}
-            className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-50 hover:bg-zinc-800"
+            variant="outline"
+            size="sm"
+            className="text-xs"
           >
             Cerrar
-          </button>
+          </Button>
         </footer>
       </div>
     </div>
@@ -209,7 +280,13 @@ function PayloadModal({
  * Componente original para /admin/tracks (tabla).
  * - Botones: Analizar, Payload, Ver track
  */
-export default function AnalyzeActions({ id, className = "" }: BaseProps) {
+export default function AnalyzeActions({
+  id,
+  audioUrl,
+  initialAudioStatus,
+  initialAudioMessage,
+  className = "",
+}: BaseProps) {
   const {
     busy,
     error,
@@ -217,35 +294,48 @@ export default function AnalyzeActions({ id, className = "" }: BaseProps) {
     isModalOpen,
     lastPayload,
     trackUrl,
+    audioStatus,
+    audioMessage,
     handleAnalyze,
     handleOpenPayload,
     handleClosePayload,
-  } = useTrackAnalysisActions(id);
+  } = useTrackAnalysisActions(
+    id,
+    audioUrl,
+    initialAudioStatus,
+    initialAudioMessage,
+  );
 
   if (!isBrowser) {
     return (
       <div className={`inline-flex items-center gap-2 ${className}`}>
-        <button
+        <Button
           type="button"
           disabled
-          className="h-8 w-24 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-500"
+          variant="outline"
+          size="sm"
+          className="h-8 w-24 text-xs text-muted-foreground"
         >
           …
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           disabled
-          className="h-8 w-24 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-500"
+          variant="outline"
+          size="sm"
+          className="h-8 w-24 text-xs text-muted-foreground"
         >
           …
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           disabled
-          className="h-8 w-24 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-500"
+          variant="outline"
+          size="sm"
+          className="h-8 w-24 text-xs text-muted-foreground"
         >
           …
-        </button>
+        </Button>
       </div>
     );
   }
@@ -253,34 +343,46 @@ export default function AnalyzeActions({ id, className = "" }: BaseProps) {
   return (
     <>
       <div className={`inline-flex items-center gap-2 ${className}`}>
-        <button
+        <Button
           type="button"
           onClick={handleAnalyze}
-          disabled={busy}
-          className="inline-flex h-8 w-24 items-center justify-center rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-100 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={busy || audioStatus !== "ok"}
+          variant="outline"
+          size="sm"
+          className="h-8 w-24 text-xs"
         >
-          {busy ? "Analizando…" : "Analizar"}
-        </button>
+          {busy
+            ? "Analizando…"
+            : audioStatus === "checking"
+              ? "Verificando…"
+              : audioStatus === "invalid"
+                ? "Sin audio"
+                : "Analizar"}
+        </Button>
 
-        <button
+        <Button
           type="button"
           onClick={handleOpenPayload}
-          className="inline-flex h-8 w-24 items-center justify-center rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-100 hover:bg-zinc-800"
+          variant="outline"
+          size="sm"
+          className="h-8 w-24 text-xs"
         >
           Payload
-        </button>
+        </Button>
 
-        <Link
-          href={trackUrl}
-          className="inline-flex h-8 w-24 items-center justify-center rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-100 hover:bg-zinc-800 text-center"
+        <Button
+          asChild
+          variant="outline"
+          size="sm"
+          className="h-8 w-24 text-xs text-center"
         >
-          Ver track
-        </Link>
+          <Link href={trackUrl}>Ver track</Link>
+        </Button>
       </div>
 
-      {error && (
-        <p className="mt-1 text-xs text-red-400">
-          {error}
+      {(error || audioStatus === "invalid") && (
+        <p className="mt-1 text-xs text-destructive">
+          {error ?? audioMessage}
         </p>
       )}
 
@@ -305,6 +407,9 @@ export default function AnalyzeActions({ id, className = "" }: BaseProps) {
  */
 export function TrackAnalyzeHeaderButtons({
   id,
+  audioUrl,
+  initialAudioStatus,
+  initialAudioMessage,
   className = "",
 }: BaseProps) {
   const {
@@ -314,28 +419,39 @@ export function TrackAnalyzeHeaderButtons({
     isModalOpen,
     lastPayload,
     trackUrl,
+    audioStatus,
+    audioMessage,
     handleAnalyze,
     handleOpenPayload,
     handleClosePayload,
-  } = useTrackAnalysisActions(id);
+  } = useTrackAnalysisActions(
+    id,
+    audioUrl,
+    initialAudioStatus,
+    initialAudioMessage,
+  );
 
   if (!isBrowser) {
     return (
       <div className={`inline-flex items-center gap-2 ${className}`}>
-        <button
+        <Button
           type="button"
           disabled
-          className="h-8 w-24 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-500"
+          variant="outline"
+          size="sm"
+          className="h-8 w-24 text-xs text-muted-foreground"
         >
           …
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           disabled
-          className="h-8 w-24 rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-500"
+          variant="outline"
+          size="sm"
+          className="h-8 w-24 text-xs text-muted-foreground"
         >
           …
-        </button>
+        </Button>
       </div>
     );
   }
@@ -343,27 +459,37 @@ export function TrackAnalyzeHeaderButtons({
   return (
     <>
       <div className={`inline-flex items-center gap-2 ${className}`}>
-        <button
+        <Button
           type="button"
           onClick={handleAnalyze}
-          disabled={busy}
-          className="inline-flex h-8 w-24 items-center justify-center rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-100 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={busy || audioStatus !== "ok"}
+          variant="outline"
+          size="sm"
+          className="h-8 w-24 text-xs"
         >
-          {busy ? "Analizando…" : "Analizar"}
-        </button>
+          {busy
+            ? "Analizando…"
+            : audioStatus === "checking"
+              ? "Verificando…"
+              : audioStatus === "invalid"
+                ? "Sin audio"
+                : "Analizar"}
+        </Button>
 
-        <button
+        <Button
           type="button"
           onClick={handleOpenPayload}
-          className="inline-flex h-8 w-24 items-center justify-center rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-100 hover:bg-zinc-800"
+          variant="outline"
+          size="sm"
+          className="h-8 w-24 text-xs"
         >
           Payload
-        </button>
+        </Button>
       </div>
 
-      {error && (
-        <p className="mt-1 text-xs text-red-400">
-          {error}
+      {(error || audioStatus === "invalid") && (
+        <p className="mt-1 text-xs text-destructive">
+          {error ?? audioMessage}
         </p>
       )}
 

@@ -13,6 +13,7 @@
 import { NextResponse } from "next/server";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { getFfmpegPath, getFfprobePath } from "@/lib/audio/paths";
 
 export const runtime = "nodejs"; // aseguramos entorno Node, no Edge
 
@@ -20,13 +21,17 @@ const execFileAsync = promisify(execFile);
 
 export async function GET() {
   try {
-    const { stdout } = await execFileAsync("ffmpeg", ["-version"]);
+    const ffmpegPath = getFfmpegPath();
+    const ffprobePath = getFfprobePath();
+    const { stdout } = await execFileAsync(ffmpegPath, ["-version"]);
 
     return NextResponse.json({
       ok: true,
       where: "Next.js runtime",
       ffmpegVersion: stdout.split("\n")[0] ?? stdout,
       sample: stdout.slice(0, 500),
+      ffmpegPath,
+      ffprobePath,
       path: process.env.PATH ?? null,
     });
   } catch (err: any) {
@@ -36,7 +41,7 @@ export async function GET() {
         error: String(err?.message ?? err),
         code: err?.code ?? null,
         syscall: err?.syscall ?? null,
-        pathTried: "ffmpeg",
+        pathTried: getFfmpegPath(),
         pathEnv: process.env.PATH ?? null,
       },
       { status: 500 },

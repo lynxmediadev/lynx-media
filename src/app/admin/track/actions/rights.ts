@@ -42,28 +42,31 @@ export async function updateRights(
     const trackId = data.id;
 
     const {
-      licenseType,
-      territories,
-      term,
-      mediaBuy,
       mfn,
       master,
+      oneStop,
+      clearedForSync,
       contentIdEnrolled,
       contentIdAdmin,
       contentIdWhitelist,
-      restrictions,
       writerName,
       writerSharePct,
       writerIpiNumber,
+      writerPro,
+      writerCaeNumber,
       publisherName,
       publisherSharePct,
       publisherIpiNumber,
+      publisherPro,
+      publisherCaeNumber,
     } = data;
 
     const sharesToCreate: {
       role: PublishingRole;
       name: string;
       ipiNumber: string | null;
+      pro?: string | null;
+      caeNumber?: string | null;
       sharePct: number | null;
     }[] = [];
 
@@ -72,6 +75,8 @@ export async function updateRights(
         role: PublishingRole.WRITER,
         name: writerName,
         ipiNumber: writerIpiNumber,
+        pro: writerPro,
+        caeNumber: writerCaeNumber,
         sharePct: writerSharePct,
       });
     }
@@ -81,6 +86,8 @@ export async function updateRights(
         role: PublishingRole.PUBLISHER,
         name: publisherName,
         ipiNumber: publisherIpiNumber,
+        pro: publisherPro,
+        caeNumber: publisherCaeNumber,
         sharePct: publisherSharePct,
       });
     }
@@ -91,16 +98,13 @@ export async function updateRights(
       prisma.track.update({
         where: { id: trackId },
         data: {
-          licenseType,
-          territories,
-          term,
-          mediaBuy,
           mfn,
           master,
+          oneStop,
+          clearedForSync,
           contentIdEnrolled,
           contentIdAdmin,
           contentIdWhitelist,
-          restrictions,
         },
         select: { id: true },
       }),
@@ -123,6 +127,8 @@ export async function updateRights(
             role: s.role,
             name: s.name,
             ipiNumber: s.ipiNumber,
+            pro: s.pro ?? null,
+            caeNumber: s.caeNumber ?? null,
             sharePct: s.sharePct,
           })),
         }),

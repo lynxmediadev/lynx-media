@@ -1,30 +1,65 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import Image from "next/image";
-import { Play, Pause } from "lucide-react";
+import {
+  FileText,
+  Pause,
+  Play,
+  Shield,
+  SlidersHorizontal,
+  Users,
+  X,
+} from "lucide-react";
 import PublicAudioBar from "@/components/public/PublicAudioBar";
 import CopyLinkButton from "@/components/public/CopyLinkButton";
 import LicensingDialog from "@/components/public/LicensingDialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
+type TrackHeroData = {
+  id: string;
+  title: string | null;
+  artist: string | null;
+  durationSec: number | null;
+  moods: string[] | null;
+  uses: string[] | null;
+  restrictions: string[] | null;
+  bpm: number | null;
+  key: string | null;
+  versions: string[] | null;
+};
+
+export type TrackHeroDetailRow = {
+  label: string;
+  value: string | null;
+};
+
+export type TrackHeroDetailSection = {
+  id: string;
+  label: string;
+  hint?: string;
+  columns: TrackHeroDetailRow[][];
+};
 
 type Props = {
-  track: {
-    id: string;
-    title: string | null;
-    artist: string | null;
-    durationSec: number | null;
-    moods: string[] | null;
-    uses: string[] | null;
-    restrictions: string[] | null;
-  };
+  track: TrackHeroData;
   coverUrl?: string | null;
   audioSrc: string | null;
   waveformB64: string | null;
+  detailSections?: TrackHeroDetailSection[];
 };
 
-export default function TrackHero({ track, coverUrl, audioSrc, waveformB64 }: Props) {
+export default function TrackHero({
+  track,
+  coverUrl,
+  audioSrc,
+  waveformB64,
+  detailSections = [],
+}: Props) {
   const controlsRef = useRef<{ toggle: () => void } | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [activeDetailId, setActiveDetailId] = useState<string | null>(null);
 
   const cover = coverUrl || "/images/covers/hero-bg-2.png";
   const coverIsDummy = !coverUrl;
@@ -32,6 +67,17 @@ export default function TrackHero({ track, coverUrl, audioSrc, waveformB64 }: Pr
   const handlePlay = () => {
     controlsRef.current?.toggle();
   };
+
+  const metadataItems: Array<{ label: string; value: React.ReactNode }> = [
+    { label: "BPM", value: formatBpm(track.bpm) },
+    { label: "Tonalidad", value: formatText(track.key) },
+    { label: "Versiones", value: formatList(track.versions) },
+    { label: "Moods", value: renderTagLinks(track.moods, "mood") },
+    { label: "Usos", value: renderTagLinks(track.uses, "use") },
+  ];
+
+  const activeDetail =
+    detailSections.find((section) => section.id === activeDetailId) ?? null;
 
   return (
     <section className="relative overflow-hidden rounded-[2px] border border-border bg-background/90 shadow-sm">
@@ -75,13 +121,21 @@ export default function TrackHero({ track, coverUrl, audioSrc, waveformB64 }: Pr
             <div className="flex flex-wrap items-start justify-between gap-6">
               <div className="min-w-0 flex-1 space-y-1 border border-amber-500/60">
                 <p className="sr-only">Track público</p>
-                <h1 className="text-3xl font-semibold leading-tight line-clamp-2 break-words">
+                <h1 className="text-2xl font-semibold leading-tight line-clamp-2 break-words">
                   {track.title ?? "Sin título"}
                 </h1>
-                <p className="text-sm text-muted-foreground line-clamp-2 break-words">
-                  {track.artist ?? "Artista desconocido"}
-                </p>
-                <p className="text-xs text-muted-foreground">{fmtDuration(track.durationSec)}</p>
+                {track.artist ? (
+                  <Link
+                    href={buildCatalogHref("artist", track.artist)}
+                    className="text-sm text-muted-foreground line-clamp-2 break-words underline-offset-4 transition hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  >
+                    {track.artist}
+                  </Link>
+                ) : (
+                  <span className="text-sm text-muted-foreground line-clamp-2 break-words">
+                    Artista desconocido
+                  </span>
+                )}
               </div>
               <div className="flex shrink-0 flex-nowrap items-start justify-end gap-2 border border-emerald-500/60">
                 <CopyLinkButton />
@@ -100,10 +154,32 @@ export default function TrackHero({ track, coverUrl, audioSrc, waveformB64 }: Pr
               </div>
             </div>
 
-            {/* Bloque dummy para debug (bordes debug) */}
-            <div className="w-full rounded-[2px] border border-sky-500/60 bg-card/40 p-3 text-sm text-muted-foreground">
-              Bloque intermedio (d) · Usa este espacio para métricas, descripción o CTA adicional.
+            <div className="w-full rounded-[2px] border border-sky-500/60 bg-card/40 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+                  Metadata
+                </h2>
+                <span className="text-[11px] text-muted-foreground">Vista rapida</span>
+              </div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                {metadataItems.map((item) => (
+                  <MetadataItem key={item.label} label={item.label} value={item.value} />
+                ))}
+              </div>
             </div>
+
+            {detailSections.length ? (
+              <div className="flex flex-wrap items-center gap-2">
+                {detailSections.map((section) => (
+                  <ActionIconButton
+                    key={section.id}
+                    label={section.label}
+                    icon={getDetailIcon(section.id)}
+                    onClick={() => setActiveDetailId(section.id)}
+                  />
+                ))}
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -126,6 +202,13 @@ export default function TrackHero({ track, coverUrl, audioSrc, waveformB64 }: Pr
           </div>
         </div>
       </div>
+
+      {activeDetail ? (
+        <DetailModal
+          section={activeDetail}
+          onClose={() => setActiveDetailId(null)}
+        />
+      ) : null}
     </section>
   );
 }
@@ -136,4 +219,174 @@ function fmtDuration(sec: number | null) {
   const m = Math.floor(s / 60);
   const r = s % 60;
   return `${m}:${String(r).padStart(2, "0")}`;
+}
+
+function MetadataItem({ label, value }: { label: string; value: React.ReactNode }) {
+  const isEmpty = value === null || value === undefined || value === "";
+  const content = isEmpty ? "—" : value;
+  const isString = typeof content === "string";
+  return (
+    <div className="min-w-0">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+        {label}
+      </p>
+      {isString ? (
+        <p
+          className={`mt-1 text-sm font-medium leading-snug ${isEmpty ? "text-muted-foreground" : "text-foreground"} line-clamp-2 break-words`}
+        >
+          {content}
+        </p>
+      ) : (
+        <div className={`mt-1 text-sm leading-snug ${isEmpty ? "text-muted-foreground" : "text-foreground"}`}>
+          {content}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ActionIconButton({
+  label,
+  icon,
+  onClick,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={onClick}
+          className="rounded-full border border-transparent p-2 text-foreground transition hover:border-border/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          aria-label={label}
+        >
+          {icon}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent
+        side="top"
+        align="center"
+        sideOffset={4}
+        className="rounded-[2px] border border-border bg-card text-foreground shadow-sm"
+      >
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function DetailModal({
+  section,
+  onClose,
+}: {
+  section: TrackHeroDetailSection;
+  onClose: () => void;
+}) {
+  function handleOverlayClick(event: React.MouseEvent<HTMLDivElement>) {
+    if (event.target === event.currentTarget) onClose();
+  }
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.55)] px-4"
+      onClick={handleOverlayClick}
+    >
+      <div
+        className="w-full max-w-2xl rounded-[2px] border border-border bg-card p-5 shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              {section.label}
+            </p>
+            {section.hint ? (
+              <p className="text-sm text-muted-foreground">{section.hint}</p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-[2px] border border-border text-muted-foreground transition hover:border-border/80"
+            aria-label="Cerrar"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="mt-4 grid gap-6 md:grid-cols-2">
+          {section.columns.map((column, index) => (
+            <dl key={`${section.id}-col-${index}`} className="space-y-2 text-sm">
+              {column.map((row) => (
+                <div
+                  key={`${section.id}-${row.label}`}
+                  className="grid grid-cols-[7rem,1fr] items-start gap-3"
+                >
+                  <dt className="text-muted-foreground">{row.label}</dt>
+                  <dd className={row.value ? "text-foreground" : "text-muted-foreground"}>
+                    {row.value ?? "—"}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function formatText(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function formatList(values: string[] | null | undefined) {
+  if (!Array.isArray(values) || values.length === 0) return null;
+  return values.join(" / ");
+}
+
+function formatBpm(bpm: number | null | undefined) {
+  if (typeof bpm !== "number" || !Number.isFinite(bpm)) return null;
+  return String(Math.round(bpm));
+}
+
+function getDetailIcon(id: string) {
+  switch (id) {
+    case "sync":
+      return <SlidersHorizontal className="h-4 w-4" />;
+    case "restrictions":
+      return <Shield className="h-4 w-4" />;
+    case "rights":
+      return <FileText className="h-4 w-4" />;
+    default:
+      return <Users className="h-4 w-4" />;
+  }
+}
+
+function buildCatalogHref(param: "mood" | "use" | "artist", value: string) {
+  const qs = new URLSearchParams({ [param]: value });
+  return `/catalog?${qs.toString()}`;
+}
+
+function renderTagLinks(values: string[] | null | undefined, param: "mood" | "use") {
+  if (!Array.isArray(values) || values.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {values.map((value, index) => (
+        <Link
+          key={`${param}-${value}-${index}`}
+          href={buildCatalogHref(param, value)}
+          className="inline-flex items-center rounded-[2px] border border-border bg-background/70 px-2 py-1 text-[11px] leading-tight text-foreground transition hover:bg-border/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
+          {value}
+        </Link>
+      ))}
+    </div>
+  );
 }

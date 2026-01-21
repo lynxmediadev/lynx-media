@@ -17,6 +17,7 @@
 import Link from "next/link";
 import prisma from "@/lib/prisma";
 import AnalyzeActions from "@/components/admin/AnalyzeActions";
+import { getAudioCheckStatus } from "@/lib/audio/audio-check";
 
 export const dynamic = "force-dynamic";
 
@@ -29,11 +30,43 @@ type AnalyzeRow = {
   analysisAt: Date | null;
   assetKey: string | null;
   audioUrl: string | null;
+  moods: string[];
   durationSec: number | null;
   sampleRateHz: number | null;
   loudnessLufs: number | null;
   loudnessRangeLu: number | null;
   truePeakDbfs: number | null;
+  bpm: number | null;
+  key: string | null;
+  trackType: string | null;
+  genres: string[];
+  subgenres: string[];
+  licenseType: string | null;
+  mediaBuy: string | null;
+  oneStop: boolean | null;
+  clearedForSync: boolean | null;
+  exclusiveTerritories: string[];
+  exclusiveTermMonths: number | null;
+  restrictedTerritories: string[];
+  restrictedIndustries: string[];
+  restrictedPlatforms: string[];
+  restrictedBrands: string[];
+  restrictions: string[];
+  pricingTier: string | null;
+  budgetMin: number | null;
+  budgetMax: number | null;
+  budgetCurrency: string | null;
+  versions: Array<{
+    label: string;
+    durationSec: number | null;
+    kind: string | null;
+    sortOrder: number | null;
+  }>;
+  stems: Array<{
+    name: string;
+    group: string | null;
+    sortOrder: number | null;
+  }>;
 };
 
 type SearchDict = Record<string, string | string[] | undefined>;
@@ -64,15 +97,65 @@ export default async function Page(props: {
         analysisAt: true,
         assetKey: true,
         audioUrl: true,
+        moods: true,
         durationSec: true,
         sampleRateHz: true,
         loudnessLufs: true,
         loudnessRangeLu: true,
         truePeakDbfs: true,
+        bpm: true,
+        key: true,
+        trackType: true,
+        genres: true,
+        subgenres: true,
+        licenseType: true,
+        mediaBuy: true,
+        oneStop: true,
+        clearedForSync: true,
+        exclusiveTerritories: true,
+        exclusiveTermMonths: true,
+        restrictedTerritories: true,
+        restrictedIndustries: true,
+        restrictedPlatforms: true,
+        restrictedBrands: true,
+        restrictions: true,
+        pricingTier: true,
+        budgetMin: true,
+        budgetMax: true,
+        budgetCurrency: true,
+        versions: {
+          select: {
+            label: true,
+            durationSec: true,
+            kind: true,
+            sortOrder: true,
+          },
+          orderBy: { sortOrder: "asc" },
+        },
+        stems: {
+          select: {
+            name: true,
+            group: true,
+            sortOrder: true,
+          },
+          orderBy: { sortOrder: "asc" },
+        },
       },
     }),
     prisma.track.count(),
   ]);
+
+  const audioChecks = await Promise.all(
+    tracks.map(async (track) => ({
+      id: track.id,
+      result: await getAudioCheckStatus(track.audioUrl, {
+        cacheKey: track.id,
+      }),
+    })),
+  );
+  const audioCheckById = new Map(
+    audioChecks.map(({ id, result }) => [id, result]),
+  );
 
   const totalPages = Math.max(1, Math.ceil(total / per));
   const prevPage = Math.max(1, page - 1);
@@ -88,14 +171,14 @@ export default async function Page(props: {
   return (
     <main className="mx-auto w-full max-w-7xl space-y-6 p-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold text-zinc-50">
+        <h1 className="text-2xl font-semibold text-foreground">
           Análisis técnico de tracks
         </h1>
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-muted-foreground">
           Panel de control para revisar el estado de análisis de cada track,
           métricas de audio y acceso rápido a la ficha técnica.
         </p>
-        <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-400">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
           <span>
             Página {page} de {totalPages} · {total} track
             {total === 1 ? "" : "s"}
@@ -103,14 +186,14 @@ export default async function Page(props: {
           <div className="flex items-center gap-2">
             <Link
               href={buildHref(prevPage)}
-              className="rounded-full border border-zinc-800 px-3 py-1 text-xs text-zinc-300 hover:bg-zinc-900/60"
+              className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground hover:bg-accent"
               aria-disabled={page <= 1}
             >
               ← Anterior
             </Link>
             <Link
               href={buildHref(nextPage)}
-              className="rounded-full border border-zinc-800 px-3 py-1 text-xs text-zinc-300 hover:bg-zinc-900/60"
+              className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground hover:bg-accent"
               aria-disabled={page >= totalPages}
             >
               Siguiente →
@@ -119,15 +202,16 @@ export default async function Page(props: {
         </div>
       </header>
 
-      <section className="relative overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950/70 backdrop-blur">
-        <div className="border-b border-zinc-800 px-4 py-3 text-xs font-medium tracking-wide text-zinc-400 uppercase">
+      <section className="relative overflow-hidden rounded-xl border border-border bg-card/80 backdrop-blur">
+        <div className="border-b border-border px-4 py-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
           {tracks.length} track{tracks.length === 1 ? "" : "s"} en esta página
         </div>
 
         <table className="w-full table-auto text-sm">
-          <thead className="bg-zinc-900/80 text-xs tracking-wide text-zinc-400 uppercase">
+          <thead className="bg-muted/60 text-xs tracking-wide text-muted-foreground uppercase">
             <tr>
               <th className="px-4 py-3 text-left align-middle">Track</th>
+              <th className="px-4 py-3 text-left align-middle">Metadata</th>
               <th className="px-4 py-3 text-left align-middle">Estado</th>
               <th className="px-4 py-3 text-left align-middle">Audio</th>
               <th className="px-4 py-3 text-left align-middle">Analizado</th>
@@ -138,30 +222,36 @@ export default async function Page(props: {
             {tracks.length === 0 ? (
               <tr>
                 <td
-                  colSpan={5}
-                  className="px-4 py-6 text-center text-xs text-zinc-500"
+                  colSpan={6}
+                  className="px-4 py-6 text-center text-xs text-muted-foreground"
                 >
                   No hay tracks registrados todavía.
                 </td>
               </tr>
             ) : (
-              tracks.map((t) => (
-                <tr
-                  key={t.id}
-                  className="border-t border-zinc-800/80 hover:bg-zinc-900/50"
-                >
+              tracks.map((t) => {
+                const audioCheck = audioCheckById.get(t.id);
+                return (
+                  <tr
+                    key={t.id}
+                    className="border-t border-border/70 hover:bg-muted/60"
+                  >
                   <td className="px-4 py-3 align-top">
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium text-zinc-50">
+                      <span className="text-sm font-medium text-foreground">
                         {t.title || "(sin título)"}
                       </span>
-                      <span className="text-xs text-zinc-400">
+                      <span className="text-xs text-muted-foreground">
                         {t.artist || "(sin artista)"}
                       </span>
-                      <span className="mt-1 font-mono text-[10px] break-words text-zinc-500">
+                      <span className="mt-1 font-mono text-[10px] break-words text-muted-foreground">
                         ID: {t.id}
                       </span>
                     </div>
+                  </td>
+
+                  <td className="px-4 py-3 align-top">
+                    <MetadataSummary row={t} />
                   </td>
 
                   <td className="px-4 py-3 align-top">
@@ -173,23 +263,30 @@ export default async function Page(props: {
                   </td>
 
                   <td className="px-4 py-3 align-top">
-                    <div className="flex flex-col text-xs text-zinc-400">
+                    <div className="flex flex-col text-xs text-muted-foreground">
                       {t.analysisAt ? (
                         <>
-                          <span className="text-emerald-400">Analizado</span>
+                          <span className="text-success">Analizado</span>
                           <span>{formatDateTime(t.analysisAt)}</span>
                         </>
                       ) : (
-                        <span className="text-amber-400">Sin análisis</span>
+                        <span className="text-warning">Sin análisis</span>
                       )}
                     </div>
                   </td>
 
                   <td className="px-4 py-3 align-top">
-                    <AnalyzeActions id={t.id} className="justify-end" />
+                    <AnalyzeActions
+                      id={t.id}
+                      audioUrl={t.audioUrl}
+                      initialAudioStatus={audioCheck?.status}
+                      initialAudioMessage={audioCheck?.message ?? null}
+                      className="justify-end"
+                    />
                   </td>
-                </tr>
-              ))
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -209,7 +306,7 @@ function EstadoChip({ row }: { row: AnalyzeRow }) {
     return (
       <span
         className={
-          baseClass + " border border-zinc-700 bg-zinc-900 text-zinc-300"
+          baseClass + " border border-border bg-muted/60 text-muted-foreground"
         }
       >
         Sin audio
@@ -222,7 +319,7 @@ function EstadoChip({ row }: { row: AnalyzeRow }) {
       <span
         className={
           baseClass +
-          " border border-amber-500/50 bg-amber-500/10 text-amber-300"
+          " border border-warning/50 bg-warning/10 text-warning"
         }
       >
         Sin análisis
@@ -234,7 +331,7 @@ function EstadoChip({ row }: { row: AnalyzeRow }) {
     <span
       className={
         baseClass +
-        " border border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
+        " border border-success/50 bg-success/10 text-success"
       }
     >
       Analizado
@@ -252,7 +349,7 @@ function AudioInfo({ row }: { row: AnalyzeRow }) {
 
   if (!hasAnalysis) {
     return (
-      <span className="text-xs text-zinc-500">
+      <span className="text-xs text-muted-foreground">
         Sin análisis. Usa <span className="font-semibold">Analizar</span>.
       </span>
     );
@@ -275,17 +372,41 @@ function AudioInfo({ row }: { row: AnalyzeRow }) {
     typeof row.sampleRateHz === "number" ? `${row.sampleRateHz} Hz` : null;
 
   return (
-    <div className="flex flex-col space-y-1 text-[11px] text-zinc-200">
+    <div className="flex flex-col space-y-1 text-[11px] text-foreground">
       <div className="flex flex-wrap gap-x-2 gap-y-0.5">
         <span className="font-mono">LUFS: {lufs ?? "–"}</span>
         <span className="font-mono">LRA: {lra ?? "–"}</span>
         <span className="font-mono">TP: {tp ?? "–"}</span>
       </div>
 
-      <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-zinc-300">
+      <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-muted-foreground">
         <span>{dur ? `Dur: ${dur}` : "Dur: –"}</span>
         <span>{sr ? `SR: ${sr}` : "SR: –"}</span>
       </div>
+    </div>
+  );
+}
+
+function MetadataSummary({ row }: { row: AnalyzeRow }) {
+  const moods = formatListShort(row.moods);
+  const genres = formatListShort(row.genres);
+  const licenseTypeLabel = formatLicenseType(row.licenseType);
+  const mediaBuyLine = formatText(row.mediaBuy);
+
+  return (
+    <div className="flex flex-col space-y-1 text-[11px] text-muted-foreground">
+      <span className="line-clamp-2">
+        Moods: {moods ?? "—"}
+      </span>
+      <span className="line-clamp-2">
+        Género: {genres ?? "—"}
+      </span>
+      <span className="line-clamp-2">
+        Tipo de licencia: {licenseTypeLabel ?? "—"}
+      </span>
+      <span className="line-clamp-2">
+        Media buy: {mediaBuyLine ?? "—"}
+      </span>
     </div>
   );
 }
@@ -299,4 +420,166 @@ function formatDateTime(d: Date) {
   } catch {
     return d.toISOString();
   }
+}
+
+function formatText(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function formatListShort(
+  values: string[] | null | undefined,
+  maxItems = 3,
+): string | null {
+  if (!Array.isArray(values) || values.length === 0) return null;
+  const cleaned = values.map((value) => value.trim()).filter(Boolean);
+  if (cleaned.length === 0) return null;
+  if (cleaned.length <= maxItems) return cleaned.join(", ");
+  const remaining = cleaned.length - maxItems;
+  return `${cleaned.slice(0, maxItems).join(", ")} +${remaining}`;
+}
+
+function formatTrackType(value: string | null | undefined) {
+  if (!value) return null;
+  switch (value) {
+    case "INSTRUMENTAL":
+      return "Instrumental";
+    case "VOCAL":
+      return "Vocal";
+    case "VOCAL_INSTRUMENTAL":
+      return "Vocal + instrumental";
+    case "OTHER":
+      return "Otro";
+    default:
+      return value;
+  }
+}
+
+function formatLicenseType(value: string | null | undefined) {
+  if (!value) return null;
+  switch (value) {
+    case "NON_EXCLUSIVE":
+      return "No exclusiva";
+    case "EXCLUSIVE":
+      return "Exclusiva";
+    case "LIMITED_EXCLUSIVE":
+      return "Exclusiva limitada";
+    case "BUYOUT":
+      return "Buyout";
+    default:
+      return value;
+  }
+}
+
+function formatPricingTier(value: string | null | undefined) {
+  if (!value) return null;
+  switch (value) {
+    case "LOW":
+      return "Low";
+    case "MID":
+      return "Mid";
+    case "HIGH":
+      return "High";
+    case "BESPOKE":
+      return "Bespoke";
+    default:
+      return value;
+  }
+}
+
+function formatBudgetRange(
+  min: number | null | undefined,
+  max: number | null | undefined,
+  currency: string | null | undefined,
+) {
+  const hasMin = typeof min === "number" && Number.isFinite(min);
+  const hasMax = typeof max === "number" && Number.isFinite(max);
+  if (!hasMin && !hasMax) return null;
+  const prefix = currency ? `${currency} ` : "";
+  if (hasMin && hasMax) return `${prefix}${min} - ${max}`;
+  if (hasMin) return `${prefix}${min}+`;
+  return `${prefix}${max}`;
+}
+
+function formatVersionLabel(version: AnalyzeRow["versions"][number]) {
+  const label = formatText(version.label);
+  if (label) return label;
+  if (version.kind) return version.kind;
+  if (typeof version.durationSec === "number") return `${version.durationSec}s`;
+  return null;
+}
+
+function formatStemLabel(stem: AnalyzeRow["stems"][number]) {
+  const name = formatText(stem.name);
+  if (!name) return null;
+  const group = formatStemGroup(stem.group);
+  return group ? `${name} (${group})` : name;
+}
+
+function formatStemGroup(value: string | null | undefined) {
+  if (!value) return null;
+  switch (value) {
+    case "INSTRUMENT":
+      return "Instr";
+    case "VOCAL":
+      return "Vocal";
+    case "FX":
+      return "FX";
+    case "PERCUSSION":
+      return "Perc";
+    case "OTHER":
+      return "Otro";
+    default:
+      return value;
+  }
+}
+
+function formatClearance(oneStop: boolean | null, cleared: boolean | null) {
+  const parts: string[] = [];
+  if (oneStop) parts.push("One-stop");
+  if (cleared) parts.push("Cleared");
+  return parts.length ? parts.join(" · ") : null;
+}
+
+function formatRestrictionsSummary(row: AnalyzeRow) {
+  const parts: string[] = [];
+  const terr = formatListShort(row.restrictedTerritories, 2);
+  const ind = formatListShort(row.restrictedIndustries, 2);
+  const plat = formatListShort(row.restrictedPlatforms, 2);
+  const brands = formatListShort(row.restrictedBrands, 2);
+  const text = formatListShort(row.restrictions, 2);
+
+  if (terr) parts.push(`Terr: ${terr}`);
+  if (ind) parts.push(`Ind: ${ind}`);
+  if (plat) parts.push(`Plat: ${plat}`);
+  if (brands) parts.push(`Marcas: ${brands}`);
+  if (text) parts.push(`Texto: ${text}`);
+
+  return parts.length ? parts.join(" · ") : null;
+}
+
+function formatPricingSummary(row: AnalyzeRow) {
+  const tier = formatPricingTier(row.pricingTier);
+  const budget = formatBudgetRange(
+    row.budgetMin,
+    row.budgetMax,
+    row.budgetCurrency,
+  );
+  if (tier && budget) return `${tier} · ${budget}`;
+  return tier ?? budget;
+}
+
+function formatDeliverablesSummary(row: AnalyzeRow) {
+  const versionLabels = row.versions
+    .map((version) => formatVersionLabel(version))
+    .filter((value): value is string => Boolean(value));
+  const stemLabels = row.stems
+    .map((stem) => formatStemLabel(stem))
+    .filter((value): value is string => Boolean(value));
+
+  const versions = formatListShort(versionLabels, 3);
+  const stems = formatListShort(stemLabels, 3);
+
+  if (versions && stems) return `${versions} / ${stems}`;
+  return versions ?? stems;
 }

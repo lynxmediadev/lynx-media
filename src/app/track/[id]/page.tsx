@@ -15,8 +15,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/server/db";
 import { getS3PublicUrl } from "@/lib/storage/s3";
-import TrackMetadataTable from "@/components/public/TrackMetadataTable";
-import TrackHero from "./TrackHero";
+import TrackHero, { type TrackHeroDetailSection } from "./TrackHero";
 
 export const dynamic = "force-dynamic";
 
@@ -64,15 +63,233 @@ function Pill({ children }: { children: ReactNode }) {
   );
 }
 
-function MetricCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-[2px] border border-border bg-card/80 p-3 shadow-sm">
-      <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-1 text-sm font-medium text-foreground">{value}</p>
-    </div>
-  );
+type PublishingShare = {
+  role: string;
+  name: string | null;
+  sharePct: number | null;
+  ipiNumber: string | null;
+  pro: string | null;
+  caeNumber: string | null;
+};
+
+type TrackVersionLite = {
+  label: string;
+  durationSec: number | null;
+  kind: string | null;
+};
+
+type TrackStemLite = {
+  name: string;
+  group: string | null;
+};
+
+function formatText(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function formatList(
+  values: string[] | null | undefined,
+  separator = " / ",
+): string | null {
+  if (!Array.isArray(values) || values.length === 0) return null;
+  const cleaned = values.map((value) => value.trim()).filter(Boolean);
+  return cleaned.length ? cleaned.join(separator) : null;
+}
+
+function formatBooleanFlag(value: boolean | null | undefined) {
+  if (value === null || value === undefined) return null;
+  return value ? "Si" : "No";
+}
+
+function formatTrackType(value: string | null | undefined) {
+  if (!value) return null;
+  switch (value) {
+    case "INSTRUMENTAL":
+      return "Instrumental";
+    case "VOCAL":
+      return "Vocal";
+    case "VOCAL_INSTRUMENTAL":
+      return "Vocal + instrumental";
+    case "OTHER":
+      return "Otro";
+    default:
+      return value;
+  }
+}
+
+function formatLicenseType(value: string | null | undefined) {
+  if (!value) return null;
+  switch (value) {
+    case "NON_EXCLUSIVE":
+      return "No exclusiva";
+    case "EXCLUSIVE":
+      return "Exclusiva";
+    case "LIMITED_EXCLUSIVE":
+      return "Exclusiva limitada";
+    case "BUYOUT":
+      return "Buyout";
+    default:
+      return value;
+  }
+}
+
+function formatPricingTier(value: string | null | undefined) {
+  if (!value) return null;
+  switch (value) {
+    case "LOW":
+      return "Low";
+    case "MID":
+      return "Mid";
+    case "HIGH":
+      return "High";
+    case "BESPOKE":
+      return "Bespoke";
+    default:
+      return value;
+  }
+}
+
+function formatBudgetRange(
+  min: number | null | undefined,
+  max: number | null | undefined,
+  currency: string | null | undefined,
+) {
+  const hasMin = typeof min === "number" && Number.isFinite(min);
+  const hasMax = typeof max === "number" && Number.isFinite(max);
+  if (!hasMin && !hasMax) return null;
+  const prefix = currency ? `${currency} ` : "";
+  if (hasMin && hasMax) return `${prefix}${min} - ${max}`;
+  if (hasMin) return `${prefix}${min}+`;
+  return `${prefix}${max}`;
+}
+
+function formatTermMonths(months: number | null | undefined) {
+  if (typeof months !== "number" || !Number.isFinite(months)) return null;
+  return `${months} mes${months === 1 ? "" : "es"}`;
+}
+
+function formatPublishing(
+  shares: PublishingShare[] | null | undefined,
+  fallback: string | null | undefined,
+) {
+  if (Array.isArray(shares) && shares.length) {
+    const items = shares
+      .map((share) => {
+        const name = formatText(share.name);
+        if (!name) return null;
+        const pct =
+          typeof share.sharePct === "number" && Number.isFinite(share.sharePct)
+            ? ` ${share.sharePct}%`
+            : "";
+        const role = formatPublishingRole(share.role);
+        return role ? `${role}: ${name}${pct}` : `${name}${pct}`;
+      })
+      .filter((item): item is string => Boolean(item));
+    if (items.length) return items.join(" / ");
+  }
+  return formatText(fallback);
+}
+
+function formatPublishingRole(role: string) {
+  if (!role) return null;
+  if (role === "WRITER") return "Autor";
+  if (role === "PUBLISHER") return "Publisher";
+  return role;
+}
+
+function formatPublishingDetails(share: PublishingShare | null) {
+  if (!share) return null;
+  const name = formatText(share.name);
+  const pct =
+    typeof share.sharePct === "number" && Number.isFinite(share.sharePct)
+      ? `${share.sharePct}%`
+      : null;
+  const details = [
+    share.pro ? `PRO ${share.pro}` : null,
+    share.caeNumber ? `CAE ${share.caeNumber}` : null,
+    share.ipiNumber ? `IPI ${share.ipiNumber}` : null,
+  ].filter(Boolean) as string[];
+
+  const base = [name, pct].filter(Boolean).join(" ");
+  if (!base && details.length === 0) return null;
+  if (!base) return details.join(" · ");
+  if (details.length === 0) return base;
+  return `${base} · ${details.join(" · ")}`;
+}
+
+function formatVersions(versions: TrackVersionLite[] | null | undefined) {
+  if (!Array.isArray(versions) || versions.length === 0) return [];
+  return versions
+    .map((version) => formatVersionLabel(version))
+    .filter((value): value is string => Boolean(value));
+}
+
+function formatVersionLabel(version: TrackVersionLite) {
+  const label = version.label?.trim();
+  if (label) return label;
+  if (version.durationSec && Number.isFinite(version.durationSec)) {
+    return fmtDuration(version.durationSec);
+  }
+  if (version.kind) return version.kind;
+  return null;
+}
+
+function formatVersionDetail(version: TrackVersionLite) {
+  const label = formatText(version.label) ?? formatVersionLabel(version);
+  if (!label) return null;
+  const duration =
+    typeof version.durationSec === "number" && Number.isFinite(version.durationSec)
+      ? fmtDuration(version.durationSec)
+      : null;
+  const kind = formatVersionKind(version.kind);
+  const extras = [duration, kind].filter(Boolean);
+  return extras.length ? `${label} · ${extras.join(" · ")}` : label;
+}
+
+function formatVersionKind(value: string | null | undefined) {
+  if (!value) return null;
+  switch (value) {
+    case "FULL":
+      return "Full";
+    case "CUTDOWN":
+      return "Cutdown";
+    case "ALT_MIX":
+      return "Alt mix";
+    case "INSTRUMENTAL":
+      return "Instrumental";
+    case "VOCAL":
+      return "Vocal";
+    case "OTHER":
+      return "Otro";
+    default:
+      return value;
+  }
+}
+
+function formatStemDetail(stem: TrackStemLite) {
+  const name = formatText(stem.name);
+  if (!name) return null;
+  const group = formatStemGroup(stem.group);
+  return group ? `${name} · ${group}` : name;
+}
+
+function formatStemGroup(value: string | null | undefined) {
+  if (!value) return null;
+  switch (value) {
+    case "INSTRUMENT":
+      return "Instrumento";
+    case "VOCAL":
+      return "Vocal";
+    case "FX":
+      return "FX";
+    case "PERCUSSION":
+      return "Percusion";
+    case "OTHER":
+      return "Otro";
+    default:
+      return value;
+  }
 }
 
 export default async function TrackPublicPage({ params }: PageProps) {
@@ -91,30 +308,62 @@ export default async function TrackPublicPage({ params }: PageProps) {
       artist: true,
       coverUrl: true,
       durationSec: true,
+      bpm: true,
+      key: true,
+      trackType: true,
+      genres: true,
+      subgenres: true,
       assetKey: true,
       audioUrl: true,
       waveform: true,
-      loudnessLufs: true,
-      loudnessRangeLu: true,
-      truePeakDbfs: true,
       moods: true,
       uses: true,
       restrictions: true,
-      sampleRateHz: true,
-      channels: true,
-      bitrateKbps: true,
-      licenseType: true,
-      territories: true,
-      term: true,
       master: true,
-      mfn: true,
-      contentIdEnrolled: true,
-      contentIdWhitelist: true,
-      contentIdAdmin: true,
       isrc: true,
       iswc: true,
-      upc: true,
+      licenseType: true,
+      oneStop: true,
+      clearedForSync: true,
+      exclusiveTerritories: true,
+      exclusiveTermMonths: true,
+      restrictedTerritories: true,
+      restrictedIndustries: true,
+      restrictedPlatforms: true,
+      restrictedBrands: true,
+      mediaBuy: true,
+      pricingTier: true,
+      budgetMin: true,
+      budgetMax: true,
+      budgetCurrency: true,
       publishingSplit: true,
+      publishingShares: {
+        select: {
+          role: true,
+          name: true,
+          sharePct: true,
+          ipiNumber: true,
+          pro: true,
+          caeNumber: true,
+        },
+      },
+      versions: {
+        select: {
+          label: true,
+          durationSec: true,
+          kind: true,
+          sortOrder: true,
+        },
+        orderBy: { sortOrder: "asc" },
+      },
+      stems: {
+        select: {
+          name: true,
+          group: true,
+          sortOrder: true,
+        },
+        orderBy: { sortOrder: "asc" },
+      },
       updatedAt: true,
     },
   });
@@ -157,18 +406,132 @@ export default async function TrackPublicPage({ params }: PageProps) {
     });
   }
 
-  const licenseUses =
-    track.uses && track.uses.length
-      ? track.uses
-      : ["Uso comercial audiovisual (d)", "Social ads / paid media (d)"];
-  const licenseRestrictions =
-    track.restrictions && track.restrictions.length
-      ? track.restrictions
-      : ["No uso político (d)", "No gambling (d)"];
+  const publishingSummary = formatPublishing(
+    track.publishingShares as PublishingShare[] | null | undefined,
+    track.publishingSplit,
+  );
+
+  const writerShare =
+    track.publishingShares?.find((share) => share.role === "WRITER") ?? null;
+  const publisherShare =
+    track.publishingShares?.find((share) => share.role === "PUBLISHER") ?? null;
+
+  const writerDetails = formatPublishingDetails(writerShare);
+  const publisherDetails = formatPublishingDetails(publisherShare);
+
+  const versionLabels = formatVersions(track.versions);
+  const versionDetailLabels = (track.versions ?? [])
+    .map((version) => formatVersionDetail(version))
+    .filter((value): value is string => Boolean(value));
+  const stemLabels = (track.stems ?? [])
+    .map((stem) => formatStemDetail(stem))
+    .filter((value): value is string => Boolean(value));
+  const budgetLabel = formatBudgetRange(
+    track.budgetMin,
+    track.budgetMax,
+    track.budgetCurrency,
+  );
+
+  const detailSections: TrackHeroDetailSection[] = [
+    {
+      id: "sync",
+      label: "Metadata sync",
+      hint: "Musical y clasificación",
+      columns: [
+        [
+          {
+            label: "BPM",
+            value:
+              track.bpm != null ? String(Math.round(track.bpm)) : null,
+          },
+          { label: "Tonalidad", value: formatText(track.key) },
+          {
+            label: "Tipo de track",
+            value: formatTrackType(track.trackType),
+          },
+          { label: "Genero", value: formatList(track.genres) },
+          { label: "Subgenero", value: formatList(track.subgenres) },
+        ],
+        [
+          { label: "One-stop", value: formatBooleanFlag(track.oneStop) },
+          {
+            label: "Cleared para sync",
+            value: formatBooleanFlag(track.clearedForSync),
+          },
+          {
+            label: "Tipo de licencia",
+            value: formatLicenseType(track.licenseType),
+          },
+          {
+            label: "Territorios permitidos",
+            value: formatList(track.exclusiveTerritories),
+          },
+          {
+            label: "Plazo (meses)",
+            value: formatTermMonths(track.exclusiveTermMonths),
+          },
+        ],
+      ],
+    },
+    {
+      id: "restrictions",
+      label: "Restricciones y pricing",
+      hint: "Alcance y condiciones",
+      columns: [
+        [
+          {
+            label: "Territorios restringidos",
+            value: formatList(track.restrictedTerritories),
+          },
+          {
+            label: "Industrias restringidas",
+            value: formatList(track.restrictedIndustries, " · "),
+          },
+          {
+            label: "Plataformas restringidas",
+            value: formatList(track.restrictedPlatforms, " · "),
+          },
+          {
+            label: "Marcas restringidas",
+            value: formatList(track.restrictedBrands, " · "),
+          },
+          { label: "Media buy", value: formatText(track.mediaBuy) },
+          {
+            label: "Restricciones",
+            value: formatList(track.restrictions, " · "),
+          },
+        ],
+        [
+          {
+            label: "Pricing tier",
+            value: formatPricingTier(track.pricingTier),
+          },
+          { label: "Presupuesto", value: budgetLabel },
+        ],
+      ],
+    },
+    {
+      id: "rights",
+      label: "Derechos y autores",
+      hint: "Licencias e IDs",
+      columns: [
+        [
+          { label: "Master", value: formatText(track.master) },
+          { label: "Publishing", value: publishingSummary },
+          { label: "ISRC", value: formatText(track.isrc) },
+          { label: "ISWC", value: formatText(track.iswc) },
+        ],
+        [
+          { label: "Autor", value: writerDetails },
+          { label: "Publisher", value: publisherDetails },
+        ],
+      ],
+    },
+  ];
 
   return (
     <div className="bg-background text-foreground">
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 pb-16 pt-10">
+      <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 pb-16 pt-10">
         {/* Header minimal */}
         <header className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
           <Link
@@ -180,97 +543,67 @@ export default async function TrackPublicPage({ params }: PageProps) {
           <span aria-label="Última actualización">{formatUpdated(track.updatedAt)}</span>
         </header>
 
-        <TrackHero track={track} coverUrl={track.coverUrl} audioSrc={src} waveformB64={waveformB64} />
+        <TrackHero
+          track={{
+            id: track.id,
+            title: track.title,
+            artist: track.artist,
+            durationSec: track.durationSec,
+            moods: track.moods,
+            uses: track.uses,
+            restrictions: track.restrictions,
+            bpm: track.bpm ?? null,
+            key: track.key ?? null,
+            versions: versionLabels.length ? versionLabels : null,
+          }}
+          coverUrl={track.coverUrl}
+          audioSrc={src}
+          waveformB64={waveformB64}
+          detailSections={detailSections}
+        />
 
-        <div className="grid gap-6 lg:grid-cols-[1.05fr,0.95fr]">
-          <section className="space-y-4">
-            <div className="rounded-[2px] border border-border bg-card p-4 shadow-sm">
-              <div className="grid gap-2 sm:grid-cols-3">
-                <MetricCard label="Duración" value={fmtDuration(track.durationSec)} />
-                <MetricCard
-                  label="LUFS (I)"
-                  value={
-                    track.loudnessLufs == null ? "—" : track.loudnessLufs.toFixed(2)
-                  }
-                />
-                <MetricCard
-                  label="True Peak"
-                  value={
-                    track.truePeakDbfs == null
-                      ? "—"
-                      : `${track.truePeakDbfs.toFixed(2)} dBFS`
-                  }
-                />
-              </div>
-
-              <div className="mt-4 grid grid-cols-1 gap-4 border-t border-border/60 pt-4 sm:grid-cols-2">
-                <div>
-                  <h2 className="text-sm font-semibold leading-tight">Moods</h2>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {(track.moods ?? []).length ? (
-                      track.moods!.map((m, i) => <Pill key={i}>{m}</Pill>)
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <h2 className="text-sm font-semibold leading-tight">Usos sugeridos</h2>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {(track.uses ?? []).length ? (
-                      track.uses!.map((u, i) => <Pill key={i}>{u}</Pill>)
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </div>
-                </div>
-                <div className="sm:col-span-2">
-                  <h2 className="text-sm font-semibold leading-tight">Restricciones</h2>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {(track.restrictions ?? []).length ? (
-                      track.restrictions!.map((r, i) => <Pill key={i}>{r}</Pill>)
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 grid gap-3 border-t border-border/60 pt-4 sm:grid-cols-2">
-                <div className="rounded-[2px] border border-border/70 bg-background/60 p-3">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                    Usos permitidos
-                  </p>
-                  <ul className="mt-2 space-y-1 text-sm text-foreground">
-                    {licenseUses.map((u, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-foreground/70" />
-                        <span>{u}</span>
-                      </li>
+        <section className="rounded-[2px] border border-border bg-card p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-medium leading-tight">Entregables</h2>
+            <span className="text-xs text-muted-foreground">
+              Versiones y stems
+            </span>
+          </div>
+          <div className="mt-3 grid gap-4 md:grid-cols-2">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                Versiones
+              </p>
+              <div className="mt-2">
+                {versionDetailLabels.length ? (
+                  <div className="flex flex-wrap gap-2">
+                    {versionDetailLabels.map((label, index) => (
+                      <Pill key={`version-${index}`}>{label}</Pill>
                     ))}
-                  </ul>
-                </div>
-                <div className="rounded-[2px] border border-border/70 bg-background/60 p-3">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                    Restricciones
-                  </p>
-                  <ul className="mt-2 space-y-1 text-sm text-foreground">
-                    {licenseRestrictions.map((r, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-foreground/70" />
-                        <span>{r}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                  </div>
+                ) : (
+                  <span className="text-sm text-muted-foreground">—</span>
+                )}
               </div>
             </div>
-          </section>
-
-          <section className="space-y-4">
-            <TrackMetadataTable track={track} />
-          </section>
-        </div>
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                Stems / trackouts
+              </p>
+              <div className="mt-2">
+                {stemLabels.length ? (
+                  <div className="flex flex-wrap gap-2">
+                    {stemLabels.map((label, index) => (
+                      <Pill key={`stem-${index}`}>{label}</Pill>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-sm text-muted-foreground">—</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
 
         <section className="rounded-[2px] border border-border bg-card p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between gap-3">

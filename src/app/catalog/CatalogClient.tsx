@@ -185,7 +185,7 @@ export default function CatalogClient({ tracks }: { tracks: CatalogTrack[] }) {
 
   return (
     <div className="bg-background text-foreground pb-0 flex flex-col min-h-0">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-8 sm:px-6 lg:px-8 flex-1">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-8 sm:px-6 lg:px-8 flex-1">
         <header className="flex flex-col gap-2">
           <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
             Catálogo · Lista compacta
@@ -250,7 +250,7 @@ export default function CatalogClient({ tracks }: { tracks: CatalogTrack[] }) {
       </div>
 
       <footer className="fixed bottom-0 left-0 right-0 border-t border-border bg-card/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex flex-1 items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-[2px] border border-border bg-card text-[11px] text-muted-foreground">
               {currentTrack ? "Now" : "Idle"}
@@ -259,9 +259,18 @@ export default function CatalogClient({ tracks }: { tracks: CatalogTrack[] }) {
               <span className="text-sm font-semibold">
                 {currentTrack ? currentTrack.title : "Ningún track seleccionado"}
               </span>
-              <span className="text-xs text-muted-foreground">
-                {currentTrack ? currentTrack.artist : "Elige play en la tabla"}
-              </span>
+              {currentTrack?.artist ? (
+                <Link
+                  href={buildCatalogHref("artist", currentTrack.artist)}
+                  className="text-xs text-muted-foreground underline-offset-4 transition hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                >
+                  {currentTrack.artist}
+                </Link>
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  {currentTrack ? "Artista desconocido" : "Elige play en la tabla"}
+                </span>
+              )}
             </div>
           </div>
 
@@ -430,7 +439,16 @@ function TrackRow({
           >
             {track.title}
           </Link>
-          <span className="text-[11px] text-muted-foreground">{track.artist}</span>
+          {track.artist ? (
+            <Link
+              href={buildCatalogHref("artist", track.artist)}
+              className="text-[11px] text-muted-foreground underline-offset-4 transition hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              {track.artist}
+            </Link>
+          ) : (
+            <span className="text-[11px] text-muted-foreground">Artista desconocido</span>
+          )}
         </div>
       </td>
 
@@ -611,7 +629,16 @@ function ModalCard({
               {title}
             </p>
             <h3 className="text-lg font-semibold text-foreground">{track.title}</h3>
-            <p className="text-sm text-muted-foreground">{track.artist}</p>
+            {track.artist ? (
+              <Link
+                href={buildCatalogHref("artist", track.artist)}
+                className="text-sm text-muted-foreground underline-offset-4 transition hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                {track.artist}
+              </Link>
+            ) : (
+              <p className="text-sm text-muted-foreground">Artista desconocido</p>
+            )}
           </div>
           <button
             type="button"
@@ -682,4 +709,9 @@ function parseDurationSeconds(duration?: string): number | null {
     return h * 3600 + m * 60 + s;
   }
   return null;
+}
+
+function buildCatalogHref(param: "artist", value: string) {
+  const qs = new URLSearchParams({ [param]: value });
+  return `/catalog?${qs.toString()}`;
 }

@@ -24,6 +24,7 @@ import { promises as fsp } from "node:fs";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { measureEbuLoudnessFromLocalPath, probeLoudnormFromLocalPath } from "./lufs";
+import { preflightAudioUrl, resolveAudioUrl } from "./audio-url";
 import { getFfprobePath, getFfmpegPath } from "./paths"; // ← FIX: nombres reales
 
 type ProbeResult = {
@@ -157,10 +158,12 @@ export async function analyzeTrackById(id: string): Promise<{
   const warnings: string[] = [];
   const debug: any = {};
   let tmpFile: string | null = null;
+  const resolvedAudioUrl = resolveAudioUrl(track.audioUrl);
 
   try {
+    await preflightAudioUrl(resolvedAudioUrl);
     // 0) Descargar a /tmp
-    tmpFile = await downloadToTemp(track.audioUrl);
+    tmpFile = await downloadToTemp(resolvedAudioUrl);
 
     // 1) ffprobe
     let durationSec: number | null = null;
@@ -258,6 +261,7 @@ export async function analyzeTrackById(id: string): Promise<{
     debug.ffprobePath = getFfprobePath();
     debug.ffmpegPath  = getFfmpegPath();
     debug.audioUrl = track.audioUrl;
+    debug.resolvedAudioUrl = resolvedAudioUrl;
     debug.tmpFile  = tmpFile;
     debug.lufsSource = lufsSource;
 

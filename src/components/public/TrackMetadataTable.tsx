@@ -36,8 +36,9 @@ type Props = {
     bitrateKbps: Nullable<number>;
     // Derechos
     licenseType: Nullable<string>;
-    territories: Nullable<string>;
-    term: Nullable<string>;
+    exclusiveTerritories: Nullable<string[]>;
+    exclusiveTermMonths: Nullable<number>;
+    mediaBuy: Nullable<string>;
     contentIdEnrolled: Nullable<boolean>;
     contentIdWhitelist: Nullable<string>;
     contentIdAdmin: Nullable<string>;
@@ -111,9 +112,10 @@ export default function TrackMetadataTable({ track, className = "" }: Props) {
             Derechos
           </h3>
           <dl className="space-y-1.5 text-sm">
-            <Row label="License Type">{D(track.licenseType)}</Row>
-            <Row label="Territorios">{D(track.territories)}</Row>
-            <Row label="Term">{D(track.term)}</Row>
+            <Row label="Tipo de licencia">{D(formatLicenseType(track.licenseType))}</Row>
+            <Row label="Territorios permitidos">{D(joinArr(track.exclusiveTerritories))}</Row>
+            <Row label="Plazo (meses)">{D(formatInt(track.exclusiveTermMonths))}</Row>
+            <Row label="Media buy">{D(track.mediaBuy)}</Row>
             <Row label="MFN">{D(booleanTag(track.mfn))}</Row>
             <Row label="Master">{D(track.master)}</Row>
             <Row label="Content ID">
@@ -165,6 +167,22 @@ function formatInt(n?: Nullable<number>, suffix = "") {
 function booleanTag(b?: Nullable<boolean>) {
   if (b == null) return null;
   return b ? "Sí" : "No";
+}
+
+function formatLicenseType(value?: Nullable<string>) {
+  if (!value) return null;
+  switch (value) {
+    case "NON_EXCLUSIVE":
+      return "No exclusiva";
+    case "EXCLUSIVE":
+      return "Exclusiva";
+    case "LIMITED_EXCLUSIVE":
+      return "Exclusiva limitada";
+    case "BUYOUT":
+      return "Buyout";
+    default:
+      return value;
+  }
 }
 function ciSummary(
   enrolled?: Nullable<boolean>,

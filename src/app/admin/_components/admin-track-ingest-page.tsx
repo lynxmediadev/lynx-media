@@ -276,20 +276,20 @@ export default function AdminTrackIngestPage(props: AdminTrackIngestPageProps) {
   }
 
   return (
-    <main className="mx-auto w-[80vw] max-w-5xl space-y-6 p-4">
+    <main className="mx-auto w-[80vw] max-w-7xl space-y-6 p-4">
       {/* Header */}
-      <header className="border-b border-zinc-800 pb-3">
-        <h1 className="text-lg font-semibold text-zinc-50">{heading}</h1>
-        <p className="mt-1 text-xs text-zinc-400">{description}</p>
+      <header className="border-b border-border pb-3">
+        <h1 className="text-lg font-semibold text-foreground">{heading}</h1>
+        <p className="mt-1 text-xs text-muted-foreground">{description}</p>
       </header>
 
-      <section className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-950/70 p-4">
+      <section className="space-y-4 rounded-xl border border-border bg-card/80 p-4">
         {/* Paso 1 + 2: archivo de audio + subida a R2 */}
         <div className="space-y-2">
-          <label className="block text-xs font-medium text-zinc-200">
+          <label className="block text-xs font-medium text-foreground/80">
             Archivo de audio
           </label>
-          <p className="text-[11px] text-zinc-500">
+          <p className="text-[11px] text-muted-foreground">
             Selecciona el master (WAV/AIFF/MP3). El archivo se subirá a
             Cloudflare R2 y quedará vinculado como asset del track.
           </p>
@@ -297,7 +297,7 @@ export default function AdminTrackIngestPage(props: AdminTrackIngestPageProps) {
             type="file"
             accept="audio/*"
             onChange={handleFileChange}
-            className="mt-1 block w-full text-xs text-zinc-200 file:mr-2 file:rounded-md file:border file:border-zinc-700 file:bg-zinc-900 file:px-3 file:py-1.5 file:text-xs file:text-zinc-100 hover:file:bg-zinc-800"
+            className="mt-1 block w-full text-xs text-foreground file:mr-2 file:rounded-md file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-xs file:text-foreground hover:file:bg-accent"
           />
 
           <div className="flex flex-wrap items-center gap-2">
@@ -305,13 +305,13 @@ export default function AdminTrackIngestPage(props: AdminTrackIngestPageProps) {
               type="button"
               onClick={handleUploadToR2}
               disabled={!file || uploading}
-              className="inline-flex h-8 items-center justify-center rounded-md border border-zinc-700 bg-zinc-900 px-3 text-xs font-medium text-zinc-100 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
             >
               {uploading ? "Subiendo…" : "Subir a R2"}
             </button>
 
             {uploadedAsset && (
-              <span className="text-[11px] text-emerald-400">
+              <span className="text-[11px] text-success">
                 Asset listo ({uploadedAsset.assetKey})
               </span>
             )}
@@ -321,27 +321,27 @@ export default function AdminTrackIngestPage(props: AdminTrackIngestPageProps) {
         {/* Metadata básica */}
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-1">
-            <label className="block text-xs font-medium text-zinc-200">
+            <label className="block text-xs font-medium text-foreground/80">
               Título
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="mt-0.5 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
+              className="mt-0.5 w-full rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               placeholder="Ej: Shifting Shadows"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="block text-xs font-medium text-zinc-200">
+            <label className="block text-xs font-medium text-foreground/80">
               Artista
             </label>
             <input
               type="text"
               value={artist}
               onChange={(e) => setArtist(e.target.value)}
-              className="mt-0.5 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
+              className="mt-0.5 w-full rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               placeholder="Ej: Lynx / Dtrip"
             />
           </div>
@@ -349,10 +349,10 @@ export default function AdminTrackIngestPage(props: AdminTrackIngestPageProps) {
 
         {/* Cover URL */}
         <div className="space-y-1">
-          <label className="block text-xs font-medium text-zinc-200">
+          <label className="block text-xs font-medium text-foreground/80">
             Cover URL (opcional)
           </label>
-          <p className="text-[11px] text-zinc-500">
+          <p className="text-[11px] text-muted-foreground">
             URL completa de una imagen de portada. Puede ser un asset estático
             del sitio o una URL externa.
           </p>
@@ -360,7 +360,7 @@ export default function AdminTrackIngestPage(props: AdminTrackIngestPageProps) {
             type="text"
             value={coverUrl}
             onChange={(e) => setCoverUrl(e.target.value)}
-            className="mt-0.5 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
+            className="mt-0.5 w-full rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             placeholder="Ej: https://tu-sitio.com/covers/mi-track.png"
           />
         </div>
@@ -368,29 +368,29 @@ export default function AdminTrackIngestPage(props: AdminTrackIngestPageProps) {
         {/* Moods / Uses */}
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-1">
-            <label className="block text-xs font-medium text-zinc-200">
+            <label className="block text-xs font-medium text-foreground/80">
               Moods
             </label>
-            <p className="text-[11px] text-zinc-500">
+            <p className="text-[11px] text-muted-foreground">
               Una entrada por línea o separadas por comas. .
             </p>
             <textarea
               value={moodsInput}
               onChange={(e) => setMoodsInput(e.target.value)}
               rows={5}
-              className="mt-0.5 mb-0 w-full resize-y rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
+              className="mt-0.5 mb-0 w-full resize-y rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               placeholder={`SAD\nCINEMATIC`}
             />
-            <p className="font-mono text-[10px] text-zinc-500">
+            <p className="font-mono text-[10px] text-muted-foreground">
               Ej: DARK, CINEMATIC, TENSE, HOPEFULL
             </p>
           </div>
 
           <div className="space-y-1">
-            <label className="block text-xs font-medium text-zinc-200">
+            <label className="block text-xs font-medium text-foreground/80">
               Usos previstos
             </label>
-            <p className="text-[11px] text-zinc-500">
+            <p className="text-[11px] text-muted-foreground">
               Una entrada por línea o separadas por comas.
             </p>
 
@@ -398,40 +398,42 @@ export default function AdminTrackIngestPage(props: AdminTrackIngestPageProps) {
               value={usesInput}
               onChange={(e) => setUsesInput(e.target.value)}
               rows={5}
-              className="mt-0.5 mb-0 w-full resize-y rounded-md border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-50 placeholder:text-zinc-500"
+              className="mt-0.5 mb-0 w-full resize-y rounded-md border border-border bg-background px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               placeholder={`TRAILER\nSERIE\nDOCUMENTAL\nAD TECH`}
             />
-            <p className="font-mono text-[10px] text-zinc-500">
+            <p className="font-mono text-[10px] text-muted-foreground">
               Ej: TRAILER, SERIE, DOCUMENTAL, AD TECH
             </p>
           </div>
         </div>
 
         {/* Footer: estado + botón crear */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-800 pt-3">
-          <div className="rounded-xs border p-2 px-4">
-            <h4 className="text-[15px] font-black text-zinc-300">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+          <div className="rounded-xs border border-border bg-muted/30 p-2 px-4">
+            <h4 className="text-[15px] font-black text-foreground/80">
               Instrucciones:
             </h4>
-            <p className="pl-1 text-[12px] font-black text-zinc-400">
+            <p className="pl-1 text-[12px] font-black text-muted-foreground">
               1) Selecciona archivo
             </p>
-            <p className="pl-1 text-[12px] font-black text-zinc-400">
+            <p className="pl-1 text-[12px] font-black text-muted-foreground">
               2) Sube a R2
             </p>
-            <p className="pl-1 text-[12px] font-black text-zinc-400">
+            <p className="pl-1 text-[12px] font-black text-muted-foreground">
               3) Crea track
             </p>
           </div>
           <div className="flex items-center gap-3">
             {statusMsg && (
-              <span className="text-[11px] text-red-300">{statusMsg}</span>
+              <span className="text-[11px] text-muted-foreground">
+                {statusMsg}
+              </span>
             )}
             <button
               type="button"
               onClick={handleCreateTrack}
               disabled={creating}
-              className="inline-flex h-8 items-center justify-center rounded-md border border-emerald-500/70 bg-emerald-600/80 px-3 text-xs font-medium text-emerald-50 hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-8 items-center justify-center rounded-md border border-primary/60 bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {creating ? "Creando…" : "Crear track"}
             </button>

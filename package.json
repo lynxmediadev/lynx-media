@@ -29,8 +29,6 @@
     "@aws-sdk/client-s3": "^3.930.0",
     "@aws-sdk/s3-presigned-post": "^3.878.0",
     "@aws-sdk/s3-request-presigner": "^3.878.0",
-    "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "@ffprobe-installer/ffprobe": "^2.1.2",
     "@prisma/client": "^6.14.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-checkbox": "^1.3.3",
