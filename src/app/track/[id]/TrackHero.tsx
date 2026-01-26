@@ -90,9 +90,9 @@ export default function TrackHero({
 
       <div className="relative z-10 flex flex-col gap-6 px-5 py-6">
         {/* Fila superior: cover a la izquierda, título a la derecha + acciones arriba */}
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
-          <div className="flex w-full max-w-[280px] flex-col items-start gap-3 lg:w-[32%]">
-            <div className="relative aspect-square w-full max-w-[260px] overflow-hidden rounded-[2px] border border-border bg-card">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4">
+          <div className="flex w-full max-w-[300px] flex-col items-start gap-3 lg:w-[32%]">
+            <div className="relative aspect-square w-full max-w-[280px] overflow-hidden rounded-[2px] border border-border bg-card">
               <Image
                 src={cover}
                 alt={coverIsDummy ? "Portada (d)" : `Portada de ${track.title ?? "track"}`}
@@ -117,69 +117,71 @@ export default function TrackHero({
             </div>
           </div>
 
-          <div className="flex min-w-0 flex-1 flex-col gap-3">
-            <div className="flex flex-wrap items-start justify-between gap-6">
-              <div className="min-w-0 flex-1 space-y-1 border border-amber-500/60">
-                <p className="sr-only">Track público</p>
-                <h1 className="text-2xl font-semibold leading-tight line-clamp-2 break-words">
-                  {track.title ?? "Sin título"}
-                </h1>
-                {track.artist ? (
-                  <Link
-                    href={buildCatalogHref("artist", track.artist)}
-                    className="text-sm text-muted-foreground line-clamp-2 break-words underline-offset-4 transition hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                  >
-                    {track.artist}
-                  </Link>
-                ) : (
-                  <span className="text-sm text-muted-foreground line-clamp-2 break-words">
-                    Artista desconocido
-                  </span>
-                )}
-              </div>
-              <div className="flex shrink-0 flex-nowrap items-start justify-end gap-2 border border-emerald-500/60">
-                <CopyLinkButton />
-                <LicensingDialog
-                  className="rounded-[2px]"
-                  track={{
-                    id: track.id,
-                    title: track.title,
-                    artist: track.artist,
-                    durationSec: track.durationSec,
-                    moods: track.moods,
-                    uses: track.uses,
-                    restrictions: track.restrictions,
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="w-full rounded-[2px] border border-sky-500/60 bg-card/40 p-3">
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-                  Metadata
-                </h2>
-                <span className="text-[11px] text-muted-foreground">Vista rapida</span>
-              </div>
-              <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                {metadataItems.map((item) => (
-                  <MetadataItem key={item.label} label={item.label} value={item.value} />
-                ))}
-              </div>
-            </div>
-
-            {detailSections.length ? (
-              <div className="flex flex-wrap items-center gap-2">
-                {detailSections.map((section) => (
-                  <ActionIconButton
-                    key={section.id}
-                    label={section.label}
-                    icon={getDetailIcon(section.id)}
-                    onClick={() => setActiveDetailId(section.id)}
+          <div className="flex min-w-0 flex-1">
+            <div className="flex h-full min-h-[280px] w-full flex-col justify-between gap-3">
+              <div className="flex flex-wrap items-start justify-between gap-6">
+              <div className="min-w-0 flex-1 space-y-1">
+                  <p className="sr-only">Track público</p>
+                  <h1 className="text-2xl font-semibold leading-tight line-clamp-2 break-words">
+                    {track.title ?? "Sin título"}
+                  </h1>
+                  {track.artist ? (
+                    <Link
+                      href={buildCatalogHref("artist", track.artist)}
+                      className="text-sm text-muted-foreground line-clamp-2 break-words underline-offset-4 transition hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    >
+                      {track.artist}
+                    </Link>
+                  ) : (
+                    <span className="text-sm text-muted-foreground line-clamp-2 break-words">
+                      Artista desconocido
+                    </span>
+                  )}
+                </div>
+                <div className="flex shrink-0 flex-nowrap items-start justify-end gap-2">
+                  <CopyLinkButton />
+                  <LicensingDialog
+                    className="rounded-[2px]"
+                    track={{
+                      id: track.id,
+                      title: track.title,
+                      artist: track.artist,
+                      durationSec: track.durationSec,
+                      moods: track.moods,
+                      uses: track.uses,
+                      restrictions: track.restrictions,
+                    }}
                   />
-                ))}
+                </div>
               </div>
-            ) : null}
+
+              <div className="w-full rounded-[2px] border border-border bg-card/40 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+                    Metadata
+                  </h2>
+                  <span className="text-[11px] text-muted-foreground">Vista rapida</span>
+                </div>
+                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                  {metadataItems.map((item) => (
+                    <MetadataItem key={item.label} label={item.label} value={item.value} />
+                  ))}
+                </div>
+              </div>
+
+              {detailSections.length ? (
+                <div className="flex w-full flex-row items-stretch gap-2">
+                  {detailSections.map((section) => (
+                    <ActionIconButton
+                      key={section.id}
+                      label={section.label}
+                      icon={getDetailIcon(section.id)}
+                      onClick={() => setActiveDetailId(section.id)}
+                    />
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -255,26 +257,16 @@ function ActionIconButton({
   onClick: () => void;
 }) {
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          onClick={onClick}
-          className="rounded-full border border-transparent p-2 text-foreground transition hover:border-border/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          aria-label={label}
-        >
-          {icon}
-        </button>
-      </TooltipTrigger>
-      <TooltipContent
-        side="top"
-        align="center"
-        sideOffset={4}
-        className="rounded-[2px] border border-border bg-card text-foreground shadow-sm"
-      >
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex flex-1 items-center justify-between rounded-[2px] border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition hover:bg-border/40 hover:border-border/90 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+    >
+      <span className="inline-flex items-center gap-2">
+        {icon}
         {label}
-      </TooltipContent>
-    </Tooltip>
+      </span>
+    </button>
   );
 }
 
