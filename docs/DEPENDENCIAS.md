@@ -61,3 +61,12 @@ Crear `.env.local` (o `.env`) usando `.env.example` como base y completar:
 - `npm run dev`
 - Abrir `/admin/tracks` y `/admin/track/[id]/edit`.
 - Probar "Analizar" con un audio real (no dummy).
+
+## Notas específicas Mix/Master (/servicios/mix)
+- Precios y moneda (client): edita `BASE_PRICE_CLP`, `TRACK_PRICE_CLP`, `MAX_TRACKS` y `currencyFactors` en `src/app/servicios/mix/MixFormClient.tsx` (sección de constantes al inicio).
+- API `/api/services/mix` valida:
+  - Single: tracks 12–99, vocalTracks 0–10, add-ons booleanos.
+  - Álbum: songs >= 1.
+  - Throttle anti-spam: 3 solicitudes por email/minuto.
+  - `deadlineAt` placeholder se setea cuando timeline de álbum incluye “mes” (priorización básica).
+- Pago en línea: placeholder `paymentIntentId` en el payload (aún inactivo).

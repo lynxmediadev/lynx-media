@@ -95,3 +95,48 @@ Tareas:
 - QA manual: tracks=12 base; tracks=20; tracks=72 y 73; voz 0/5/10; add-ons toggles; rush; revisiones; cambio de moneda; flujo álbum; tooltips y modales; envío con payload.
 - Preparar lista de pendientes para pago futuro (placeholder) sin romper UI.
 ```
+
+---
+## Paso 8 · Validaciones y feedback UX (toasts)
+**Prompt a pegar:**
+```
+Objetivo: Endurecer validaciones y mejorar feedback visual.
+Tareas:
+- Validar en cliente: tracks min/max con borde de error; deshabilitar envío si projectType single y tracks <12; si >72 solo permitir envío marcando “cotizar manual” explícito.
+- Añadir toasts (shadcn) para éxito/error en envío; mantener alertas inline solo como fallback.
+- Confirmar que el botón “Enviar” se deshabilita en loading y que el cursor/aria states son correctos.
+```
+
+---
+## Paso 9 · Mejora de persistencia y seguridad
+**Prompt a pegar:**
+```
+Objetivo: Afinar backend y almacenamiento de solicitudes.
+Tareas:
+- Añadir validaciones server-side adicionales: si projectType=single exigir tracks <=99 y vocalTracks 0–10; si album, songs>=1.
+- Guardar campos adicionales en ContactRequest.rawPayload ya está; agrega `deadlineAt` opcional si timeline <2 meses (placeholder) para priorizar.
+- Aumentar throttle anti-spam (p.ej. 3/minuto) y devolver mensaje claro.
+- Documentar en README/DEPENDENCIAS dónde ajustar factors de moneda y precios.
+```
+
+---
+## Paso 10 · Future: pago en línea (placeholder)
+**Prompt a pegar:**
+```
+Objetivo: Dejar hooks listos para pago sin romper la UI actual.
+Tareas:
+- Agregar notas/placeholder en UI para “Pagar en línea (próximamente)” con prop o flag para activar.
+- Definir forma de pasar un `paymentIntentId` opcional en el payload cuando se habilite.
+- No implementar pasarela ahora; solo estructura y notas en código.
+```
+
+---
+## Paso 11 · Revisión final de backend y docs
+**Prompt a pegar:**
+```
+Objetivo: Documentar ajustes de moneda y precios, y verificar validaciones server-side.
+Tareas:
+- Documentar en docs/DEPENDENCIAS.md (y/o README) dónde editar BASE_PRICE_CLP, TRACK_PRICE_CLP y currencyFactors en el client.
+- Confirmar que la API /api/services/mix valida: tracks<=99, vocalTracks 0–10, songs>=1; throttle 3/minuto; deadlineAt placeholder se setea cuando timeline <2 meses (o album).
+- QA final de envío: single con tracks=12/72 y album con songs=1, revisar respuesta JSON.
+```

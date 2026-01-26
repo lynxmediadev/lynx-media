@@ -61,17 +61,16 @@ export async function POST(req: NextRequest) {
   }
   const data = parsed.data;
 
-  // anti-spam mínimo: simple throttle por email (últimos 60s)
-  const recent = await prisma.contactRequest.findFirst({
+  // anti-spam mínimo: throttle por email (3/minuto)
+  const recentCount = await prisma.contactRequest.count({
     where: {
       email: data.contact.email,
       createdAt: { gt: new Date(Date.now() - 60 * 1000) },
     },
-    select: { id: true },
   });
-  if (recent) {
+  if (recentCount >= 3) {
     return NextResponse.json(
-      { ok: false, error: "Demasiadas solicitudes recientes. Intenta nuevamente en un minuto." },
+      { ok: false, error: "Demasiadas solicitudes en poco tiempo. Intenta nuevamente en un minuto." },
       { status: 429 },
     );
   }
@@ -98,6 +97,13 @@ export async function POST(req: NextRequest) {
 
   const detailsStr = detailLines.join(" | ").slice(0, 500);
 
+  const deadline =
+    !isAlbum && data.single && !data.single.overMax
+      ? null
+      : data.album && data.album.timeline && data.album.timeline.includes("mes")
+        ? new Date(Date.now() + 1000 * 60 * 60 * 24 * 30) // placeholder: 1 mes
+        : null;
+
   const record = await prisma.contactRequest.create({
     data: {
       name: data.contact.name,
@@ -106,7 +112,7 @@ export async function POST(req: NextRequest) {
       serviceType: "mix-master",
       details: detailsStr || "Solicitud de mix/master",
       urgency: 1,
-      deadlineAt: null,
+      deadlineAt: deadline,
       pageUrl: data.pageUrl ?? null,
       rawPayload: data,
     },

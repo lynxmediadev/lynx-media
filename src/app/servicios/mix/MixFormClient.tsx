@@ -10,6 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useToast } from "@/components/ui/use-toast";
 
 type StepId = "project" | "details" | "contact";
 
@@ -48,6 +49,7 @@ const addons = {
 };
 
 export default function MixFormClient() {
+  const { toast } = useToast();
   const [step, setStep] = useState<StepId>("project");
   const [projectType, setProjectType] = useState<ProjectType>("single");
   const [currency, setCurrency] = useState<Currency>("CLP");
@@ -88,6 +90,16 @@ export default function MixFormClient() {
   );
 
   function goNext() {
+    if (step === "details" && projectType === "single" && tracks < 12) {
+      setErrors(["Para Single Track se requieren al menos 12 tracks."]);
+      setStep("details");
+      return;
+    }
+    if (step === "details" && projectType === "single" && overMaxTracks) {
+      setErrors(["Tracks superiores a 72 requieren cotización manual. Ajusta la cantidad o continúa con contacto."]);
+      setStep("details");
+      return;
+    }
     setStep((prev) => {
       if (prev === "project") return "details";
       if (prev === "details") return "contact";
@@ -165,6 +177,7 @@ export default function MixFormClient() {
       currency,
       contact,
       pageUrl: typeof window !== "undefined" ? window.location.href : null,
+      paymentIntentId: null as string | null, // placeholder para futuro pago en línea
     };
     if (projectType === "single") {
       return {
@@ -215,9 +228,14 @@ export default function MixFormClient() {
       })
       .then(() => {
         setSubmitMessage("Solicitud enviada. Te contactaremos pronto.");
+        toast({ description: "Solicitud enviada con éxito." });
       })
       .catch((err: any) => {
         setErrors([err.message || "Error al enviar. Intenta nuevamente."]);
+        toast({
+          description: err.message || "Error al enviar. Intenta nuevamente.",
+          variant: "destructive",
+        });
       })
       .finally(() => setLoading(false));
   }
@@ -357,7 +375,10 @@ export default function MixFormClient() {
                       max={99}
                       value={tracks}
                       onChange={(e) => setTracks(Number(e.target.value) || 0)}
-                      className="h-10 rounded-[2px] border border-border bg-background px-3 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                      className={cn(
+                        "h-10 rounded-[2px] border bg-background px-3 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                        tracks < 12 || overMaxTracks ? "border-amber-500/70" : "border-border",
+                      )}
                     />
                     {overMaxTracks ? (
                       <p className="rounded-[2px] border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
@@ -640,13 +661,16 @@ export default function MixFormClient() {
           </div>
           <button
             type="button"
-            onClick={goNext}
-            disabled={step === "contact"}
-            className="inline-flex items-center gap-2 rounded-[2px] border border-border bg-foreground px-4 py-2 text-sm font-semibold text-background transition hover:bg-foreground/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            Siguiente
-            <ArrowRight className="h-4 w-4" />
-          </button>
+          onClick={goNext}
+          disabled={
+            step === "contact" ||
+            (projectType === "single" && (tracks < 12 || tracks > MAX_TRACKS))
+          }
+          className="inline-flex items-center gap-2 rounded-[2px] border border-border bg-foreground px-4 py-2 text-sm font-semibold text-background transition hover:bg-foreground/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Siguiente
+          <ArrowRight className="h-4 w-4" />
+        </button>
           {step === "contact" ? (
             <button
               type="button"
