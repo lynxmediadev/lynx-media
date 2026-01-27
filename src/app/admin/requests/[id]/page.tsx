@@ -1,6 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import prisma from "@/lib/prisma";
 
 export const metadata: Metadata = { title: "Solicitud — Admin" };
@@ -42,93 +47,107 @@ export default async function RequestDetailPage({
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">
-            Solicitud
-          </p>
-          <h1 className="text-2xl font-semibold text-foreground">{req.serviceType}</h1>
-          <p className="text-sm text-muted-foreground">{req.id}</p>
+        <div className="space-y-1">
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Solicitud</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold text-foreground">{req.serviceType}</h1>
+            <Badge variant="secondary" className="text-xs uppercase tracking-wide">
+              {req.status}
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              U{req.urgency}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">{req.id}</p>
         </div>
-        <Link
-          href="/admin/requests"
-          className="inline-flex items-center rounded-[2px] border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-border/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-        >
-          Volver a la lista
-        </Link>
+        <Button asChild variant="outline" className="rounded-[2px] text-xs">
+          <Link href="/admin/requests">Volver a la lista</Link>
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-[2px] border border-border bg-card/70 p-4">
-          <h2 className="text-sm font-semibold text-foreground">Cliente</h2>
-          <dl className="mt-2 space-y-1 text-sm">
-            <div className="flex justify-between gap-2">
-              <dt className="text-muted-foreground">Nombre</dt>
-              <dd className="text-foreground">{req.name}</dd>
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="border-border bg-card/80">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold">Cliente</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex justify-between gap-2 text-muted-foreground">
+              <span>Nombre</span>
+              <span className="text-foreground">{req.name}</span>
             </div>
-            <div className="flex justify-between gap-2">
-              <dt className="text-muted-foreground">Email</dt>
-              <dd className="text-foreground">{req.email}</dd>
+            <div className="flex justify-between gap-2 text-muted-foreground">
+              <span>Email</span>
+              <span className="text-foreground">{req.email}</span>
             </div>
             {req.pageUrl ? (
-              <div className="flex justify-between gap-2">
-                <dt className="text-muted-foreground">Origen</dt>
-                <dd className="text-right text-foreground">
-                  <a
-                    href={req.pageUrl}
-                    className="underline decoration-dotted underline-offset-4"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {req.pageUrl}
-                  </a>
-                </dd>
+              <div className="flex justify-between gap-2 text-muted-foreground">
+                <span>Origen</span>
+                <a
+                  href={req.pageUrl}
+                  className="text-foreground underline decoration-dotted underline-offset-4"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {req.pageUrl}
+                </a>
               </div>
             ) : null}
-          </dl>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="rounded-[2px] border border-border bg-card/70 p-4">
-          <h2 className="text-sm font-semibold text-foreground">Estado</h2>
-          <dl className="mt-2 space-y-1 text-sm">
-            <div className="flex justify-between gap-2">
-              <dt className="text-muted-foreground">Status</dt>
-              <dd className="text-foreground">{req.status}</dd>
+        <Card className="border-border bg-card/80">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold">Estado</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex justify-between gap-2 text-muted-foreground">
+              <span>Creada</span>
+              <span className="text-foreground">{fmt.format(req.createdAt)}</span>
             </div>
-            <div className="flex justify-between gap-2">
-              <dt className="text-muted-foreground">Urgencia</dt>
-              <dd className="text-foreground">{req.urgency}</dd>
+            <div className="flex justify-between gap-2 text-muted-foreground">
+              <span>Actualizada</span>
+              <span className="text-foreground">{fmt.format(req.updatedAt)}</span>
             </div>
-            <div className="flex justify-between gap-2">
-              <dt className="text-muted-foreground">Creada</dt>
-              <dd className="text-foreground">{fmt.format(req.createdAt)}</dd>
+            <div className="flex justify-between gap-2 text-muted-foreground">
+              <span>Deadline</span>
+              <span className="text-foreground">{req.deadlineAt ? fmt.format(req.deadlineAt) : "—"}</span>
             </div>
-            <div className="flex justify-between gap-2">
-              <dt className="text-muted-foreground">Actualizada</dt>
-              <dd className="text-foreground">{fmt.format(req.updatedAt)}</dd>
+            <div className="flex justify-between gap-2 text-muted-foreground">
+              <span>Urgencia</span>
+              <span className="text-foreground">U{req.urgency}</span>
             </div>
-            <div className="flex justify-between gap-2">
-              <dt className="text-muted-foreground">Deadline</dt>
-              <dd className="text-foreground">
-                {req.deadlineAt ? fmt.format(req.deadlineAt) : "—"}
-              </dd>
-            </div>
-          </dl>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="rounded-[2px] border border-border bg-card/70 p-4">
-          <h2 className="text-sm font-semibold text-foreground">Detalle</h2>
-          <p className="mt-2 text-sm text-foreground">{req.details || "—"}</p>
-        </div>
+        <Card className="border-border bg-card/80">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold">Detalle</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-foreground">{req.details || "—"}</p>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="rounded-[2px] border border-border bg-card/70 p-4">
-        <h2 className="text-sm font-semibold text-foreground">Payload</h2>
-        <pre className="mt-2 overflow-auto rounded-[2px] border border-border bg-background p-3 text-xs text-foreground">
-          {JSON.stringify(req.rawPayload, null, 2)}
-        </pre>
-      </div>
+      <Card className="border-border bg-card/80">
+        <CardHeader>
+          <CardTitle className="text-sm font-semibold">Payload</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Accordion type="single" collapsible defaultValue="">
+            <AccordionItem value="payload">
+              <AccordionTrigger className="text-xs text-muted-foreground">Ver payload completo</AccordionTrigger>
+              <AccordionContent>
+                <pre className="mt-2 max-h-[420px] overflow-auto rounded-[2px] border border-border bg-background p-3 text-xs text-foreground">
+                  {JSON.stringify(req.rawPayload, null, 2)}
+                </pre>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </CardContent>
+      </Card>
     </div>
   );
 }
