@@ -108,7 +108,6 @@ export async function POST(req: NextRequest) {
     data: {
       name: data.contact.name,
       email: data.contact.email,
-      company: data.contact.company ?? null,
       serviceType: "mix-master",
       details: detailsStr || "Solicitud de mix/master",
       urgency: 1,

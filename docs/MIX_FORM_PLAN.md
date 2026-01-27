@@ -140,3 +140,12 @@ Tareas:
 - Confirmar que la API /api/services/mix valida: tracks<=99, vocalTracks 0–10, songs>=1; throttle 3/minuto; deadlineAt placeholder se setea cuando timeline <2 meses (o album).
 - QA final de envío: single con tracks=12/72 y album con songs=1, revisar respuesta JSON.
 ```
+
+---
+## Resumen técnico / referencia rápida
+- Front: ruta `/servicios/mix` (Server Component) monta `MixFormClient` (client) con 3 pasos: tipo de proyecto, formulario condicional (single vs álbum) y datos de contacto; estado local simple.
+- Pricing single: base 30 000 CLP para 12 tracks; extra 1 200 CLP/track (máx UI 72, hard server 99); factores de moneda configurables; add-ons: batería (+20k), voz manual 0–10 (+20k c/u), acapella (+10k), instrumental (+15k), backing live (+20k), rush (+35k), revisiones ilimitadas (+40k); nota de “pago en línea próximamente”.
+- Flujo álbum: captura canciones, plazo (>=1–2 meses), estilo, notas; muestra CTA de cotizar/agendar sin cálculo automático.
+- Contacto: validación mínima (nombre/email requeridos, zod); payload incluye projectType, pricing/breakdown o álbum brief, add-ons, moneda, timeline, contacto, `paymentIntentId: null`, `pageUrl`.
+- API `/api/services/mix`: valida con zod (tracks 12–99, vocal 0–10, songs>=1 para álbum), throttle 3/min por email/IP, setea `deadlineAt` placeholder si plazo <2 meses o álbum; guarda en `ContactRequest` con `serviceType="mix-master"` y `rawPayload`.
+- Ajustes rápidos: precios/factores en `src/app/servicios/mix/MixFormClient.tsx`; throttle/validaciones en `src/app/api/services/mix/route.ts`; dependencias y notas en `docs/DEPENDENCIAS.md`. Para tests de contrato, corre `npm run dev` en paralelo o define `BASE_URL` apuntando a un server activo.

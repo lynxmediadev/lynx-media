@@ -13,7 +13,15 @@
  */
 import { describe, it, expect } from "vitest";
 
-const BASE = process.env.BASE_URL ?? "http://localhost:3000";
+// Robust BASE to avoid inputs like "//api/..." when BASE_URL is unset or malformed.
+const BASE = (() => {
+  const raw = process.env.BASE_URL?.trim();
+  if (!raw) return "http://localhost:3000";
+  if (raw.startsWith("http")) return raw;
+  if (raw.startsWith("/")) return "http://localhost:3000";
+  if (raw.startsWith("//")) return "http://localhost:3000";
+  return raw;
+})();
 type Item = { id: string; title: string; artist: string; coverUrl?: string|null; moods: string[]; uses: string[] };
 type Resp = { items: Item[]; nextCursor: string|null; totalCount: number };
 

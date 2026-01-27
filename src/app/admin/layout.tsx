@@ -55,6 +55,12 @@ export default function AdminLayout({
             >
               Licensing
             </Link>
+            <Link
+              href="/admin/requests"
+              className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              Requests
+            </Link>
 
             <ThemeToggle />
 
