@@ -69,6 +69,13 @@ export default async function AdminTrackEditPage({
       trackType: true,
       genres: true,
       subgenres: true,
+      tags: {
+        select: {
+          tag: {
+            select: { id: true, slug: true, name: true, type: true },
+          },
+        },
+      },
 
       // Audio / asset
       audioUrl: true,
@@ -169,6 +176,31 @@ export default async function AdminTrackEditPage({
 
   const primaryPublisher =
     track.publishingShares.find((s) => s.role === "PUBLISHER") ?? null;
+
+  // Asegura tags base de catálogo (beats/sync) para que siempre aparezcan
+  await prisma.$transaction([
+    prisma.tag.upsert({
+      where: { slug: "beats" },
+      update: { name: "BEATS", type: "CATALOG" },
+      create: { slug: "beats", name: "BEATS", type: "CATALOG" },
+    }),
+    prisma.tag.upsert({
+      where: { slug: "sync" },
+      update: { name: "SYNC", type: "CATALOG" },
+      create: { slug: "sync", name: "SYNC", type: "CATALOG" },
+    }),
+    prisma.tag.upsert({
+      where: { slug: "games" },
+      update: { name: "GAMES", type: "CATALOG" },
+      create: { slug: "games", name: "GAMES", type: "CATALOG" },
+    }),
+  ]);
+
+  const catalogTags = await prisma.tag.findMany({
+    where: { type: "CATALOG" },
+    select: { id: true, slug: true, name: true },
+    orderBy: { name: "asc" },
+  });
 
   /**
    * Server Action para eliminar track.
@@ -508,6 +540,7 @@ export default async function AdminTrackEditPage({
             master: track.master,
             versions: track.versions,
             stems: track.stems,
+            catalogTags: track.tags.map((t) => t.tag.slug),
           }}
           primaryWriter={
             primaryWriter
@@ -531,6 +564,7 @@ export default async function AdminTrackEditPage({
                 }
               : null
           }
+          catalogTagOptions={catalogTags}
         />
       </div>
     </main>

@@ -24,6 +24,8 @@ import Sparkline from "@/components/audio/Sparkline";
 import WaveformScrubber from "@/components/public/WaveformScrubber";
 import type { Track } from "@/lib/catalog/types";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { CopyIconButton } from "@/components/ui/CopyIconButton";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -36,13 +38,30 @@ type CatalogTrack = Track & {
   durationSec?: number | null;
 };
 
+type Props = {
+  tracks: CatalogTrack[];
+  title?: string;
+  subtitle?: string;
+  eyebrow?: string;
+  compact?: boolean;
+  catalogSlug?: string;
+};
+
 /**
  * Catálogo público – tabla compacta inspirada en TableView original:
  * - Columnas: arte/play + título/subtítulo, waveform técnico, duración/BPM, acciones.
  * - Acciones: licencia (card), stems (card), probar video (placeholder), copiar enlace, menú.
  * - Waveform reutiliza Sparkline (mismo estilo que ficha técnica).
  */
-export default function CatalogClient({ tracks }: { tracks: CatalogTrack[] }) {
+export default function CatalogClient({
+  tracks,
+  title = "Catálogo",
+  subtitle = "Lista compacta con reproductor y acciones rápidas.",
+  eyebrow = "Catálogo",
+  hideHeader = false,
+  compact = false,
+  catalogSlug,
+}: Props & { hideHeader?: boolean }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const pendingSeekRef = useRef<number | null>(null);
   const router = useRouter();
@@ -173,11 +192,19 @@ export default function CatalogClient({ tracks }: { tracks: CatalogTrack[] }) {
       .catch(() => setIsPlaying(false));
   };
 
+  const buildTrackHref = (trackId: string) =>
+    catalogSlug ? `/${catalogSlug}/track/${trackId}` : `/track/${trackId}`;
+
+  const buildTrackUrl = (trackId: string) => {
+    const href = buildTrackHref(trackId);
+    if (typeof window !== "undefined") {
+      return `${window.location.origin}${href}`;
+    }
+    return href;
+  };
+
   const handleCopyLink = (track: CatalogTrack) => {
-    const url =
-      typeof window !== "undefined"
-        ? `${window.location.origin}/track/${track.id}`
-        : `/track/${track.id}`;
+    const url = buildTrackUrl(track.id);
     if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(url).catch(() => {});
     }
@@ -185,18 +212,23 @@ export default function CatalogClient({ tracks }: { tracks: CatalogTrack[] }) {
 
   return (
     <div className="bg-background text-foreground pb-0 flex flex-col min-h-0">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-8 sm:px-6 lg:px-8 flex-1">
-        <header className="flex flex-col gap-2">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-            Catálogo · Lista compacta
-          </p>
-          <h1 className="text-2xl font-semibold">Tracks listos para sync</h1>
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            Tabla minimal: play rápido, waveform técnico, duración y acciones.
-          </p>
-        </header>
+      <div
+        className={cn(
+          "mx-auto flex w-full max-w-7xl flex-col flex-1",
+          compact ? "gap-2 px-0 py-0" : "gap-4 px-4 py-8 sm:px-6 lg:px-8",
+        )}
+      >
+        {!hideHeader && (
+          <header className="flex flex-col gap-2">
+            <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+              {eyebrow}
+            </p>
+            <h1 className="text-2xl font-semibold">{title}</h1>
+            <p className="max-w-2xl text-sm text-muted-foreground">{subtitle}</p>
+          </header>
+        )}
 
-        <section className="overflow-hidden rounded-[2px] border border-border/70 bg-transparent shadow-sm">
+        <section className="relative overflow-visible rounded-[2px] border border-border/70 bg-transparent shadow-sm">
           <table className="min-w-full table-auto">
             <colgroup>
               <col className="w-[22%]" />
@@ -228,20 +260,23 @@ export default function CatalogClient({ tracks }: { tracks: CatalogTrack[] }) {
                   rowClass=""
                   progress={progressMap[track.id] ?? 0}
                   waveformB64={waveformMap[track.id]}
-                  durationSec={
-                    track.durationSec ?? parseDurationSeconds(track.duration) ?? null
-                  }
-                  onPlayPause={() => handlePlayPause(track)}
-                  onSeek={(r) => handleSeek(track, r)}
+          durationSec={
+            track.durationSec ?? parseDurationSeconds(track.duration) ?? null
+          }
+          onPlayPause={() => handlePlayPause(track)}
+          onSeek={(r) => handleSeek(track, r)}
                   onOpenLicense={() => setLicenseTrack(track)}
                   onOpenStems={() => setStemsTrack(track)}
                   onCopy={() => handleCopyLink(track)}
-                  onView={() => router.push(`/track/${track.id}`)}
+                  onView={(href) => router.push(href)}
                   menuOpen={menuTrackId === track.id}
                   onToggleMenu={() =>
                     setMenuTrackId((prev) => (prev === track.id ? null : track.id))
                   }
                   closeMenu={() => setMenuTrackId(null)}
+                  buildTrackUrl={buildTrackUrl}
+                  buildTrackHref={buildTrackHref}
+                  catalogSlug={catalogSlug}
                 />
               ))}
             </tbody>
@@ -376,10 +411,12 @@ interface TrackRowProps {
   onOpenLicense: () => void;
   onOpenStems: () => void;
   onCopy: () => void;
-  onView: () => void;
+  onView: (href: string) => void;
   menuOpen: boolean;
   onToggleMenu: () => void;
   closeMenu: () => void;
+  buildTrackUrl: (id: string) => string;
+  buildTrackHref: (id: string) => string;
 }
 
 function TrackRow({
@@ -399,7 +436,10 @@ function TrackRow({
   menuOpen,
   onToggleMenu,
   closeMenu,
-}: TrackRowProps) {
+  buildTrackUrl,
+  buildTrackHref,
+  catalogSlug,
+}: TrackRowProps & { catalogSlug?: string }) {
   const menuAreaRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -434,7 +474,7 @@ function TrackRow({
       <td className="px-3 py-2">
         <div className="flex flex-col gap-0.5">
           <Link
-            href={`/track/${track.id}`}
+            href={buildTrackHref(track.id)}
             className="text-[14px] font-semibold leading-tight hover:underline underline-offset-4"
           >
             {track.title}
@@ -492,18 +532,23 @@ function TrackRow({
             label="Ver track"
             icon={<Eye className="h-4 w-4" />}
             tooltip="Ver track"
-            onClick={onView}
+            onClick={() => onView(buildTrackHref(track.id))}
           />
           <IconButton label="Ver licencia" icon={<FileText className="h-4 w-4" />} onClick={onOpenLicense} tooltip="Ver licencia" />
           <IconButton label="Stems" icon={<Layers className="h-4 w-4" />} onClick={onOpenStems} tooltip="Ver stems" />
           <IconButton label="Probar con video" icon={<Clapperboard className="h-4 w-4" />} tooltip="Probar video" />
-          <IconButton label="Copiar enlace" icon={<LinkIcon className="h-4 w-4" />} onClick={onCopy} tooltip="Copiar link" />
+          <CopyIconButton
+            label="Copiar enlace"
+            icon={<LinkIcon className="h-4 w-4" />}
+            text={buildTrackUrl(track.id)}
+            tooltipLabel="Copiar link"
+          />
           <IconButton label="Más acciones" icon={<MoreVertical className="h-4 w-4" />} onClick={onToggleMenu} tooltip="Más" />
         </div>
 
         {menuOpen ? (
           <div
-            className="absolute right-4 top-12 z-20 w-44 rounded-[2px] border border-border/80 bg-card shadow-md"
+            className="absolute right-4 top-12 z-50 w-44 rounded-[2px] border border-border/80 bg-card shadow-md"
           >
             <button
               className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-border/20"

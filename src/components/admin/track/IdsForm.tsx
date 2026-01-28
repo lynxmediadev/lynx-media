@@ -33,17 +33,7 @@ export default function IdsForm({ track, fieldErrors }: IdsFormProps) {
   ): string | null {
     const trimmed = value.trim();
 
-    if (name === "isrc" && trimmed.length === 0) {
-      return "El código ISRC es obligatorio.";
-    }
-
-    if (name === "iswc" && trimmed.length === 0) {
-      return "El código ISWC es obligatorio.";
-    }
-
-    // if (name === "upc" && trimmed.length === 0) {
-    //   return "El código UPC es obligatorio.";
-    // }
+    // Todos opcionales por ahora; sin validación en blur
     return null;
   }
 

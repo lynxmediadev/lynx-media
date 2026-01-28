@@ -114,6 +114,7 @@ model Track {
   // Versiones y stems (relaciones)
   versions TrackVersion[]
   stems    TrackStem[]
+  tags     TrackTag[]
 
   @@index([artist])
   @@index([title])
@@ -330,4 +331,53 @@ model ContactRequest {
 
   @@index([createdAt, status])
   @@index([serviceType])
+}
+
+// ───────────────────────────────────────────────────────────────────────────────
+// Catálogos (beats/sync) y tags escalables
+// ───────────────────────────────────────────────────────────────────────────────
+
+model Catalog {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  slug        String   @unique
+  name        String
+  description String?
+  filterJson  Json?
+
+  @@index([slug])
+}
+
+enum TagType {
+  CATALOG
+  GENERIC
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  slug  String   @unique
+  name  String
+  type  TagType  @default(GENERIC)
+
+  tracks TrackTag[]
+
+  @@index([slug])
+  @@index([type])
+}
+
+model TrackTag {
+  trackId String
+  tagId   String
+  track   Track @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  tag     Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  assignedAt DateTime @default(now())
+
+  @@id([trackId, tagId])
+  @@index([tagId])
+  @@index([trackId])
 }

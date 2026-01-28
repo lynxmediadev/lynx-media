@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { PublishingRole } from "@prisma/client";
+import { PublishingRole, TagType } from "@prisma/client";
 
 import prisma from "@/lib/prisma";
 import {
@@ -42,6 +42,14 @@ export async function updateTrackAll(
 ): Promise<UpdateAllResult> {
   try {
     const rawObject = Object.fromEntries(formData.entries());
+    const catalogTagSlugs = Array.from(
+      new Set(
+        formData
+          .getAll("catalogTags")
+          .map((v) => (typeof v === "string" ? v.trim() : ""))
+          .filter((v) => v.length > 0),
+      ),
+    );
 
     const creativeParsed = creativeFormSchema.safeParse(rawObject);
     const idsParsed = idsFormSchema.safeParse(rawObject);
@@ -82,6 +90,9 @@ export async function updateTrackAll(
     const deliverablesData: DeliverablesFormValues = deliverablesParsed.data;
 
     const trackId = syncData.id;
+    if (!trackId) {
+      return { ok: false, message: "Falta el ID del track." };
+    }
 
     if (
       rightsData.id !== trackId ||
@@ -92,6 +103,24 @@ export async function updateTrackAll(
         message: "El ID del track no coincide entre secciones.",
       };
     }
+
+    // Validar tags de catálogo contra BD (solo tipo CATALOG)
+    const validCatalogTags = await prisma.tag.findMany({
+      where: { type: TagType.CATALOG },
+      select: { id: true, slug: true },
+    });
+    const validSlugs = new Set(validCatalogTags.map((t) => t.slug));
+    const unknown = catalogTagSlugs.filter((slug) => !validSlugs.has(slug));
+    if (unknown.length > 0) {
+      return {
+        ok: false,
+        message: "Hay tags de catálogo no válidos.",
+        fieldErrors: { catalogTags: ["Selecciona tags de catálogo válidos."] },
+      };
+    }
+    const tagIdsToSet = validCatalogTags
+      .filter((t) => catalogTagSlugs.includes(t.slug))
+      .map((t) => t.id);
 
     const sharesToCreate: {
       role: PublishingRole;
@@ -191,6 +220,19 @@ export async function updateTrackAll(
             pro: share.pro ?? null,
             caeNumber: share.caeNumber ?? null,
             sharePct: share.sharePct,
+          })),
+        });
+      }
+
+      // Reemplazar tags de catálogo
+      await tx.trackTag.deleteMany({
+        where: { trackId, tag: { type: TagType.CATALOG } },
+      });
+      if (tagIdsToSet.length > 0) {
+        await tx.trackTag.createMany({
+          data: tagIdsToSet.map((tagId) => ({
+            trackId,
+            tagId,
           })),
         });
       }

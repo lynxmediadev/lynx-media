@@ -14,6 +14,34 @@ async function main() {
   const AUDIO = "/audio/demo.mp3";
   const COVER = "/images/hero/hero-bg-1.png";
 
+  // Catálogos base (beats/sync) y tags de catálogo
+  const catalogs = [
+    { slug: "beats", name: "Beats / Instrumentales", description: "Instrumentales para artistas y compositores." },
+    { slug: "sync", name: "Sync Licensing", description: "Música lista para proyectos audiovisuales y comerciales." },
+  ];
+
+  for (const c of catalogs) {
+    await db.catalog.upsert({
+      where: { slug: c.slug },
+      update: { name: c.name, description: c.description },
+      create: { slug: c.slug, name: c.name, description: c.description },
+    });
+  }
+
+  const catalogTags = [
+    { slug: "beats", name: "BEATS", type: "CATALOG" as const },
+    { slug: "sync", name: "SYNC", type: "CATALOG" as const },
+    { slug: "games", name: "GAMES", type: "CATALOG" as const },
+  ];
+
+  for (const t of catalogTags) {
+    await db.tag.upsert({
+      where: { slug: t.slug },
+      update: { name: t.name, type: t.type },
+      create: { slug: t.slug, name: t.name, type: t.type },
+    });
+  }
+
   const seedTracks = [
     {
       id: "seed-001",

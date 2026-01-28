@@ -215,17 +215,8 @@ const idsFormBaseSchema = z.object({
   // TÍTULO YA NO OBLIGATORIO
   // title: z.union([z.string(), z.null(), z.undefined()]),
 
-  isrc: z
-    .string()
-    .trim()
-    .min(1, "El ISRC es obligatorio.")
-    .regex(/^[A-Z0-9]+$/, "El ISRC solo puede contener letras y números."),
-  iswc: z
-    .string()
-    .trim()
-    .min(1, "El ISWC es obligatorio.")
-    .regex(/^[A-Z0-9]+$/, "El ISWC solo puede contener letras y números."),
-
+  isrc: z.union([z.string(), z.null(), z.undefined()]),
+  iswc: z.union([z.string(), z.null(), z.undefined()]),
   upc: z.union([z.string(), z.null(), z.undefined()]),
 });
 

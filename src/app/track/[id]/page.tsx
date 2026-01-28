@@ -13,6 +13,7 @@
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import CatalogClient from "@/app/catalog/CatalogClient";
 import { db } from "@/server/db";
 import { getS3PublicUrl } from "@/lib/storage/s3";
 import TrackHero, { type TrackHeroDetailSection } from "./TrackHero";
@@ -20,7 +21,8 @@ import TrackHero, { type TrackHeroDetailSection } from "./TrackHero";
 export const dynamic = "force-dynamic";
 
 type PageProps = {
-  params: Promise<{ id: string }> | { id: string };
+  params: Promise<{ id: string; catalog?: string }> | { id: string; catalog?: string };
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }> | { [key: string]: string | string[] | undefined };
 };
 
 /** Buffer(Bytes) → base64 para entregar al canvas del cliente */
@@ -292,12 +294,39 @@ function formatStemGroup(value: string | null | undefined) {
   }
 }
 
-export default async function TrackPublicPage({ params }: PageProps) {
+function pickCatalogSlug(
+  fromParam: string | null | undefined,
+  fromTags: { slug: string; type: string }[] | null | undefined,
+) {
+  const candidate = fromParam?.trim().toLowerCase();
+  if (candidate) return candidate;
+  if (fromTags && fromTags.length) {
+    const cat = fromTags.find((t) => t.type === "CATALOG");
+    if (cat) return cat.slug;
+  }
+  return null;
+}
+
+export default async function TrackPublicPage({ params, searchParams }: PageProps) {
   // ✅ Next 15: `params` puede venir como Promise → lo resolvemos.
-  const { id } =
+  const { id, catalog: routeCatalog } =
     "then" in (params as any)
-      ? await (params as Promise<{ id: string }>)
-      : (params as { id: string });
+      ? await (params as Promise<{ id: string; catalog?: string }>)
+      : (params as { id: string; catalog?: string });
+
+  const sp =
+    searchParams && "then" in (searchParams as any)
+      ? await (searchParams as Promise<{ [key: string]: string | string[] | undefined }>)
+      : (searchParams as { [key: string]: string | string[] | undefined } | undefined);
+
+  const catalogParam =
+    (Array.isArray(sp?.c) ? sp?.c[0] : sp?.c) ??
+    (Array.isArray(sp?.catalog) ? sp?.catalog[0] : sp?.catalog);
+
+  // Redirige /track/[id]?c=slug -> /slug/track/[id] (solo si no estamos ya en ruta segmentada)
+  if (catalogParam && !routeCatalog) {
+    return redirect(`/${catalogParam}/track/${id}`);
+  }
 
   // 1) Datos del track (pública + ficha técnica)
   const track = await db.track.findUnique({
@@ -365,6 +394,13 @@ export default async function TrackPublicPage({ params }: PageProps) {
         orderBy: { sortOrder: "asc" },
       },
       updatedAt: true,
+      tags: {
+        select: {
+          tag: {
+            select: { slug: true, type: true },
+          },
+        },
+      },
     },
   });
   if (!track) notFound();
@@ -376,35 +412,80 @@ export default async function TrackPublicPage({ params }: PageProps) {
   });
   const waveformB64 = bytesToBase64(track.waveform as unknown as Buffer | null);
 
-  // 3) Similar por primer mood; si no hay, recientes
+  // 3) Similar por mood + tag de catálogo (si aplica); fallback recientes
+  const catalogSlugs =
+    track.tags
+      ?.map((t: any) => (t.tag?.type === "CATALOG" ? t.tag.slug : null))
+      .filter(Boolean) ?? [];
+
+  const baseSelect = {
+    id: true,
+    title: true,
+    artist: true,
+    loudnessLufs: true,
+    durationSec: true,
+    bpm: true,
+    key: true,
+    audioUrl: true,
+    waveform: true,
+    moods: true,
+    uses: true,
+  };
+
+  const makeWhere = (useMood: boolean) => {
+    const clauses: any[] = [{ id: { not: track.id } }];
+    if (useMood && track.moods?.length) {
+      clauses.push({ moods: { hasSome: [track.moods[0]!] } });
+    }
+    if (catalogSlugs.length) {
+      clauses.push({
+        tags: {
+          some: { tag: { slug: { in: catalogSlugs }, type: "CATALOG" } },
+        },
+      });
+    }
+    return clauses.length ? { AND: clauses } : undefined;
+  };
+
   let similar = await db.track.findMany({
-    where: track.moods?.length
-      ? { id: { not: track.id }, moods: { hasSome: [track.moods[0]!] } }
-      : { id: { not: track.id } },
+    where: makeWhere(true),
     orderBy: { updatedAt: "desc" },
     take: 6,
-    select: {
-      id: true,
-      title: true,
-      artist: true,
-      loudnessLufs: true,
-      durationSec: true,
-    },
+    select: baseSelect,
   });
   if (!similar.length) {
     similar = await db.track.findMany({
-      where: { id: { not: track.id } },
+      where: makeWhere(false),
       orderBy: { updatedAt: "desc" },
       take: 6,
-      select: {
-        id: true,
-        title: true,
-        artist: true,
-        loudnessLufs: true,
-        durationSec: true,
-      },
+      select: baseSelect,
     });
   }
+
+  const similarCatalogTracks = similar.map((s: any) => ({
+    id: s.id,
+    title: s.title ?? "Sin título",
+    artist: s.artist ?? "Artista desconocido",
+    moods: s.moods ?? [],
+    uses: s.uses ?? [],
+    bpm: s.bpm ?? undefined,
+    key: s.key ?? undefined,
+    audioUrl: s.audioUrl,
+    durationSec: s.durationSec ?? null,
+    duration: fmtDuration(s.durationSec ?? 0),
+    waveformB64: bytesToBase64(s.waveform as any),
+  }));
+
+  const activeCatalogSlug = pickCatalogSlug(
+    catalogParam,
+    track.tags?.map((t: any) => ({
+      slug: t.tag?.slug,
+      type: t.tag?.type,
+    })),
+  );
+
+  const backHref = activeCatalogSlug ? `/${activeCatalogSlug}` : "/catalog";
+  const backLabel = activeCatalogSlug ? activeCatalogSlug.toUpperCase() : "Catálogo";
 
   const publishingSummary = formatPublishing(
     track.publishingShares as PublishingShare[] | null | undefined,
@@ -535,10 +616,10 @@ export default async function TrackPublicPage({ params }: PageProps) {
         {/* Header minimal */}
         <header className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
           <Link
-            href="/catalog"
+            href={backHref}
             className="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-4 transition hover:text-foreground hover:underline"
           >
-            ← Catálogo
+            ← {backLabel}
           </Link>
           <span aria-label="Última actualización">{formatUpdated(track.updatedAt)}</span>
         </header>
@@ -612,37 +693,18 @@ export default async function TrackPublicPage({ params }: PageProps) {
               {track.moods?.length ? `Mood · ${track.moods[0]}` : "Recientes"}
             </span>
           </div>
-          {similar.length === 0 ? (
+          {similarCatalogTracks.length === 0 ? (
             <p className="text-sm text-muted-foreground">No hay sugerencias por ahora.</p>
           ) : (
-            <ul className="divide-y divide-border/70">
-              {similar.map((s) => (
-                <li key={s.id} className="py-2">
-                  <Link
-                    href={`/track/${s.id}`}
-                    className="flex items-center justify-between gap-4 rounded-[2px] px-2 py-2 transition hover:bg-border/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                  >
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-foreground">
-                        {s.title ?? "Sin título"}
-                      </div>
-                      <div className="truncate text-xs text-muted-foreground">
-                        {s.artist ?? "Artista desconocido"}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span>{fmtDuration(s.durationSec ?? 0)}</span>
-                      <span aria-hidden="true" className="h-1 w-1 rounded-full bg-muted-foreground/60" />
-                      <span>
-                        {s.loudnessLufs == null
-                          ? "—"
-                          : `${s.loudnessLufs.toFixed(1)} LUFS`}
-                      </span>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <CatalogClient
+              tracks={similarCatalogTracks}
+              hideHeader
+              compact
+              catalogSlug={activeCatalogSlug ?? undefined}
+              title="Piezas similares"
+              subtitle=""
+              eyebrow=""
+            />
           )}
         </section>
       </div>

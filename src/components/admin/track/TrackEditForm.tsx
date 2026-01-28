@@ -7,6 +7,7 @@ import IdsForm from "./IdsForm";
 import RightsFormClient from "./RightsFormClient";
 import SyncMetaForm from "./SyncMetaForm";
 import DeliverablesForm from "./DeliverablesForm";
+import { CatalogTagsForm } from "./CatalogTagsForm";
 import { updateTrackAll } from "@/app/admin/track/actions/update-all";
 import { Button } from "@/components/ui/button";
 
@@ -66,6 +67,7 @@ type TrackEditFormProps = {
       durationSec: number | null;
       sortOrder: number | null;
     }>;
+    catalogTags: string[];
   };
   primaryWriter: {
     name: string;
@@ -81,12 +83,14 @@ type TrackEditFormProps = {
     pro: string | null;
     caeNumber: string | null;
   } | null;
+  catalogTagOptions: { id: string; slug: string; name: string }[];
 };
 
 export default function TrackEditForm({
   track,
   primaryWriter,
   primaryPublisher,
+  catalogTagOptions,
 }: TrackEditFormProps) {
   const [pending, setPending] = React.useState(false);
   const [status, setStatus] = React.useState<UpdateAllResult | null>(null);
@@ -163,6 +167,14 @@ export default function TrackEditForm({
               moods: track.moods,
               uses: track.uses,
             }}
+            fieldErrors={fieldErrors}
+          />
+        </div>
+
+        <div className="mt-4 rounded-lg border border-border bg-card/90 p-3">
+          <CatalogTagsForm
+            options={catalogTagOptions}
+            selectedSlugs={track.catalogTags}
             fieldErrors={fieldErrors}
           />
         </div>
