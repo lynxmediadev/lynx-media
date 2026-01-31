@@ -28,10 +28,11 @@ export default async function CatalogPage({
   const uses = toArray(sp?.use).map((u) => u.trim()).filter(Boolean);
   const artist = pickFirst(sp?.artist)?.trim() ?? "";
   const q = pickFirst(sp?.q)?.trim() ?? "";
+  const cat = pickFirst(sp?.cat)?.trim() ?? null;
 
   return (
     <CatalogView
-      catalogSlug={null}
+      catalogSlug={cat}
       filters={{ moods, uses, artist: artist || undefined, q: q || undefined }}
       eyebrow="Catálogo general"
       title="Catálogo público"
@@ -39,3 +40,6 @@ export default async function CatalogPage({
     />
   );
 }
+export const metadata = {
+  alternates: { canonical: "/catalog" },
+};

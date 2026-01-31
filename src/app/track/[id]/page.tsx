@@ -11,7 +11,8 @@
  */
 
 import type { ReactNode } from "react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import Head from "next/head";
 import Link from "next/link";
 import CatalogClient from "@/app/catalog/CatalogClient";
 import { db } from "@/server/db";
@@ -38,6 +39,15 @@ function publicAudioUrl(input: {
 }): string | null {
   if (input.assetKey) return getS3PublicUrl(input.assetKey);
   return input.audioUrl ?? null;
+}
+
+function baseUrl() {
+  if (process.env.NEXT_PUBLIC_SITE_URL)
+    return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
+  if (process.env.VERCEL_URL)
+    return `https://${process.env.VERCEL_URL.replace(/\/$/, "")}`;
+  // Fallback explícito al dominio público para evitar canonicals en localhost en prod
+  return "https://lynxmedia.cl";
 }
 
 /** mm:ss para duración */
@@ -322,10 +332,11 @@ export default async function TrackPublicPage({ params, searchParams }: PageProp
   const catalogParam =
     (Array.isArray(sp?.c) ? sp?.c[0] : sp?.c) ??
     (Array.isArray(sp?.catalog) ? sp?.catalog[0] : sp?.catalog);
+  const catParam = Array.isArray(sp?.cat) ? sp?.cat[0] : sp?.cat;
 
-  // Redirige /track/[id]?c=slug -> /slug/track/[id] (solo si no estamos ya en ruta segmentada)
+  // Redirige /track/[id]?c=slug -> /track/[id] (sin query, uso de cat opcional)
   if (catalogParam && !routeCatalog) {
-    return redirect(`/${catalogParam}/track/${id}`);
+    return redirect(`/track/${id}`);
   }
 
   // 1) Datos del track (pública + ficha técnica)
@@ -477,15 +488,21 @@ export default async function TrackPublicPage({ params, searchParams }: PageProp
   }));
 
   const activeCatalogSlug = pickCatalogSlug(
-    catalogParam,
+    catParam ?? catalogParam,
     track.tags?.map((t: any) => ({
       slug: t.tag?.slug,
       type: t.tag?.type,
     })),
   );
 
-  const backHref = activeCatalogSlug ? `/${activeCatalogSlug}` : "/catalog";
-  const backLabel = activeCatalogSlug ? activeCatalogSlug.toUpperCase() : "Catálogo";
+  const backHref = catParam
+    ? `/catalog?cat=${encodeURIComponent(catParam)}`
+    : activeCatalogSlug
+      ? "/catalog"
+      : "/catalog";
+  const backLabel = "Catálogo";
+  const canonicalPath = `/track/${id}`;
+  const canonicalUrl = `${baseUrl()}${canonicalPath}`;
 
   const publishingSummary = formatPublishing(
     track.publishingShares as PublishingShare[] | null | undefined,
@@ -612,6 +629,9 @@ export default async function TrackPublicPage({ params, searchParams }: PageProp
 
   return (
     <div className="bg-background text-foreground">
+      <Head>
+        <link rel="canonical" href={canonicalUrl} />
+      </Head>
       <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 pb-16 pt-10">
         {/* Header minimal */}
         <header className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">

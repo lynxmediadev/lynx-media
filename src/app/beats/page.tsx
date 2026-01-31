@@ -12,3 +12,6 @@ export default async function BeatsPage() {
     />
   );
 }
+export const metadata = {
+  alternates: { canonical: "/catalog" },
+};

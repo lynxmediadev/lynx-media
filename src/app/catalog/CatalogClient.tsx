@@ -45,6 +45,7 @@ type Props = {
   eyebrow?: string;
   compact?: boolean;
   catalogSlug?: string;
+  categories?: { slug: string; name: string }[];
 };
 
 /**
@@ -61,6 +62,7 @@ export default function CatalogClient({
   hideHeader = false,
   compact = false,
   catalogSlug,
+  categories = [],
 }: Props & { hideHeader?: boolean }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const pendingSeekRef = useRef<number | null>(null);
@@ -90,6 +92,21 @@ export default function CatalogClient({
     () => tracks.find((t) => t.id === currentTrackId) ?? null,
     [currentTrackId, tracks],
   );
+
+  const [activeCat, setActiveCat] = useState<string | null>(catalogSlug ?? null);
+
+  // Mantener estado sincronizado si viene un cambio desde el servidor
+  useEffect(() => {
+    setActiveCat(catalogSlug ?? null);
+  }, [catalogSlug]);
+
+  const handleCategoryChange = (slug: string | null) => {
+    const next = slug === activeCat ? null : slug;
+    setActiveCat(next);
+    const url = next ? `/catalog?cat=${encodeURIComponent(next)}` : "/catalog";
+    router.replace(url);
+    router.refresh();
+  };
 
   useEffect(() => {
     const audioEl = audioRef.current;
@@ -193,10 +210,10 @@ export default function CatalogClient({
   };
 
   const buildTrackHref = (trackId: string) =>
-    catalogSlug ? `/${catalogSlug}/track/${trackId}` : `/track/${trackId}`;
+    `/track/${trackId}`;
 
   const buildTrackUrl = (trackId: string) => {
-    const href = buildTrackHref(trackId);
+    const href = `/track/${trackId}`; // URL limpia sin query para copiar/SEO
     if (typeof window !== "undefined") {
       return `${window.location.origin}${href}`;
     }
@@ -220,10 +237,53 @@ export default function CatalogClient({
       >
         {!hideHeader && (
           <header className="flex flex-col gap-2">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-              {eyebrow}
-            </p>
-            <h1 className="text-2xl font-semibold">{title}</h1>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-col gap-1">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                  {eyebrow}
+                </p>
+                <h1 className="text-2xl font-semibold">{title}</h1>
+              </div>
+              {categories.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                    Categoría
+                  </span>
+                  <div className="flex rounded-[2px] border border-border/60 bg-card/80 p-1">
+                    {categories.map((cat) => {
+                      const active = activeCat === cat.slug;
+                      return (
+                        <button
+                          key={cat.slug}
+                          type="button"
+                          onClick={() => handleCategoryChange(cat.slug)}
+                          className={cn(
+                            "px-3 py-1 text-xs font-medium transition",
+                            active
+                              ? "bg-foreground text-background"
+                              : "text-foreground/80 hover:bg-border/40",
+                          )}
+                        >
+                          {cat.name}
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => handleCategoryChange(null)}
+                      className={cn(
+                        "px-3 py-1 text-xs font-medium transition",
+                        activeCat === null
+                          ? "bg-foreground text-background"
+                          : "text-foreground/80 hover:bg-border/40",
+                      )}
+                    >
+                      Todos
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
             <p className="max-w-2xl text-sm text-muted-foreground">{subtitle}</p>
           </header>
         )}

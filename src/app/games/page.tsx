@@ -12,3 +12,6 @@ export default async function GamesCatalogPage() {
     />
   );
 }
+export const metadata = {
+  alternates: { canonical: "/catalog" },
+};

@@ -12,3 +12,6 @@ export default async function SyncPage() {
     />
   );
 }
+export const metadata = {
+  alternates: { canonical: "/catalog" },
+};

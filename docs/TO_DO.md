@@ -60,3 +60,22 @@ Para el master:
 - Usar URLs firmadas (signed URLs) con expiracion corta.
 - Evitar URLs publicas permanentes.
 - Controlar descargas y registrar accesos.
+
+---
+
+# SEO / Canonical pendiente
+- Definir y configurar `NEXT_PUBLIC_SITE_URL` en producción (`https://lynxmedia.cl`) y en cada entorno (en local puede ser `http://localhost:3000` si se desea).
+- Decidir política para tracks con múltiples catálogos (BEATS/SYNC/GAMES):
+  - Opción A (actual): usar el slug por el que llegó el usuario.
+  - Opción B: prioridad fija (ej. sync > beats > games) para canonical.
+  - Opción C: canonical siempre `/track/[id]` cuando haya múltiples tags.
+- Tras decidir, ajustar la lógica de canonical en `src/app/track/[id]/page.tsx` según la regla.
+
+---
+
+# Migración a catálogo único con filtros (ONE_CATALOG_PLAN)
+- Seguir `docs/plans/ONE_CATALOG_PLAN.md` para unificar en una sola página `/catalog` con filtros SYNC/BEATS/GAMES.
+- UI: agregar controles de filtro en `/catalog`; usar `?cat=` solo para estado compartible; canonical debe seguir siendo `/catalog`.
+- Alias: convertir `/sync`, `/beats`, `/games` en landings que cargan `/catalog` con filtro aplicado y canonical `/catalog`, o redirigirlas si se decide limpiar.
+- Enlaces internos: “Piezas similares”, catálogo y copy link deben usar `/track/[id]` (sin segmentos).
+- Canonical final para tracks: preferencia `/track/[id]` como único canonical; redirigir `?c=` y `/slug/track/[id]` si se retiran alias.

@@ -17,6 +17,8 @@
 ## Rutas actuales (resumen operativo)
 - Publico:
   - `/` homepage con secciones (Servicios, Catalogo, Contacto).
+- Catálogo público: `/catalog` (canónica). Landings `/beats`, `/sync`, `/games` cargan filtro pero canonical apunta a `/catalog`.
+- Tracks: URL canónica `/track/[id]`. Alias segmentadas redirigen/usan canonical a la ruta base.
   - `/track/[id]` ficha de track con modal "Licenciar / Contacto".
 - Admin:
   - `/admin/tracks` es el panel tecnico principal (antes /admin/analyze).
@@ -82,6 +84,7 @@
 - Actions actuales: Ver track (ojo) → `/track/[id]`, Ver licencia (card), Stems (card), Probar video (placeholder), Copiar link, Más (dropdown); tooltips cortos.
 - Footer player fijo al bottom del viewport; layout sin `min-h-screen` para evitar scroll fantasma.
 - Catalog header global visible (FrontendShell ya no oculta header en `/catalog`).
+- Navegación segmentada: enlaces desde catálogos usan `/slug/track/[id]`; botón back en la ficha usa el slug activo; canonical apunta a la ruta segmentada cuando existe (fallback `/track/[id]`).
 
 ## Ficha pública `/track/[id]` (estado actual)
 - Migrada a tokens del theme (`bg-background`, `text-foreground`, `bg-card`, `border`), radio 2px en cards/pills.

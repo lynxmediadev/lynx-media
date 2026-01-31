@@ -1,4 +1,5 @@
 import CatalogClient from "@/app/catalog/CatalogClient";
+import prisma from "@/lib/prisma";
 import { fetchCatalogTracks, type CatalogFilters } from "@/lib/catalog/fetchCatalog";
 
 export default async function CatalogView({
@@ -14,9 +15,16 @@ export default async function CatalogView({
   subtitle?: string;
   eyebrow?: string;
 }) {
-  const whereAND: any[] = [];
+  const categories = await prisma.tag.findMany({
+    where: { type: "CATALOG" },
+    select: { slug: true, name: true },
+    orderBy: { name: "asc" },
+  });
+  const allowed = new Set(categories.map((c) => c.slug));
+  const resolvedCatalog = catalogSlug && allowed.has(catalogSlug) ? catalogSlug : null;
+
   const tracks = await fetchCatalogTracks({
-    catalogSlug: catalogSlug ?? undefined,
+    catalogSlug: resolvedCatalog ?? undefined,
     moods: filters.moods,
     uses: filters.uses,
     artist: filters.artist,
@@ -29,7 +37,8 @@ export default async function CatalogView({
       title={title}
       subtitle={subtitle}
       eyebrow={eyebrow}
-      catalogSlug={catalogSlug ?? undefined}
+      catalogSlug={resolvedCatalog ?? undefined}
+      categories={categories}
     />
   );
 }

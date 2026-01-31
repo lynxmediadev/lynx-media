@@ -1,5 +1,7 @@
 # Plan para dividir el catálogo (beats vs sync) y escalar filtros
 
+**Estado**: Pasos 1–8 implementados (modelos/tagging, UI admin, vistas /beats /sync /games, loader embebible, rutas segmentadas y canonical). QA continuo.
+
 Instrucciones: copia y pega cada prompt en orden. Cada paso asume que el anterior ya se completó.
 
 ---
@@ -98,4 +100,3 @@ Tareas:
 - Crear ruta pública /games usando CatalogView con catalogSlug="games".
 - Verificar que /games liste solo los tracks con GAMES; los demás catálogos no se vean afectados.
 ```
-

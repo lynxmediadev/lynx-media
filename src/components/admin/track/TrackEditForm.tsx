@@ -173,6 +173,7 @@ export default function TrackEditForm({
 
         <div className="mt-4 rounded-lg border border-border bg-card/90 p-3">
           <CatalogTagsForm
+            trackId={track.id}
             options={catalogTagOptions}
             selectedSlugs={track.catalogTags}
             fieldErrors={fieldErrors}
