@@ -75,6 +75,11 @@
   --lm-warning: #f1c27d;
   --lm-danger: #ff5c7c;
 
+  /* Botones primarios custom (editable en un solo lugar) */
+  --btn-primary-bg: var(--lm-success);
+  --btn-primary-hover: color-mix(in oklab, var(--lm-success) 85%, black 15%);
+  --btn-primary-fg: var(--foreground);
+
   /* =====================================================
      Tokens semánticos (shadcn-style) — default: DARK
      ===================================================== */
