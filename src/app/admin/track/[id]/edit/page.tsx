@@ -134,6 +134,14 @@ export default async function AdminTrackEditPage({
           sharePct: true,
         },
       },
+      masterShares: {
+        select: {
+          name: true,
+          sharePct: true,
+          contact: true,
+          notes: true,
+        },
+      },
       versions: {
         select: {
           label: true,
@@ -173,9 +181,6 @@ export default async function AdminTrackEditPage({
 
   const primaryWriter =
     track.publishingShares.find((s) => s.role === "WRITER") ?? null;
-
-  const primaryPublisher =
-    track.publishingShares.find((s) => s.role === "PUBLISHER") ?? null;
 
   // Asegura tags base de catálogo (beats/sync) para que siempre aparezcan
   await prisma.$transaction([
@@ -538,32 +543,11 @@ export default async function AdminTrackEditPage({
             contentIdAdmin: track.contentIdAdmin,
             contentIdWhitelist: track.contentIdWhitelist,
             master: track.master,
+            publishingShares: track.publishingShares,
             versions: track.versions,
             stems: track.stems,
             catalogTags: track.tags.map((t) => t.tag.slug),
           }}
-          primaryWriter={
-            primaryWriter
-              ? {
-                  name: primaryWriter.name,
-                  sharePct: primaryWriter.sharePct,
-                  ipiNumber: primaryWriter.ipiNumber,
-                  pro: primaryWriter.pro,
-                  caeNumber: primaryWriter.caeNumber,
-                }
-              : null
-          }
-          primaryPublisher={
-            primaryPublisher
-              ? {
-                  name: primaryPublisher.name,
-                  sharePct: primaryPublisher.sharePct,
-                  ipiNumber: primaryPublisher.ipiNumber,
-                  pro: primaryPublisher.pro,
-                  caeNumber: primaryPublisher.caeNumber,
-                }
-              : null
-          }
           catalogTagOptions={catalogTags}
         />
       </div>

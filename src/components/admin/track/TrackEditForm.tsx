@@ -54,6 +54,20 @@ type TrackEditFormProps = {
     contentIdAdmin: string | null;
     contentIdWhitelist: string | null;
     master: string | null;
+    masterShares?: Array<{
+      name: string;
+      sharePct: number | null;
+      contact?: string | null;
+      notes?: string | null;
+    }>;
+    publishingShares: Array<{
+      role: "WRITER" | "PUBLISHER";
+      name: string;
+      sharePct: number | null;
+      ipiNumber?: string | null;
+      pro?: string | null;
+      caeNumber?: string | null;
+    }>;
 
     versions: Array<{
       label: string;
@@ -69,27 +83,11 @@ type TrackEditFormProps = {
     }>;
     catalogTags: string[];
   };
-  primaryWriter: {
-    name: string;
-    sharePct: number | null;
-    ipiNumber: string | null;
-    pro: string | null;
-    caeNumber: string | null;
-  } | null;
-  primaryPublisher: {
-    name: string;
-    sharePct: number | null;
-    ipiNumber: string | null;
-    pro: string | null;
-    caeNumber: string | null;
-  } | null;
   catalogTagOptions: { id: string; slug: string; name: string }[];
 };
 
 export default function TrackEditForm({
   track,
-  primaryWriter,
-  primaryPublisher,
   catalogTagOptions,
 }: TrackEditFormProps) {
   const [pending, setPending] = React.useState(false);
@@ -193,6 +191,7 @@ export default function TrackEditForm({
 
         <div className="mt-4 rounded-lg border border-border bg-card/90 p-3">
           <RightsFormClient
+            trackId={track.id}
             track={{
               mfn: !!track.mfn,
               oneStop: !!track.oneStop,
@@ -201,18 +200,7 @@ export default function TrackEditForm({
               contentIdAdmin: track.contentIdAdmin ?? "",
               contentIdWhitelist: track.contentIdWhitelist ?? "",
               master: track.master ?? "",
-
-              writerName: primaryWriter?.name ?? "",
-              writerSharePct: primaryWriter?.sharePct ?? null,
-              writerIpiNumber: primaryWriter?.ipiNumber ?? "",
-              writerPro: primaryWriter?.pro ?? "",
-              writerCaeNumber: primaryWriter?.caeNumber ?? "",
-
-              publisherName: primaryPublisher?.name ?? "",
-              publisherSharePct: primaryPublisher?.sharePct ?? null,
-              publisherIpiNumber: primaryPublisher?.ipiNumber ?? "",
-              publisherPro: primaryPublisher?.pro ?? "",
-              publisherCaeNumber: primaryPublisher?.caeNumber ?? "",
+              publishingShares: track.publishingShares,
             }}
             fieldErrors={fieldErrors}
           />

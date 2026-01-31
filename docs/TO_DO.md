@@ -79,3 +79,10 @@ Para el master:
 - Alias: convertir `/sync`, `/beats`, `/games` en landings que cargan `/catalog` con filtro aplicado y canonical `/catalog`, o redirigirlas si se decide limpiar.
 - Enlaces internos: “Piezas similares”, catálogo y copy link deben usar `/track/[id]` (sin segmentos).
 - Canonical final para tracks: preferencia `/track/[id]` como único canonical; redirigir `?c=` y `/slug/track/[id]` si se retiran alias.
+
+---
+
+# One-Stop / facultad de licenciar
+- [ ] Confirmar que Lynx Media tenga facultad para licenciar master + publishing en cada track.
+- [ ] Requerir autorización/cesión de todos los coautores para firmar por ambos derechos cuando se marque One-Stop.
+- [ ] Si no hay poder centralizado, marcar el track como no One-Stop (two-step / no cleared).

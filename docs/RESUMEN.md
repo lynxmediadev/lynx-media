@@ -33,3 +33,6 @@
 ## Notas
 - Dummies de requests escriben en BD usando `/api/services/mix`. Eliminación masiva borra en BD.
 - Color indigo aplica a componentes que consumen `--primary` (checkbox, botones primarios, etc.).
+
+- Derechos & publishing: admin ahora soporta múltiples shares Writer/Publisher con guardado inmediato (PublishingShare), tabla editable y confirmación de cambios.
+- Master: titulares múltiples (MasterShare) con tabla editable, suma de %, guardado inmediato; campo de texto legacy oculto.

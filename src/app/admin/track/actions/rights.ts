@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { PublishingRole } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import {
   rightsFormSchema,
@@ -41,56 +40,17 @@ export async function updateRights(
     const data: RightsFormValues = parsed.data;
     const trackId = data.id;
 
-    const {
-      mfn,
-      master,
-      oneStop,
-      clearedForSync,
-      contentIdEnrolled,
-      contentIdAdmin,
-      contentIdWhitelist,
-      writerName,
-      writerSharePct,
-      writerIpiNumber,
-      writerPro,
-      writerCaeNumber,
-      publisherName,
-      publisherSharePct,
-      publisherIpiNumber,
-      publisherPro,
-      publisherCaeNumber,
-    } = data;
-
-    const sharesToCreate: {
-      role: PublishingRole;
-      name: string;
-      ipiNumber: string | null;
-      pro?: string | null;
-      caeNumber?: string | null;
-      sharePct: number | null;
-    }[] = [];
-
-    if (writerName || writerSharePct !== null || writerIpiNumber) {
-      sharesToCreate.push({
-        role: PublishingRole.WRITER,
-        name: writerName,
-        ipiNumber: writerIpiNumber,
-        pro: writerPro,
-        caeNumber: writerCaeNumber,
-        sharePct: writerSharePct,
-      });
-    }
-
-    if (publisherName || publisherSharePct !== null || publisherIpiNumber) {
-      sharesToCreate.push({
-        role: PublishingRole.PUBLISHER,
-        name: publisherName,
-        ipiNumber: publisherIpiNumber,
-        pro: publisherPro,
-        caeNumber: publisherCaeNumber,
-        sharePct: publisherSharePct,
-      });
-    }
+  const {
+    mfn,
+    master,
+    oneStop,
+    clearedForSync,
+    contentIdEnrolled,
+    contentIdAdmin,
+    contentIdWhitelist,
+    publishingShares,
+    masterShares,
+  } = data;
 
     const tx = [];
 
@@ -114,22 +74,55 @@ export async function updateRights(
       prisma.publishingShare.deleteMany({
         where: {
           trackId,
-          role: { in: [PublishingRole.WRITER, PublishingRole.PUBLISHER] },
+          role: { in: ["WRITER", "PUBLISHER"] },
         },
       }),
     );
 
-    if (sharesToCreate.length > 0) {
+    if (publishingShares.length > 0) {
+      const writerSum = publishingShares
+        .filter((s) => s.role === "WRITER" && typeof s.sharePct === "number")
+        .reduce((acc, s) => acc + (s.sharePct ?? 0), 0);
+      const publisherSum = publishingShares
+        .filter((s) => s.role === "PUBLISHER" && typeof s.sharePct === "number")
+        .reduce((acc, s) => acc + (s.sharePct ?? 0), 0);
+      if (oneStop && (writerSum !== 100 || publisherSum !== 100)) {
+        return {
+          ok: false,
+          message:
+            "One-Stop activo: Writer y Publisher deben sumar 100% cada uno.",
+          fieldErrors: {
+            publishingShares: [
+              "Debe sumar 100% Writer y 100% Publisher para One-Stop",
+            ],
+          },
+        };
+      }
       tx.push(
         prisma.publishingShare.createMany({
-          data: sharesToCreate.map((s) => ({
+          data: publishingShares.map((s) => ({
             trackId,
-            role: s.role,
+            role: s.role as any,
             name: s.name,
-            ipiNumber: s.ipiNumber,
+            ipiNumber: s.ipiNumber ?? null,
             pro: s.pro ?? null,
             caeNumber: s.caeNumber ?? null,
-            sharePct: s.sharePct,
+            sharePct: s.sharePct ?? null,
+          })),
+        }),
+      );
+    }
+
+    tx.push(prisma.masterShare.deleteMany({ where: { trackId } }));
+    if (masterShares.length > 0) {
+      tx.push(
+        prisma.masterShare.createMany({
+          data: masterShares.map((s) => ({
+            trackId,
+            name: s.name,
+            sharePct: s.sharePct ?? null,
+            contact: s.contact ?? null,
+            notes: s.notes ?? null,
           })),
         }),
       );

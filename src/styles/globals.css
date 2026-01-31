@@ -39,6 +39,8 @@
 :root {
   /* Token de layout mínimo (evita hardcodes tipo 4rem / 64px dispersos) */
   --header-h: 4rem;
+  /* Radio global (equivalente a rounded-xs) controlado desde un solo lugar */
+  --lm-radius: 4px;
 
   /* Core brand */
   --lm-ink: #141414;
@@ -101,7 +103,8 @@
   --input: var(--border);
   --ring: color-mix(in oklab, var(--lm-text-main) 35%, transparent);
 
-  --radius: 0.75rem;
+  /* shadcn radius base → lo alineamos con el radio global */
+  --radius: var(--lm-radius);
 
   color-scheme: dark;
 }
@@ -154,6 +157,13 @@ body {
   transition:
     background-color 0.25s ease,
     color 0.25s ease;
+}
+
+/* =========================================================
+   Unificador de bordes: todas las clases rounded → --lm-radius
+   ======================================================= */
+:is(.rounded, .rounded-sm, .rounded-md, .rounded-lg, .rounded-xl, .rounded-2xl, .rounded-3xl, .rounded-xs, .rounded-full) {
+  border-radius: var(--lm-radius) !important;
 }
 
 /* =========================================================

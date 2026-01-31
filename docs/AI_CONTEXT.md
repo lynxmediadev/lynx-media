@@ -98,3 +98,7 @@
 - Fondos: `bg-background` general, `bg-card` para superficies, `border` para delinear.
 - Waveforms: siempre usar `WaveformScrubber/PublicAudioBar` con esquema base gris + progreso foreground; referirlo como “waveform Artlist-style”.
 - Tooltip shadcn: padding vertical 2, flecha size-2, delay 200ms, colores del tema.
+
+- Admin track: sección Derechos & explotación ahora usa lista de PublishingShare (múltiples writers/publishers), guardado inmediato y suma de 
+- Admin track: sección Derechos & explotación ahora usa lista de PublishingShare (múltiples writers/publishers), guardado inmediato y suma de porcentajes por rol.
+- Admin track: Master ahora se gestiona solo con la tabla de MasterShare (múltiples titulares, suma de % y guardado inmediato); el campo de texto de master quedó oculto/legacy.

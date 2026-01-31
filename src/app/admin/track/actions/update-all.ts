@@ -122,43 +122,39 @@ export async function updateTrackAll(
       .filter((t) => catalogTagSlugs.includes(t.slug))
       .map((t) => t.id);
 
-    const sharesToCreate: {
-      role: PublishingRole;
-      name: string;
-      ipiNumber: string | null;
-      pro?: string | null;
-      caeNumber?: string | null;
-      sharePct: number | null;
-    }[] = [];
+    const sharesToCreate =
+      rightsData.publishingShares?.map((s) => ({
+        role: s.role as PublishingRole,
+        name: s.name,
+        ipiNumber: s.ipiNumber ?? null,
+        pro: s.pro ?? null,
+        caeNumber: s.caeNumber ?? null,
+        sharePct: s.sharePct ?? null,
+      })) ?? [];
 
-    if (
-      rightsData.writerName ||
-      rightsData.writerSharePct !== null ||
-      rightsData.writerIpiNumber
-    ) {
-      sharesToCreate.push({
-        role: PublishingRole.WRITER,
-        name: rightsData.writerName,
-        ipiNumber: rightsData.writerIpiNumber,
-        pro: rightsData.writerPro,
-        caeNumber: rightsData.writerCaeNumber,
-        sharePct: rightsData.writerSharePct,
-      });
-    }
+    const writerSum = sharesToCreate
+      .filter((s) => s.role === PublishingRole.WRITER && typeof s.sharePct === "number")
+      .reduce((acc, s) => acc + (s.sharePct ?? 0), 0);
+    const publisherSum = sharesToCreate
+      .filter((s) => s.role === PublishingRole.PUBLISHER && typeof s.sharePct === "number")
+      .reduce((acc, s) => acc + (s.sharePct ?? 0), 0);
 
-    if (
-      rightsData.publisherName ||
-      rightsData.publisherSharePct !== null ||
-      rightsData.publisherIpiNumber
-    ) {
-      sharesToCreate.push({
-        role: PublishingRole.PUBLISHER,
-        name: rightsData.publisherName,
-        ipiNumber: rightsData.publisherIpiNumber,
-        pro: rightsData.publisherPro,
-        caeNumber: rightsData.publisherCaeNumber,
-        sharePct: rightsData.publisherSharePct,
-      });
+    const masterSharesToCreate =
+      rightsData.masterShares?.map((s) => ({
+        name: s.name,
+        sharePct: s.sharePct ?? null,
+        contact: s.contact ?? null,
+        notes: s.notes ?? null,
+      })) ?? [];
+
+    if (rightsData.oneStop && (writerSum !== 100 || publisherSum !== 100)) {
+      return {
+        ok: false,
+        message: "One-Stop activo: Writer y Publisher deben sumar 100% cada uno.",
+        fieldErrors: {
+          publishingShares: ["Debe sumar 100% Writer y 100% Publisher para One-Stop"],
+        },
+      };
     }
 
     await prisma.$transaction(async (tx) => {
@@ -220,6 +216,19 @@ export async function updateTrackAll(
             pro: share.pro ?? null,
             caeNumber: share.caeNumber ?? null,
             sharePct: share.sharePct,
+          })),
+        });
+      }
+
+      await tx.masterShare.deleteMany({ where: { trackId } });
+      if (masterSharesToCreate.length > 0) {
+        await tx.masterShare.createMany({
+          data: masterSharesToCreate.map((ms) => ({
+            trackId,
+            name: ms.name,
+            sharePct: ms.sharePct,
+            contact: ms.contact,
+            notes: ms.notes,
           })),
         });
       }

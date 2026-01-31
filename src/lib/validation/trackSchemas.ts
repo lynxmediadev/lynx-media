@@ -260,20 +260,10 @@ const rightsFormBaseSchema = z.object({
   ]),
   contentIdAdmin: z.union([z.string(), z.null(), z.undefined()]),
   contentIdWhitelist: z.union([z.string(), z.null(), z.undefined()]),
-
-  // Publishing: Writer
-  writerName: z.union([z.string(), z.null(), z.undefined()]),
-  writerSharePct: z.union([z.string(), z.number(), z.null(), z.undefined()]),
-  writerIpiNumber: z.union([z.string(), z.null(), z.undefined()]),
-  writerPro: z.union([z.string(), z.null(), z.undefined()]),
-  writerCaeNumber: z.union([z.string(), z.null(), z.undefined()]),
-
-  // Publishing: Publisher
-  publisherName: z.union([z.string(), z.null(), z.undefined()]),
-  publisherSharePct: z.union([z.string(), z.number(), z.null(), z.undefined()]),
-  publisherIpiNumber: z.union([z.string(), z.null(), z.undefined()]),
-  publisherPro: z.union([z.string(), z.null(), z.undefined()]),
-  publisherCaeNumber: z.union([z.string(), z.null(), z.undefined()]),
+  // Publishing: lista serializada en JSON desde el UI
+  publishingShares: z.union([z.string(), z.null(), z.undefined()]),
+  // Master shares: lista serializada en JSON
+  masterShares: z.union([z.string(), z.null(), z.undefined()]),
 });
 
 /**
@@ -286,19 +276,59 @@ const rightsFormBaseSchema = z.object({
  * NOTA: No obligamos a que los shares sumen 100, solo que estén en rango.
  */
 export const rightsFormSchema = rightsFormBaseSchema.transform((values) => {
-  const writerShare = normalizeNullableInt(values.writerSharePct);
-  const publisherShare = normalizeNullableInt(values.publisherSharePct);
+  let parsedShares: {
+    role: string;
+    name: string;
+    sharePct: number | null;
+    ipiNumber?: string | null;
+    pro?: string | null;
+    caeNumber?: string | null;
+  }[] = [];
 
-  // Validación suave de rango (0–100). Si se sale de rango, lo dejamos como null.
-  const safeWriterShare =
-    writerShare == null || (writerShare >= 0 && writerShare <= 100)
-      ? writerShare
-      : null;
+  let parsedMasterShares: {
+    name: string;
+    sharePct: number | null;
+    contact?: string | null;
+    notes?: string | null;
+  }[] = [];
 
-  const safePublisherShare =
-    publisherShare == null || (publisherShare >= 0 && publisherShare <= 100)
-      ? publisherShare
-      : null;
+  if (typeof values.publishingShares === "string" && values.publishingShares.trim() !== "") {
+    try {
+      const arr = JSON.parse(values.publishingShares);
+      if (Array.isArray(arr)) {
+        parsedShares = arr
+          .map((s) => ({
+            role: typeof s.role === "string" ? s.role : "",
+            name: normalizeText(s.name) ?? "",
+            sharePct: normalizeNullableInt(s.sharePct),
+            ipiNumber: normalizeText(s.ipiNumber),
+            pro: normalizeText(s.pro),
+            caeNumber: normalizeText(s.caeNumber),
+          }))
+          .filter((s) => s.name);
+      }
+    } catch (err) {
+      // si falla, dejamos lista vacía
+    }
+  }
+
+  if (typeof values.masterShares === "string" && values.masterShares.trim() !== "") {
+    try {
+      const arr = JSON.parse(values.masterShares);
+      if (Array.isArray(arr)) {
+        parsedMasterShares = arr
+          .map((s) => ({
+            name: normalizeText(s.name) ?? "",
+            sharePct: normalizeNullableInt(s.sharePct),
+            contact: normalizeText(s.contact),
+            notes: normalizeText(s.notes),
+          }))
+          .filter((s) => s.name);
+      }
+    } catch (err) {
+      // ignorar parse fail
+    }
+  }
 
   return {
     id: String(values.id),
@@ -311,18 +341,8 @@ export const rightsFormSchema = rightsFormBaseSchema.transform((values) => {
     contentIdEnrolled: normalizeCheckbox(values.contentIdEnrolled),
     contentIdAdmin: normalizeText(values.contentIdAdmin),
     contentIdWhitelist: normalizeText(values.contentIdWhitelist),
-
-    writerName: normalizeText(values.writerName) ?? "",
-    writerSharePct: safeWriterShare,
-    writerIpiNumber: normalizeText(values.writerIpiNumber),
-    writerPro: normalizeText(values.writerPro),
-    writerCaeNumber: normalizeText(values.writerCaeNumber),
-
-    publisherName: normalizeText(values.publisherName) ?? "",
-    publisherSharePct: safePublisherShare,
-    publisherIpiNumber: normalizeText(values.publisherIpiNumber),
-    publisherPro: normalizeText(values.publisherPro),
-    publisherCaeNumber: normalizeText(values.publisherCaeNumber),
+    publishingShares: parsedShares,
+    masterShares: parsedMasterShares,
   };
 });
 
