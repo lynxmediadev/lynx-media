@@ -149,15 +149,8 @@ export async function updateTrackAll(
         sortOrder: typeof s.sortOrder === "number" ? s.sortOrder : null,
       })) ?? [];
 
-    if (rightsData.oneStop && (writerSum !== 100 || publisherSum !== 100)) {
-      return {
-        ok: false,
-        message: "One-Stop activo: Writer y Publisher deben sumar 100% cada uno.",
-        fieldErrors: {
-          publishingShares: ["Debe sumar 100% Writer y 100% Publisher para One-Stop"],
-        },
-      };
-    }
+    const publishingBlocked =
+      rightsData.oneStop && (writerSum !== 100 || publisherSum !== 100);
 
     await prisma.$transaction(async (tx) => {
       await tx.track.update({
@@ -201,26 +194,28 @@ export async function updateTrackAll(
         select: { id: true },
       });
 
-      await tx.publishingShare.deleteMany({
-        where: {
-          trackId,
-          role: { in: [PublishingRole.WRITER, PublishingRole.PUBLISHER] },
-        },
-      });
-
-      if (sharesToCreate.length > 0) {
-        await tx.publishingShare.createMany({
-          data: sharesToCreate.map((share) => ({
+      if (!publishingBlocked) {
+        await tx.publishingShare.deleteMany({
+          where: {
             trackId,
-            role: share.role,
-            name: share.name,
-            ipiNumber: share.ipiNumber,
-            pro: share.pro ?? null,
-            caeNumber: share.caeNumber ?? null,
-            sharePct: share.sharePct,
-            sortOrder: share.sortOrder,
-          })),
+            role: { in: [PublishingRole.WRITER, PublishingRole.PUBLISHER] },
+          },
         });
+
+        if (sharesToCreate.length > 0) {
+          await tx.publishingShare.createMany({
+            data: sharesToCreate.map((share) => ({
+              trackId,
+              role: share.role,
+              name: share.name,
+              ipiNumber: share.ipiNumber,
+              pro: share.pro ?? null,
+              caeNumber: share.caeNumber ?? null,
+              sharePct: share.sharePct,
+              sortOrder: share.sortOrder,
+            })),
+          });
+        }
       }
 
       await tx.masterShare.deleteMany({ where: { trackId } });
@@ -282,7 +277,16 @@ export async function updateTrackAll(
 
     return {
       ok: true,
-      message: "Guardado",
+      message: publishingBlocked
+        ? "Guardado parcial: Publishing no se guardó (One-Stop requiere 100/100). Ajusta porcentajes."
+        : "Guardado",
+      fieldErrors: publishingBlocked
+        ? {
+            publishingShares: [
+              "One-Stop activo: ajustar WRITER y PUBLISHER a 100% (publishing no se guardó).",
+            ],
+          }
+        : undefined,
     };
   } catch (err) {
     console.error("[track:edit:updateTrackAll] fatal:", err);

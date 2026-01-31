@@ -329,39 +329,36 @@ export default function RightsFormClient({
     // Validación local rápida
     const totalW = sumByRole("WRITER", ordered);
     const totalP = sumByRole("PUBLISHER", ordered);
-    const roleLabel = roleForAdd === "WRITER" ? "Writers" : "Publishers";
-    const setRoleError = (msg: string) => {
-      setShareRoleErrors((prev) => ({ ...prev, [roleForAdd]: msg }));
-      setShareError(msg);
-    };
-
     if (roleForAdd === "WRITER" && totalW > 100) {
-      setRoleError("AJUSTAR PORCENTAJES (%). WRITER NO PUEDE SUPERAR EL 100%");
+      setShareRoleErrors((prev) => ({
+        ...prev,
+        WRITER: "AJUSTAR PORCENTAJES (%). WRITER NO PUEDE SUPERAR EL 100%",
+      }));
+      setShareError("AJUSTAR PORCENTAJES (%). WRITER NO PUEDE SUPERAR EL 100%");
       return;
     }
     if (roleForAdd === "PUBLISHER" && totalP > 100) {
-      setRoleError("AJUSTAR PORCENTAJES (%). PUBLISHER NO PUEDE SUPERAR EL 100%");
+      setShareRoleErrors((prev) => ({
+        ...prev,
+        PUBLISHER: "AJUSTAR PORCENTAJES (%). PUBLISHER NO PUEDE SUPERAR EL 100%",
+      }));
+      setShareError("AJUSTAR PORCENTAJES (%). PUBLISHER NO PUEDE SUPERAR EL 100%");
       return;
     }
-    if (oneStopChecked) {
-      if (totalW !== 100) {
-        setRoleError("Writers deben sumar 100% para One-Stop.");
-        return;
-      }
-      if (totalP !== 100) {
-        setRoleError("Publishers deben sumar 100% para One-Stop.");
-        return;
-      }
-    }
-    setShareRoleErrors((prev) => ({ ...prev, [roleForAdd]: undefined }));
+    // One-Stop: si falta llegar a 100, sólo marcamos incompleto en el header (sin error).
+    setShareRoleErrors((prev) => ({
+      ...prev,
+      WRITER: totalW > 100 ? prev.WRITER : undefined,
+      PUBLISHER: totalP > 100 ? prev.PUBLISHER : undefined,
+    }));
     setShareError(null);
-    setSavingShare(true);
     const setter = roleForAdd === "WRITER" ? setNewWriter : setNewPublisher;
     const savingSetter = roleForAdd === "WRITER" ? setSavingWriter : setSavingPublisher;
     savingSetter(true);
     updatePublishingShares({
       trackId,
-      oneStop: oneStopChecked,
+      // Permitimos guardar parcial; validación estricta queda para Guardar todo
+      oneStop: false,
       shares: ordered.map((s) => ({
         ...s,
         sharePct:
@@ -449,7 +446,8 @@ export default function RightsFormClient({
         const ordered = applyRoleSortOrders(next);
         const result = await updatePublishingShares({
           trackId,
-          oneStop: oneStopChecked,
+          // Evitar bloqueo por totales < 100 al eliminar; la validación completa se hará en el submit global
+          oneStop: false,
           shares: ordered.map((s) => ({
             ...s,
             sharePct:
@@ -463,6 +461,7 @@ export default function RightsFormClient({
         } else {
           setShareError(null);
           setShares(ordered);
+          validateShares(ordered);
         }
       } else {
         const next = masterShares.filter((_, i) => i !== deleteTarget.index);
