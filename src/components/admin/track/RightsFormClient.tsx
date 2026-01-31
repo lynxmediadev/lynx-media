@@ -9,15 +9,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { SquareX, GripHorizontal } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { updatePublishingShares } from "@/app/admin/track/actions/update-publishing-shares";
 import { updateMasterShares } from "@/app/admin/track/actions/update-master-shares";
-import {
-  DndContext,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import {
   SortableContext,
   arrayMove,
@@ -138,11 +141,22 @@ export default function RightsFormClient({
   const [shares, setShares] = React.useState<Share[]>(
     (track.publishingShares ?? []).slice().sort(sortByOrder),
   );
-  const [pendingShares, startTransition] = React.useTransition();
-  const [shareStatus, setShareStatus] = React.useState<string | null>(null);
+  const [pendingShares] = React.useTransition();
   const [shareError, setShareError] = React.useState<string | null>(null);
-  const [newShare, setNewShare] = React.useState<Share & { ipiNumber: string; pro: string; caeNumber: string }>({
+  const [shareRoleErrors, setShareRoleErrors] = React.useState<{
+    WRITER?: string;
+    PUBLISHER?: string;
+  }>({});
+  const [newWriter, setNewWriter] = React.useState<Share & { ipiNumber: string; pro: string; caeNumber: string }>({
     role: "WRITER",
+    name: "",
+    sharePct: 50,
+    ipiNumber: "",
+    pro: "",
+    caeNumber: "",
+  });
+  const [newPublisher, setNewPublisher] = React.useState<Share & { ipiNumber: string; pro: string; caeNumber: string }>({
+    role: "PUBLISHER",
     name: "",
     sharePct: 50,
     ipiNumber: "",
@@ -157,8 +171,7 @@ export default function RightsFormClient({
   const [masterShares, setMasterShares] = React.useState<MasterShare[]>(
     (track.masterShares ?? []).slice().sort(sortByOrder),
   );
-  const [pendingMaster, startTransitionMaster] = React.useTransition();
-  const [masterStatus, setMasterStatus] = React.useState<string | null>(null);
+  const [pendingMaster] = React.useTransition();
   const [masterError, setMasterError] = React.useState<string | null>(null);
   const [newMaster, setNewMaster] = React.useState({
     name: "",
@@ -166,6 +179,16 @@ export default function RightsFormClient({
     contact: "",
     notes: "",
   });
+  const [savingShare, setSavingShare] = React.useState(false);
+  const [savingWriter, setSavingWriter] = React.useState(false);
+  const [savingPublisher, setSavingPublisher] = React.useState(false);
+  const [savingMaster, setSavingMaster] = React.useState(false);
+  const [deleteTarget, setDeleteTarget] = React.useState<
+    | { type: "share"; index: number }
+    | { type: "master"; index: number }
+    | null
+  >(null);
+  const [deleteLoading, setDeleteLoading] = React.useState(false);
   const hiddenJson = JSON.stringify(shares);
   const hiddenMasterJson = JSON.stringify(masterShares);
 
@@ -209,7 +232,12 @@ export default function RightsFormClient({
     roleIndices.forEach((pos, idx) => {
       next[pos] = reordered[idx];
     });
-    saveShares(next);
+    setShares(applyRoleSortOrders(next));
+    validateShares(next);
+  };
+
+  const handleDeleteShare = (idx: number) => {
+    setDeleteTarget({ type: "share", index: idx });
   };
 
   const handleMasterDragEnd = (event: { active: any; over: any }) => {
@@ -226,43 +254,33 @@ export default function RightsFormClient({
     saveMasterShares(reordered);
   };
 
-  const saveShares = (next: Share[]) => {
+  const validateShares = (list: Share[]) => {
+    const totalW = sumByRole("WRITER", list);
+    const totalP = sumByRole("PUBLISHER", list);
+    const roleErrors: { WRITER?: string; PUBLISHER?: string } = {};
+
+    if (totalW > 100) {
+      roleErrors.WRITER = "WRITER supera 100%. Ajusta porcentajes.";
+    } else if (oneStopChecked && totalW !== 100) {
+      roleErrors.WRITER = "WRITER debe sumar 100% para One-Stop.";
+    }
+
+    if (totalP > 100) {
+      roleErrors.PUBLISHER = "PUBLISHER supera 100%. Ajusta porcentajes.";
+    } else if (oneStopChecked && totalP !== 100) {
+      roleErrors.PUBLISHER = "PUBLISHER debe sumar 100% para One-Stop.";
+    }
+
+    setShareRoleErrors(roleErrors);
+    setShareError(
+      roleErrors.WRITER ?? roleErrors.PUBLISHER ?? null,
+    );
+  };
+
+  const updateSharesState = (next: Share[]) => {
     const ordered = applyRoleSortOrders(next);
-    const totalW = sumByRole("WRITER", next);
-    const totalP = sumByRole("PUBLISHER", next);
-    if (totalW > 100 || totalP > 100) {
-      setShareError("Algún rol supera 100%. Ajusta porcentajes.");
-      setShareStatus(null);
-      return;
-    }
-    if (oneStopChecked && (totalW !== 100 || totalP !== 100)) {
-      setShareError("One-Stop activo: Writer y Publisher deben sumar 100% cada uno.");
-      setShareStatus(null);
-      return;
-    } else {
-      setShareError(null);
-    }
-    setShareStatus("Guardando…");
-    startTransition(async () => {
-      const result = await updatePublishingShares({
-        trackId,
-        oneStop: oneStopChecked,
-        shares: ordered.map((s) => ({
-          ...s,
-          sharePct:
-            s.sharePct === null || Number.isNaN(Number(s.sharePct))
-              ? null
-              : Number(s.sharePct),
-        })),
-      });
-      if (!result.ok) {
-        setShareError(result.message);
-        setShareStatus(null);
-      } else {
-        setShareStatus("Guardado");
-        setShares(ordered);
-      }
-    });
+    setShares(ordered);
+    validateShares(ordered);
   };
 
   const handleShareChange = (
@@ -283,38 +301,84 @@ export default function RightsFormClient({
           }
         : s,
     );
-    setShares(next);
+    updateSharesState(next);
   };
 
-  const handleDeleteShare = (idx: number) => {
-    const next = shares.filter((_, i) => i !== idx);
-    setShares(next);
-    saveShares(next);
-  };
-
-  const handleAddShare = () => {
-    if (!newShare.name.trim()) {
+  const handleAddShare = (roleForAdd: "WRITER" | "PUBLISHER") => {
+    const formState = roleForAdd === "WRITER" ? newWriter : newPublisher;
+    if (!formState.name.trim()) {
       setShareError("Ingresa un nombre para el share.");
-      setShareStatus(null);
       return;
     }
     const next = [
       ...shares,
       {
-        role: newShare.role,
-        name: newShare.name.trim(),
+        role: roleForAdd,
+        name: formState.name.trim(),
         sharePct:
-          newShare.sharePct === null || Number.isNaN(newShare.sharePct)
+          formState.sharePct === null || Number.isNaN(Number(formState.sharePct))
             ? null
-            : Number(newShare.sharePct),
-        ipiNumber: newShare.ipiNumber.trim() || "",
-        pro: newShare.pro.trim() || "",
-        caeNumber: newShare.caeNumber.trim() || "",
+            : Number(formState.sharePct),
+        ipiNumber: formState.ipiNumber.trim() || "",
+        pro: formState.pro.trim() || "",
+        caeNumber: formState.caeNumber.trim() || "",
       },
     ];
-    setShares(next);
-    setNewShare((prev) => ({ ...prev, name: "", ipiNumber: "", pro: "", caeNumber: "" }));
-    saveShares(next);
+    const ordered = applyRoleSortOrders(next);
+    // Validación local rápida
+    const totalW = sumByRole("WRITER", ordered);
+    const totalP = sumByRole("PUBLISHER", ordered);
+    const roleLabel = roleForAdd === "WRITER" ? "Writers" : "Publishers";
+    const setRoleError = (msg: string) => {
+      setShareRoleErrors((prev) => ({ ...prev, [roleForAdd]: msg }));
+      setShareError(msg);
+    };
+
+    if (roleForAdd === "WRITER" && totalW > 100) {
+      setRoleError("AJUSTAR PORCENTAJES (%). WRITER NO PUEDE SUPERAR EL 100%");
+      return;
+    }
+    if (roleForAdd === "PUBLISHER" && totalP > 100) {
+      setRoleError("AJUSTAR PORCENTAJES (%). PUBLISHER NO PUEDE SUPERAR EL 100%");
+      return;
+    }
+    if (oneStopChecked) {
+      if (totalW !== 100) {
+        setRoleError("Writers deben sumar 100% para One-Stop.");
+        return;
+      }
+      if (totalP !== 100) {
+        setRoleError("Publishers deben sumar 100% para One-Stop.");
+        return;
+      }
+    }
+    setShareRoleErrors((prev) => ({ ...prev, [roleForAdd]: undefined }));
+    setShareError(null);
+    setSavingShare(true);
+    const setter = roleForAdd === "WRITER" ? setNewWriter : setNewPublisher;
+    const savingSetter = roleForAdd === "WRITER" ? setSavingWriter : setSavingPublisher;
+    savingSetter(true);
+    updatePublishingShares({
+      trackId,
+      oneStop: oneStopChecked,
+      shares: ordered.map((s) => ({
+        ...s,
+        sharePct:
+          s.sharePct === null || Number.isNaN(Number(s.sharePct))
+            ? null
+            : Number(s.sharePct),
+      })),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          setShareError(res.message ?? "Error al guardar share.");
+        } else {
+          setShareError(null);
+          setShares(ordered);
+          setter((prev) => ({ ...prev, name: "", ipiNumber: "", pro: "", caeNumber: "" }));
+        }
+      })
+      .finally(() => savingSetter(false));
   };
 
   const sumByRole = (role: "WRITER" | "PUBLISHER", list = shares) =>
@@ -332,29 +396,20 @@ export default function RightsFormClient({
 
   const saveMasterShares = (next: MasterShare[]) => {
     const ordered = applyMasterOrders(next);
-    setMasterStatus("Guardando…");
+    setMasterShares(ordered);
+    // Validación ligera local (opcional)
+  };
+
+  const validateMasterTotal = (list: MasterShare[]) => {
+    const total = list
+      .filter((s) => typeof s.sharePct === "number")
+      .reduce((acc, s) => acc + (s.sharePct ?? 0), 0);
+    if (total > 100) {
+      setMasterError("AJUSTAR PORCENTAJES (%). MASTER NO PUEDE SUPERAR EL 100%");
+      return false;
+    }
     setMasterError(null);
-    startTransitionMaster(async () => {
-      const result = await updateMasterShares({
-        trackId,
-        shares: ordered.map((s) => ({
-          name: s.name,
-          sharePct:
-            s.sharePct === null || Number.isNaN(Number(s.sharePct))
-              ? null
-              : Number(s.sharePct),
-          contact: s.contact ?? null,
-          notes: s.notes ?? null,
-        })),
-      });
-      if (!result.ok) {
-        setMasterError(result.message);
-        setMasterStatus(null);
-      } else {
-        setMasterStatus("Guardado");
-        setMasterShares(ordered);
-      }
-    });
+    return true;
   };
 
   const handleMasterChange = (
@@ -375,41 +430,71 @@ export default function RightsFormClient({
           }
         : s,
     );
-    setMasterShares(next);
+    const ordered = applyMasterOrders(next);
+    setMasterShares(ordered);
+    validateMasterTotal(ordered);
   };
 
   const handleDeleteMaster = (idx: number) => {
-    const next = masterShares.filter((_, i) => i !== idx);
-    setMasterShares(next);
-    saveMasterShares(next);
+    setDeleteTarget({ type: "master", index: idx });
   };
 
-  const handleMasterBlur = (
-    idx: number,
-    field: keyof MasterShare,
-    value: string,
-  ) => {
-    const next = masterShares.map((s, i) =>
-      i === idx
-        ? {
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      if (deleteTarget.type === "share") {
+        const next = shares.filter((_, i) => i !== deleteTarget.index);
+        const ordered = applyRoleSortOrders(next);
+        const result = await updatePublishingShares({
+          trackId,
+          oneStop: oneStopChecked,
+          shares: ordered.map((s) => ({
             ...s,
-            [field]:
-              field === "sharePct"
-                ? value === ""
-                  ? null
-                  : Number(value)
-                : value,
-          }
-        : s,
-    );
-    setMasterShares(next);
-    saveMasterShares(next);
+            sharePct:
+              s.sharePct === null || Number.isNaN(Number(s.sharePct))
+                ? null
+                : Number(s.sharePct),
+          })),
+        });
+        if (!result.ok) {
+          setShareError(result.message ?? "Error al eliminar share.");
+        } else {
+          setShareError(null);
+          setShares(ordered);
+        }
+      } else {
+        const next = masterShares.filter((_, i) => i !== deleteTarget.index);
+        const ordered = applyMasterOrders(next);
+        const result = await updateMasterShares({
+          trackId,
+          shares: ordered.map((s) => ({
+            name: s.name,
+            sharePct:
+              s.sharePct === null || Number.isNaN(Number(s.sharePct))
+                ? null
+                : Number(s.sharePct),
+            contact: s.contact ?? null,
+            notes: s.notes ?? null,
+            sortOrder: s.sortOrder ?? null,
+          })),
+        });
+        if (!result.ok) {
+          setMasterError(result.message ?? "Error al eliminar titular de master.");
+        } else {
+          setMasterError(null);
+          setMasterShares(ordered);
+        }
+      }
+    } finally {
+      setDeleteLoading(false);
+      setDeleteTarget(null);
+    }
   };
 
   const handleAddMaster = () => {
     if (!newMaster.name.trim()) {
       setMasterError("Ingresa un nombre para el titular del master.");
-      setMasterStatus(null);
       return;
     }
     const tempId =
@@ -430,9 +515,32 @@ export default function RightsFormClient({
         sortOrder: masterShares.length,
       },
     ];
-    setMasterShares(next);
-    setNewMaster((prev) => ({ ...prev, name: "", contact: "", notes: "" }));
-    saveMasterShares(next);
+    const ordered = applyMasterOrders(next);
+    if (!validateMasterTotal(ordered)) return;
+    setSavingMaster(true);
+    updateMasterShares({
+      trackId,
+      shares: ordered.map((s) => ({
+        name: s.name,
+        sharePct:
+          s.sharePct === null || Number.isNaN(Number(s.sharePct))
+            ? null
+            : Number(s.sharePct),
+        contact: s.contact ?? null,
+        notes: s.notes ?? null,
+        sortOrder: s.sortOrder ?? null,
+      })),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          setMasterError(res.message ?? "Error al guardar titular de master.");
+        } else {
+          setMasterError(null);
+          setMasterShares(ordered);
+          setNewMaster((prev) => ({ ...prev, name: "", contact: "", notes: "" }));
+        }
+      })
+      .finally(() => setSavingMaster(false));
   };
 
   return (
@@ -462,12 +570,6 @@ export default function RightsFormClient({
               <h4 className="text-xs font-semibold text-foreground">
                 Publishing shares (Writer 100% / Publisher 100%)
               </h4>
-              {shareStatus ? (
-                <span className="text-[11px] text-muted-foreground">{shareStatus}</span>
-              ) : null}
-              {shareError ? (
-                <span className="text-[11px] text-destructive">{shareError}</span>
-              ) : null}
             </div>
             <p id={dndDescIdShares} className="sr-only">
               Usa arrastrar y soltar para reordenar writers o publishers.
@@ -478,7 +580,7 @@ export default function RightsFormClient({
               onDragEnd={handleShareDragEnd}
               accessibility={{ describedById: dndDescIdShares }}
             >
-              <div className="grid gap-3">
+              <div className="space-y-6">
                 {(["WRITER", "PUBLISHER"] as const).map((role) => {
                   const roleShares = shares
                     .filter((s) => s.role === role)
@@ -487,211 +589,226 @@ export default function RightsFormClient({
                   const total = sumByRole(role);
                   const over = total > 100;
                   const missing = total < 100;
+                  const roleMsg = shareRoleErrors[role];
                   const ids = roleShares.map((share, idx) =>
                     shareDomId(share, shares.findIndex((s) => s === share)),
                   );
+                  const isWriter = role === "WRITER";
                   return (
-                    <div key={role} className="overflow-x-auto rounded-md border border-border">
-                      <div className="flex items-center justify-between px-2 py-2 text-[11px] uppercase tracking-[0.08em] text-muted-foreground bg-card/70">
-                        <span>
-                          {role} · Total: {total}%
-                        </span>
-                        {over ? (
-                          <span className="text-destructive">&gt;100%</span>
-                        ) : missing ? (
-                          <span className="text-amber-400">incompleto</span>
-                        ) : (
-                          <span className="text-emerald-400">OK</span>
-                        )}
-                      </div>
-                      <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-                        <table className="min-w-full text-xs">
-                          <thead className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
-                            <tr>
-                              <th className="px-2 py-2 text-center w-10"> </th>
-                              <th className="px-2 py-2 text-left">Nombre</th>
-                              <th className="px-2 py-2 text-left w-20">%</th>
-                              <th className="px-2 py-2 text-left">IPI</th>
-                              <th className="px-2 py-2 text-left">PRO</th>
-                              <th className="px-2 py-2 text-left">CAE</th>
-                              <th className="px-2 py-2 text-right">Acciones</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {roleShares.length === 0 ? (
-                              <tr>
-                                <td colSpan={7} className="px-2 py-3 text-center text-muted-foreground">
-                                  Sin {role === "WRITER" ? "writers" : "publishers"}.
-                                </td>
-                              </tr>
+                    <div key={role} className="space-y-2">
+                      <div className="overflow-x-auto rounded-md border border-border">
+                        <div className="flex items-center justify-between px-2 py-2 text-[11px] uppercase tracking-[0.08em] text-muted-foreground bg-card/70">
+                          <span className="flex items-center gap-2">
+                            <span>
+                              {role} · Total: {total}%
+                            </span>
+                            {roleMsg ? (
+                              <>
+                                <span>·</span>
+                                <span className="text-destructive">{roleMsg}</span>
+                              </>
+                            ) : missing ? (
+                              <span className="text-amber-400">incompleto</span>
                             ) : (
-                              roleShares.map((share) => {
-                                const globalIdx = shares.findIndex((s) => s === share);
-                                const rowId = shareDomId(share, globalIdx);
-                                return (
-                                  <SortableRow
-                                    key={rowId}
-                                    id={rowId}
-                                    describedBy={dndDescIdShares}
-                                  >
-                                    <td className="px-2 py-2 text-center w-10">
-                                      <GripHorizontal className="mx-auto h-4 w-4 text-muted-foreground" />
-                                    </td>
-                                    <td className="px-2 py-2">
-                                      <Input
-                                        value={share.name}
-                                        onChange={(e) => handleShareChange(globalIdx, "name", e.target.value)}
-                                        onBlur={() => saveShares(shares)}
-                                        className="h-8 text-xs"
-                                      />
-                                    </td>
-                                    <td className="px-2 py-2">
-                                      <Input
-                                        type="number"
-                                        min={0}
-                                        max={100}
-                                        value={share.sharePct ?? ""}
-                                        onChange={(e) => handleShareChange(globalIdx, "sharePct", e.target.value)}
-                                        onBlur={() => saveShares(shares)}
-                                        className="h-8 text-xs text-right"
-                                      />
-                                    </td>
-                                    <td className="px-2 py-2">
-                                      <Input
-                                        value={share.ipiNumber ?? ""}
-                                        onChange={(e) => handleShareChange(globalIdx, "ipiNumber", e.target.value)}
-                                        onBlur={() => saveShares(shares)}
-                                        className="h-8 text-xs"
-                                      />
-                                    </td>
-                                    <td className="px-2 py-2">
-                                      <Input
-                                        value={share.pro ?? ""}
-                                        onChange={(e) => handleShareChange(globalIdx, "pro", e.target.value)}
-                                        onBlur={() => saveShares(shares)}
-                                        className="h-8 text-xs"
-                                      />
-                                    </td>
-                                    <td className="px-2 py-2">
-                                      <Input
-                                        value={share.caeNumber ?? ""}
-                                        onChange={(e) => handleShareChange(globalIdx, "caeNumber", e.target.value)}
-                                        onBlur={() => saveShares(shares)}
-                                        className="h-8 text-xs"
-                                      />
-                                    </td>
-                                    <td className="px-2 py-2 text-right">
-                                      <button
-                                        type="button"
-                                        onClick={() => handleDeleteShare(globalIdx)}
-                                        className="inline-flex w-full items-center justify-center text-destructive hover:text-destructive/80"
-                                        aria-label="Eliminar share"
-                                        disabled={pendingShares}
-                                      >
-                                        <SquareX className="h-4 w-4" />
-                                      </button>
-                                    </td>
-                                  </SortableRow>
-                                );
-                              })
+                              <span className="text-emerald-400">OK</span>
                             )}
-                          </tbody>
-                        </table>
-                      </SortableContext>
+                          </span>
+                        </div>
+                        <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+                          <table className="min-w-full text-xs">
+                            <thead className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
+                              <tr>
+                                <th className="px-2 py-2 text-center w-10"> </th>
+                                <th className="px-2 py-2 text-left">Nombre</th>
+                                <th className="px-2 py-2 text-left w-20">%</th>
+                                <th className="px-2 py-2 text-left">IPI</th>
+                                <th className="px-2 py-2 text-left">PRO</th>
+                                <th className="px-2 py-2 text-left">CAE</th>
+                                <th className="px-2 py-2 text-right">Acciones</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {roleShares.length === 0 ? (
+                                <tr>
+                                  <td colSpan={7} className="px-2 py-3 text-center text-muted-foreground">
+                                    Sin {isWriter ? "writers" : "publishers"}.
+                                  </td>
+                                </tr>
+                              ) : (
+                                roleShares.map((share) => {
+                                  const globalIdx = shares.findIndex((s) => s === share);
+                                  const rowId = shareDomId(share, globalIdx);
+                                  return (
+                                    <SortableRow
+                                      key={rowId}
+                                      id={rowId}
+                                      describedBy={dndDescIdShares}
+                                    >
+                                      <td className="px-2 py-2 text-center w-10">
+                                        <GripHorizontal className="mx-auto h-4 w-4 text-muted-foreground" />
+                                      </td>
+                                      <td className="px-2 py-2">
+                                        <Input
+                                          value={share.name}
+                                          onChange={(e) => handleShareChange(globalIdx, "name", e.target.value)}
+                                          className="h-8 text-xs"
+                                        />
+                                      </td>
+                                      <td className="px-2 py-2">
+                                        <Input
+                                          type="number"
+                                          min={0}
+                                          max={100}
+                                          value={share.sharePct ?? ""}
+                                          onChange={(e) => handleShareChange(globalIdx, "sharePct", e.target.value)}
+                                          className="h-8 text-xs text-right"
+                                        />
+                                      </td>
+                                      <td className="px-2 py-2">
+                                        <Input
+                                          value={share.ipiNumber ?? ""}
+                                          onChange={(e) => handleShareChange(globalIdx, "ipiNumber", e.target.value)}
+                                          className="h-8 text-xs"
+                                        />
+                                      </td>
+                                      <td className="px-2 py-2">
+                                        <Input
+                                          value={share.pro ?? ""}
+                                          onChange={(e) => handleShareChange(globalIdx, "pro", e.target.value)}
+                                          className="h-8 text-xs"
+                                        />
+                                      </td>
+                                      <td className="px-2 py-2">
+                                        <Input
+                                          value={share.caeNumber ?? ""}
+                                          onChange={(e) => handleShareChange(globalIdx, "caeNumber", e.target.value)}
+                                          className="h-8 text-xs"
+                                        />
+                                      </td>
+                                      <td className="px-2 py-2 text-right">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDeleteShare(globalIdx)}
+                                          className="inline-flex w-full items-center justify-center text-destructive hover:text-destructive/80"
+                                          aria-label="Eliminar share"
+                                          disabled={pendingShares}
+                                        >
+                                          <SquareX className="h-4 w-4" />
+                                        </button>
+                                      </td>
+                                    </SortableRow>
+                                  );
+                                })
+                              )}
+                            </tbody>
+                          </table>
+                        </SortableContext>
+                      </div>
+
+                      {/* Form de alta separado por rol */}
+                      <div className="rounded-md border border-border/70 bg-card/60 p-3">
+                        <div className="flex flex-wrap items-end gap-2">
+                          <div className="flex min-w-[200px] flex-1 flex-col gap-1">
+                            <Label className="text-[11px] text-muted-foreground">
+                              Añadir {isWriter ? "Writer/Composer" : "Publisher"}
+                            </Label>
+                            <Input
+                              value={isWriter ? newWriter.name : newPublisher.name}
+                              onChange={(e) =>
+                                isWriter
+                                  ? setNewWriter((prev) => ({ ...prev, name: e.target.value }))
+                                  : setNewPublisher((prev) => ({ ...prev, name: e.target.value }))
+                              }
+                              className="h-8 text-xs"
+                              placeholder={isWriter ? "Writer / Composer" : "Publisher"}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleAddShare(role);
+                                }
+                              }}
+                            />
+                          </div>
+                          <div className="flex w-24 flex-col gap-1">
+                            <Label className="text-[11px] text-muted-foreground">% </Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={100}
+                              value={isWriter ? newWriter.sharePct ?? "" : newPublisher.sharePct ?? ""}
+                              onChange={(e) =>
+                                isWriter
+                                  ? setNewWriter((prev) => ({
+                                      ...prev,
+                                      sharePct: e.target.value === "" ? null : Number(e.target.value),
+                                    }))
+                                  : setNewPublisher((prev) => ({
+                                      ...prev,
+                                      sharePct: e.target.value === "" ? null : Number(e.target.value),
+                                    }))
+                              }
+                              className="h-8 text-xs text-right"
+                            />
+                          </div>
+                          <div className="flex min-w-[180px] flex-col gap-1">
+                            <Label className="text-[11px] text-muted-foreground">IPI</Label>
+                            <Input
+                              value={isWriter ? newWriter.ipiNumber ?? "" : newPublisher.ipiNumber ?? ""}
+                              onChange={(e) =>
+                                isWriter
+                                  ? setNewWriter((prev) => ({ ...prev, ipiNumber: e.target.value }))
+                                  : setNewPublisher((prev) => ({ ...prev, ipiNumber: e.target.value }))
+                              }
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                          <div className="flex min-w-[140px] flex-col gap-1">
+                            <Label className="text-[11px] text-muted-foreground">PRO</Label>
+                            <Input
+                              value={isWriter ? newWriter.pro ?? "" : newPublisher.pro ?? ""}
+                              onChange={(e) =>
+                                isWriter
+                                  ? setNewWriter((prev) => ({ ...prev, pro: e.target.value }))
+                                  : setNewPublisher((prev) => ({ ...prev, pro: e.target.value }))
+                              }
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                          <div className="flex min-w-[140px] flex-col gap-1">
+                            <Label className="text-[11px] text-muted-foreground">CAE</Label>
+                            <Input
+                              value={isWriter ? newWriter.caeNumber ?? "" : newPublisher.caeNumber ?? ""}
+                              onChange={(e) =>
+                                isWriter
+                                  ? setNewWriter((prev) => ({ ...prev, caeNumber: e.target.value }))
+                                  : setNewPublisher((prev) => ({ ...prev, caeNumber: e.target.value }))
+                              }
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                          <div className="flex items-center justify-end">
+                            <button
+                              type="button"
+                              onClick={() => handleAddShare(role)}
+                              disabled={pendingShares || (isWriter ? savingWriter : savingPublisher)}
+                              className="inline-flex h-8 items-center justify-center rounded border border-border bg-card px-3 text-xs font-semibold text-foreground hover:border-foreground/70"
+                            >
+                              {isWriter
+                                ? savingWriter
+                                  ? "Guardando…"
+                                  : "Añadir Writer"
+                                : savingPublisher
+                                  ? "Guardando…"
+                                  : "Añadir Publisher"}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   );
                 })}
               </div>
             </DndContext>
-
-            <div className="rounded-md border border-border/70 bg-card/60 p-3">
-              <div className="flex flex-wrap items-end gap-2">
-                <div className="flex flex-col gap-1">
-                  <Label className="text-[11px] text-muted-foreground">Rol</Label>
-                  <select
-                    value={newShare.role}
-                    onChange={(e) =>
-                      setNewShare((prev) => ({
-                        ...prev,
-                        role: e.target.value as "WRITER" | "PUBLISHER",
-                      }))
-                    }
-                    className="h-8 rounded border border-border bg-background px-2 text-xs text-foreground"
-                  >
-                    <option value="WRITER">WRITER</option>
-                    <option value="PUBLISHER">PUBLISHER</option>
-                  </select>
-                </div>
-                <div className="flex min-w-[140px] flex-1 flex-col gap-1">
-                  <Label className="text-[11px] text-muted-foreground">Nombre</Label>
-                  <Input
-                    value={newShare.name}
-                    onChange={(e) => setNewShare((prev) => ({ ...prev, name: e.target.value }))}
-                    className="h-8 text-xs"
-                    placeholder="Entidad / persona"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddShare();
-                      }
-                    }}
-                  />
-                </div>
-                <div className="flex w-20 flex-col gap-1">
-                  <Label className="text-[11px] text-muted-foreground">% </Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={newShare.sharePct ?? ""}
-                    onChange={(e) =>
-                      setNewShare((prev) => ({
-                        ...prev,
-                        sharePct: e.target.value === "" ? null : Number(e.target.value),
-                      }))
-                    }
-                    className="h-8 text-xs text-right"
-                  />
-                </div>
-                <div className="flex w-28 flex-col gap-1">
-                  <Label className="text-[11px] text-muted-foreground">IPI</Label>
-                  <Input
-                    value={newShare.ipiNumber ?? ""}
-                    onChange={(e) => setNewShare((prev) => ({ ...prev, ipiNumber: e.target.value }))}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div className="flex w-24 flex-col gap-1">
-                  <Label className="text-[11px] text-muted-foreground">PRO</Label>
-                  <Input
-                    value={newShare.pro ?? ""}
-                    onChange={(e) => setNewShare((prev) => ({ ...prev, pro: e.target.value }))}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div className="flex w-24 flex-col gap-1">
-                  <Label className="text-[11px] text-muted-foreground">CAE</Label>
-                  <Input
-                    value={newShare.caeNumber ?? ""}
-                    onChange={(e) => setNewShare((prev) => ({ ...prev, caeNumber: e.target.value }))}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div className="flex flex-1 items-center justify-end gap-3">
-                  <div className="text-[11px] text-muted-foreground">
-                    WRITER: {sumByRole("WRITER")}% · PUBLISHER: {sumByRole("PUBLISHER")}%
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleAddShare}
-                    disabled={pendingShares}
-                    className="inline-flex h-8 items-center justify-center rounded border border-border bg-card px-3 text-xs font-semibold text-foreground hover:border-foreground/70"
-                  >
-                    Añadir share
-                  </button>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -702,16 +819,20 @@ export default function RightsFormClient({
           <p className="mb-2 text-[11px] text-muted-foreground">
             Lista de titulares del master y porcentajes. Si no se indica %, se considera parcial/pendiente.
           </p>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="text-[11px] text-muted-foreground">
-              Total master: {sumMaster()}%
-            </div>
-            {masterStatus ? (
-              <span className="text-[11px] text-muted-foreground">{masterStatus}</span>
-            ) : null}
-            {masterError ? (
-              <span className="text-[11px] text-destructive">{masterError}</span>
-            ) : null}
+          <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+            <span className="flex items-center gap-2">
+              <span>MASTER · TOTAL: {sumMaster()}%</span>
+              {masterError ? (
+                <>
+                  <span>·</span>
+                  <span className="text-destructive">{masterError}</span>
+                </>
+              ) : sumMaster() < 100 ? (
+                <span className="text-amber-400">INCOMPLETO</span>
+              ) : (
+                <span className="text-emerald-400">OK</span>
+              )}
+            </span>
           </div>
           <p id={dndDescIdMaster} className="sr-only">
             Arrastra los titulares de master para ajustar el orden.
@@ -792,15 +913,15 @@ export default function RightsFormClient({
                                 className="h-8 text-xs"
                               />
                             </td>
-                            <td className="px-2 py-2 text-right">
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteMaster(idx)}
-                                className="inline-flex w-full items-center justify-center text-destructive hover:text-destructive/80"
-                                aria-label="Eliminar titular master"
-                                disabled={pendingMaster}
-                              >
-                                <SquareX className="h-4 w-4" />
+                <td className="px-2 py-2 text-right">
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteMaster(idx)}
+                    className="inline-flex w-full items-center justify-center text-destructive hover:text-destructive/80"
+                    aria-label="Eliminar titular master"
+                    disabled={pendingMaster}
+                  >
+                    <SquareX className="h-4 w-4" />
                               </button>
                             </td>
                           </SortableRow>
@@ -1050,6 +1171,27 @@ cliente_youtube_channel`}
       <input type="hidden" name="publishingShares" value={hiddenJson} />
       <input type="hidden" name="master" value={track.master ?? ""} />
       <input type="hidden" name="masterShares" value={hiddenMasterJson} />
+
+      {/* Confirmación de borrado */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && !deleteLoading && setDeleteTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirmar eliminación</DialogTitle>
+            <DialogDescription>
+              Esta acción eliminará {deleteTarget?.type === "share" ? "el share" : "el titular de master"} de la lista.
+              En cuanto confirmes, se guardará de inmediato.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-row justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => setDeleteTarget(null)} disabled={deleteLoading}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" size="sm" onClick={confirmDelete} disabled={deleteLoading}>
+              {deleteLoading ? "Eliminando..." : "Eliminar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
