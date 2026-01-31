@@ -20,6 +20,14 @@ type Share = {
   caeNumber?: string | null;
 };
 
+type MasterShare = {
+  id?: string;
+  name: string;
+  sharePct: number | null;
+  contact?: string | null;
+  notes?: string | null;
+};
+
 type RightsTrackFormProps = {
   trackId: string;
   track: {
@@ -31,6 +39,7 @@ type RightsTrackFormProps = {
     oneStop: boolean;
     clearedForSync: boolean;
     publishingShares: Share[];
+    masterShares: MasterShare[];
   };
   fieldErrors?: Record<string, string[]>;
 };
@@ -74,9 +83,8 @@ export default function RightsFormClient({
     setShares(track.publishingShares ?? []);
   }, [track.publishingShares]);
 
-  const [masterShares, setMasterShares] = React.useState(
-    track.masterShares ??
-      ([] as Array<{ name: string; sharePct: number | null; contact?: string | null; notes?: string | null }>),
+  const [masterShares, setMasterShares] = React.useState<MasterShare[]>(
+    track.masterShares ?? [],
   );
   const [pendingMaster, startTransitionMaster] = React.useTransition();
   const [masterStatus, setMasterStatus] = React.useState<string | null>(null);
@@ -89,6 +97,10 @@ export default function RightsFormClient({
   });
   const hiddenJson = JSON.stringify(shares);
   const hiddenMasterJson = JSON.stringify(masterShares);
+
+  React.useEffect(() => {
+    setMasterShares(track.masterShares ?? []);
+  }, [track.masterShares]);
 
   const saveShares = (next: Share[]) => {
     const totalW = sumByRole("WRITER", next);
@@ -146,7 +158,6 @@ export default function RightsFormClient({
         : s,
     );
     setShares(next);
-    saveShares(next);
   };
 
   const handleDeleteShare = (idx: number) => {
@@ -190,18 +201,20 @@ export default function RightsFormClient({
       .filter((s) => typeof s.sharePct === "number")
       .reduce((acc, s) => acc + (s.sharePct ?? 0), 0);
 
-  const saveMasterShares = (next: typeof masterShares) => {
+  const saveMasterShares = (next: MasterShare[]) => {
     setMasterStatus("Guardando…");
     setMasterError(null);
     startTransitionMaster(async () => {
       const result = await updateMasterShares({
         trackId,
         shares: next.map((s) => ({
-          ...s,
+          name: s.name,
           sharePct:
             s.sharePct === null || Number.isNaN(Number(s.sharePct))
               ? null
               : Number(s.sharePct),
+          contact: s.contact ?? null,
+          notes: s.notes ?? null,
         })),
       });
       if (!result.ok) {
@@ -232,11 +245,32 @@ export default function RightsFormClient({
         : s,
     );
     setMasterShares(next);
-    saveMasterShares(next);
   };
 
   const handleDeleteMaster = (idx: number) => {
     const next = masterShares.filter((_, i) => i !== idx);
+    setMasterShares(next);
+    saveMasterShares(next);
+  };
+
+  const handleMasterBlur = (
+    idx: number,
+    field: keyof MasterShare,
+    value: string,
+  ) => {
+    const next = masterShares.map((s, i) =>
+      i === idx
+        ? {
+            ...s,
+            [field]:
+              field === "sharePct"
+                ? value === ""
+                  ? null
+                  : Number(value)
+                : value,
+          }
+        : s,
+    );
     setMasterShares(next);
     saveMasterShares(next);
   };
@@ -247,9 +281,14 @@ export default function RightsFormClient({
       setMasterStatus(null);
       return;
     }
+    const tempId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `tmp-${Date.now()}-${Math.random()}`;
     const next = [
       ...masterShares,
       {
+        id: tempId,
         name: newMaster.name.trim(),
         sharePct:
           newMaster.sharePct === null || Number.isNaN(newMaster.sharePct)
@@ -345,40 +384,45 @@ export default function RightsFormClient({
                                   <Input
                                     value={share.name}
                                     onChange={(e) => handleShareChange(globalIdx, "name", e.target.value)}
-                            className="h-8 text-xs rounded-xs"
-                          />
-                        </td>
-                        <td className="px-2 py-2">
-                          <Input
-                            type="number"
-                            min={0}
-                            max={100}
-                            value={share.sharePct ?? ""}
-                            onChange={(e) => handleShareChange(globalIdx, "sharePct", e.target.value)}
-                            className="h-8 text-xs text-right"
-                          />
-                        </td>
-                        <td className="px-2 py-2">
-                          <Input
-                            value={share.ipiNumber ?? ""}
-                            onChange={(e) => handleShareChange(globalIdx, "ipiNumber", e.target.value)}
-                            className="h-8 text-xs"
-                          />
-                        </td>
-                        <td className="px-2 py-2">
-                          <Input
-                            value={share.pro ?? ""}
-                            onChange={(e) => handleShareChange(globalIdx, "pro", e.target.value)}
-                            className="h-8 text-xs"
-                          />
-                        </td>
-                        <td className="px-2 py-2">
-                          <Input
-                            value={share.caeNumber ?? ""}
-                            onChange={(e) => handleShareChange(globalIdx, "caeNumber", e.target.value)}
-                            className="h-8 text-xs"
-                          />
-                        </td>
+                                    onBlur={() => saveShares(shares)}
+                                    className="h-8 text-xs"
+                                  />
+                                </td>
+                                <td className="px-2 py-2">
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    value={share.sharePct ?? ""}
+                                    onChange={(e) => handleShareChange(globalIdx, "sharePct", e.target.value)}
+                                    onBlur={() => saveShares(shares)}
+                                    className="h-8 text-xs text-right"
+                                  />
+                                </td>
+                                <td className="px-2 py-2">
+                                  <Input
+                                    value={share.ipiNumber ?? ""}
+                                    onChange={(e) => handleShareChange(globalIdx, "ipiNumber", e.target.value)}
+                                    onBlur={() => saveShares(shares)}
+                                    className="h-8 text-xs"
+                                  />
+                                </td>
+                                <td className="px-2 py-2">
+                                  <Input
+                                    value={share.pro ?? ""}
+                                    onChange={(e) => handleShareChange(globalIdx, "pro", e.target.value)}
+                                    onBlur={() => saveShares(shares)}
+                                    className="h-8 text-xs"
+                                  />
+                                </td>
+                                <td className="px-2 py-2">
+                                  <Input
+                                    value={share.caeNumber ?? ""}
+                                    onChange={(e) => handleShareChange(globalIdx, "caeNumber", e.target.value)}
+                                    onBlur={() => saveShares(shares)}
+                                    className="h-8 text-xs"
+                                  />
+                                </td>
                                 <td className="px-2 py-2 text-right">
                                   <button
                                     type="button"
@@ -529,11 +573,12 @@ export default function RightsFormClient({
                   </tr>
                 ) : (
                   masterShares.map((ms, idx) => (
-                    <tr key={`${ms.name}-${idx}`} className="border-t border-border/60">
+                    <tr key={ms.id ?? idx} className="border-t border-border/60">
                       <td className="px-2 py-2">
                         <Input
                           value={ms.name}
                           onChange={(e) => handleMasterChange(idx, "name", e.target.value)}
+                          onBlur={(e) => handleMasterBlur(idx, "name", e.target.value)}
                           className="h-8 text-xs"
                         />
                       </td>
@@ -544,6 +589,7 @@ export default function RightsFormClient({
                           max={100}
                           value={ms.sharePct ?? ""}
                           onChange={(e) => handleMasterChange(idx, "sharePct", e.target.value)}
+                          onBlur={(e) => handleMasterBlur(idx, "sharePct", e.target.value)}
                           className="h-8 text-xs text-right"
                         />
                       </td>
@@ -551,6 +597,7 @@ export default function RightsFormClient({
                         <Input
                           value={ms.contact ?? ""}
                           onChange={(e) => handleMasterChange(idx, "contact", e.target.value)}
+                          onBlur={(e) => handleMasterBlur(idx, "contact", e.target.value)}
                           className="h-8 text-xs"
                         />
                       </td>
@@ -558,6 +605,7 @@ export default function RightsFormClient({
                         <Input
                           value={ms.notes ?? ""}
                           onChange={(e) => handleMasterChange(idx, "notes", e.target.value)}
+                          onBlur={(e) => handleMasterBlur(idx, "notes", e.target.value)}
                           className="h-8 text-xs"
                         />
                       </td>

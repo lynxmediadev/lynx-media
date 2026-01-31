@@ -134,14 +134,7 @@ export default async function AdminTrackEditPage({
           sharePct: true,
         },
       },
-      masterShares: {
-        select: {
-          name: true,
-          sharePct: true,
-          contact: true,
-          notes: true,
-        },
-      },
+      masterShares: { select: { id: true, name: true, sharePct: true, contact: true, notes: true } },
       versions: {
         select: {
           label: true,
@@ -166,6 +159,7 @@ export default async function AdminTrackEditPage({
   if (!track) {
     notFound();
   }
+
 
   const publicSrc = track.assetKey
     ? getS3PublicUrl(track.assetKey)
@@ -543,6 +537,7 @@ export default async function AdminTrackEditPage({
             contentIdAdmin: track.contentIdAdmin,
             contentIdWhitelist: track.contentIdWhitelist,
             master: track.master,
+            masterShares: track.masterShares,
             publishingShares: track.publishingShares,
             versions: track.versions,
             stems: track.stems,

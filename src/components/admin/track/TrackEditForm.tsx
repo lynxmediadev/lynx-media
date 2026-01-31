@@ -54,7 +54,8 @@ type TrackEditFormProps = {
     contentIdAdmin: string | null;
     contentIdWhitelist: string | null;
     master: string | null;
-    masterShares?: Array<{
+    masterShares: Array<{
+      id?: string;
       name: string;
       sharePct: number | null;
       contact?: string | null;
@@ -200,6 +201,7 @@ export default function TrackEditForm({
               contentIdAdmin: track.contentIdAdmin ?? "",
               contentIdWhitelist: track.contentIdWhitelist ?? "",
               master: track.master ?? "",
+              masterShares: track.masterShares,
               publishingShares: track.publishingShares,
             }}
             fieldErrors={fieldErrors}
