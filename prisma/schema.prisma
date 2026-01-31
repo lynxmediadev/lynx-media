@@ -210,6 +210,7 @@ model PublishingShare {
   caeNumber String? // CAE (si aplica)
   ipiNumber String? // IPI opcional
   sharePct  Int? // 0–100 (puede ser null mientras no se complete)
+  sortOrder Int?
   // pro      String?      // (si quieres agregar luego la sociedad PRO)
 }
 
@@ -221,10 +222,11 @@ model MasterShare {
   trackId String
   track   Track  @relation(fields: [trackId], references: [id], onDelete: Cascade)
 
-  name     String
-  sharePct Int?
-  contact  String?
-  notes    String?
+  name      String
+  sharePct  Int?
+  contact   String?
+  notes     String?
+  sortOrder Int?
 
   @@index([trackId])
 }

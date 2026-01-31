@@ -60,14 +60,17 @@ type TrackEditFormProps = {
       sharePct: number | null;
       contact?: string | null;
       notes?: string | null;
+      sortOrder?: number | null;
     }>;
     publishingShares: Array<{
+      id?: string;
       role: "WRITER" | "PUBLISHER";
       name: string;
       sharePct: number | null;
       ipiNumber?: string | null;
       pro?: string | null;
       caeNumber?: string | null;
+      sortOrder?: number | null;
     }>;
 
     versions: Array<{

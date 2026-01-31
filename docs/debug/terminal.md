@@ -1,102 +1,73 @@
-ddfer@DESKTOP-8TCFJ8A:~/projects/lynx-media$ npm run dev
+## Error Type
+Console Error
 
-> lynx-media@0.1.0 dev
-> next dev
+## Error Message
+A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
 
-   ▲ Next.js 15.5.9
-   - Local:        http://localhost:3000
-   - Network:      http://172.29.69.123:3000
-   - Environments: .env.local, .env
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
 
- ✓ Starting...
- ✓ Ready in 1702ms
- ○ Compiling /middleware ...
- ✓ Compiled /middleware in 518ms (114 modules)
- ○ Compiling /admin/track/[id]/edit ...
- ✓ Compiled /admin/track/[id]/edit in 5.8s (1078 modules)
-prisma:query SELECT "public"."Track"."id", "public"."Track"."title", "public"."Track"."artist", "public"."Track"."moods", "public"."Track"."uses", "public"."Track"."bpm", "public"."Track"."key", "public"."Track"."trackType"::text, "public"."Track"."genres", "public"."Track"."subgenres", "public"."Track"."audioUrl", "public"."Track"."coverUrl", "public"."Track"."assetKey", "public"."Track"."assetMime", "public"."Track"."assetSize", "public"."Track"."durationSec", "public"."Track"."sampleRateHz", "public"."Track"."channels", "public"."Track"."bitrateKbps", "public"."Track"."loudnessLufs", "public"."Track"."loudnessRangeLu", "public"."Track"."lraLowLufs", "public"."Track"."lraHighLufs", "public"."Track"."truePeakDbfs", "public"."Track"."waveform", "public"."Track"."analysisAt", "public"."Track"."isrc", "public"."Track"."iswc", "public"."Track"."upc", "public"."Track"."master", "public"."Track"."licenseType", "public"."Track"."mediaBuy", "public"."Track"."mfn", "public"."Track"."oneStop", "public"."Track"."clearedForSync", "public"."Track"."exclusiveTerritories", "public"."Track"."exclusiveTermMonths", "public"."Track"."restrictedTerritories", "public"."Track"."restrictedIndustries", "public"."Track"."restrictedPlatforms", "public"."Track"."restrictedBrands", "public"."Track"."pricingTier"::text, "public"."Track"."budgetMin", "public"."Track"."budgetMax", "public"."Track"."budgetCurrency"::text, "public"."Track"."contentIdEnrolled", "public"."Track"."contentIdAdmin", "public"."Track"."contentIdWhitelist", "public"."Track"."restrictions" FROM "public"."Track" WHERE ("public"."Track"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
-prisma:query SELECT "public"."TrackTag"."trackId", "public"."TrackTag"."tagId" FROM "public"."TrackTag" WHERE "public"."TrackTag"."trackId" IN ($1) OFFSET $2
-prisma:query SELECT "public"."Tag"."id", "public"."Tag"."slug", "public"."Tag"."name", "public"."Tag"."type"::text FROM "public"."Tag" WHERE "public"."Tag"."id" IN ($1,$2,$3) OFFSET $4
-prisma:query SELECT "public"."PublishingShare"."id", "public"."PublishingShare"."role"::text, "public"."PublishingShare"."name", "public"."PublishingShare"."ipiNumber", "public"."PublishingShare"."pro", "public"."PublishingShare"."caeNumber", "public"."PublishingShare"."sharePct", "public"."PublishingShare"."trackId" FROM "public"."PublishingShare" WHERE "public"."PublishingShare"."trackId" IN ($1) OFFSET $2
-prisma:query SELECT "public"."MasterShare"."id", "public"."MasterShare"."name", "public"."MasterShare"."sharePct", "public"."MasterShare"."contact", "public"."MasterShare"."notes", "public"."MasterShare"."trackId" FROM "public"."MasterShare" WHERE "public"."MasterShare"."trackId" IN ($1) OFFSET $2
-prisma:query SELECT "public"."TrackVersion"."id", "public"."TrackVersion"."label", "public"."TrackVersion"."durationSec", "public"."TrackVersion"."kind"::text, "public"."TrackVersion"."sortOrder", "public"."TrackVersion"."trackId" FROM "public"."TrackVersion" WHERE "public"."TrackVersion"."trackId" IN ($1) ORDER BY "public"."TrackVersion"."sortOrder" ASC OFFSET $2
-prisma:query SELECT "public"."TrackStem"."id", "public"."TrackStem"."name", "public"."TrackStem"."group"::text, "public"."TrackStem"."durationSec", "public"."TrackStem"."sortOrder", "public"."TrackStem"."trackId" FROM "public"."TrackStem" WHERE "public"."TrackStem"."trackId" IN ($1) ORDER BY "public"."TrackStem"."sortOrder" ASC OFFSET $2
-[AdminTrackEditPage] track cmkx1ed3f000duq9glemziy2b masterShares: 1
-prisma:query BEGIN
-prisma:query INSERT INTO "public"."Tag" ("id","createdAt","updatedAt","slug","name","type") VALUES ($1,$2,$3,$4,$5,CAST($6::text AS "public"."TagType")) ON CONFLICT ("slug") DO UPDATE SET "name" = $7, "type" = CAST($8::text AS "public"."TagType"), "updatedAt" = $9 WHERE ("public"."Tag"."slug" = $10 AND 1=1) RETURNING "public"."Tag"."id", "public"."Tag"."createdAt", "public"."Tag"."updatedAt", "public"."Tag"."slug", "public"."Tag"."name", "public"."Tag"."type"::text
-prisma:query INSERT INTO "public"."Tag" ("id","createdAt","updatedAt","slug","name","type") VALUES ($1,$2,$3,$4,$5,CAST($6::text AS "public"."TagType")) ON CONFLICT ("slug") DO UPDATE SET "name" = $7, "type" = CAST($8::text AS "public"."TagType"), "updatedAt" = $9 WHERE ("public"."Tag"."slug" = $10 AND 1=1) RETURNING "public"."Tag"."id", "public"."Tag"."createdAt", "public"."Tag"."updatedAt", "public"."Tag"."slug", "public"."Tag"."name", "public"."Tag"."type"::text
-prisma:query INSERT INTO "public"."Tag" ("id","createdAt","updatedAt","slug","name","type") VALUES ($1,$2,$3,$4,$5,CAST($6::text AS "public"."TagType")) ON CONFLICT ("slug") DO UPDATE SET "name" = $7, "type" = CAST($8::text AS "public"."TagType"), "updatedAt" = $9 WHERE ("public"."Tag"."slug" = $10 AND 1=1) RETURNING "public"."Tag"."id", "public"."Tag"."createdAt", "public"."Tag"."updatedAt", "public"."Tag"."slug", "public"."Tag"."name", "public"."Tag"."type"::text
-prisma:query COMMIT
-prisma:query SELECT "public"."Tag"."id", "public"."Tag"."slug", "public"."Tag"."name" FROM "public"."Tag" WHERE "public"."Tag"."type" = CAST($1::text AS "public"."TagType") ORDER BY "public"."Tag"."name" ASC OFFSET $2
- GET /admin/track/cmkx1ed3f000duq9glemziy2b/edit 200 in 10581ms
-[updateMasterShares] trackId: cmkx1ed3f000duq9glemziy2b shares: 1
-prisma:query BEGIN
-prisma:query DELETE FROM "public"."MasterShare" WHERE "public"."MasterShare"."trackId" = $1
-prisma:query INSERT INTO "public"."MasterShare" ("id","createdAt","updatedAt","trackId","name","sharePct","contact","notes") VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-prisma:query COMMIT
-prisma:query SELECT "public"."Track"."id", "public"."Track"."title", "public"."Track"."artist", "public"."Track"."moods", "public"."Track"."uses", "public"."Track"."bpm", "public"."Track"."key", "public"."Track"."trackType"::text, "public"."Track"."genres", "public"."Track"."subgenres", "public"."Track"."audioUrl", "public"."Track"."coverUrl", "public"."Track"."assetKey", "public"."Track"."assetMime", "public"."Track"."assetSize", "public"."Track"."durationSec", "public"."Track"."sampleRateHz", "public"."Track"."channels", "public"."Track"."bitrateKbps", "public"."Track"."loudnessLufs", "public"."Track"."loudnessRangeLu", "public"."Track"."lraLowLufs", "public"."Track"."lraHighLufs", "public"."Track"."truePeakDbfs", "public"."Track"."waveform", "public"."Track"."analysisAt", "public"."Track"."isrc", "public"."Track"."iswc", "public"."Track"."upc", "public"."Track"."master", "public"."Track"."licenseType", "public"."Track"."mediaBuy", "public"."Track"."mfn", "public"."Track"."oneStop", "public"."Track"."clearedForSync", "public"."Track"."exclusiveTerritories", "public"."Track"."exclusiveTermMonths", "public"."Track"."restrictedTerritories", "public"."Track"."restrictedIndustries", "public"."Track"."restrictedPlatforms", "public"."Track"."restrictedBrands", "public"."Track"."pricingTier"::text, "public"."Track"."budgetMin", "public"."Track"."budgetMax", "public"."Track"."budgetCurrency"::text, "public"."Track"."contentIdEnrolled", "public"."Track"."contentIdAdmin", "public"."Track"."contentIdWhitelist", "public"."Track"."restrictions" FROM "public"."Track" WHERE ("public"."Track"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
-prisma:query SELECT "public"."TrackTag"."trackId", "public"."TrackTag"."tagId" FROM "public"."TrackTag" WHERE "public"."TrackTag"."trackId" IN ($1) OFFSET $2
-prisma:query SELECT "public"."Tag"."id", "public"."Tag"."slug", "public"."Tag"."name", "public"."Tag"."type"::text FROM "public"."Tag" WHERE "public"."Tag"."id" IN ($1,$2,$3) OFFSET $4
-prisma:query SELECT "public"."PublishingShare"."id", "public"."PublishingShare"."role"::text, "public"."PublishingShare"."name", "public"."PublishingShare"."ipiNumber", "public"."PublishingShare"."pro", "public"."PublishingShare"."caeNumber", "public"."PublishingShare"."sharePct", "public"."PublishingShare"."trackId" FROM "public"."PublishingShare" WHERE "public"."PublishingShare"."trackId" IN ($1) OFFSET $2
-prisma:query SELECT "public"."MasterShare"."id", "public"."MasterShare"."name", "public"."MasterShare"."sharePct", "public"."MasterShare"."contact", "public"."MasterShare"."notes", "public"."MasterShare"."trackId" FROM "public"."MasterShare" WHERE "public"."MasterShare"."trackId" IN ($1) OFFSET $2
-prisma:query SELECT "public"."TrackVersion"."id", "public"."TrackVersion"."label", "public"."TrackVersion"."durationSec", "public"."TrackVersion"."kind"::text, "public"."TrackVersion"."sortOrder", "public"."TrackVersion"."trackId" FROM "public"."TrackVersion" WHERE "public"."TrackVersion"."trackId" IN ($1) ORDER BY "public"."TrackVersion"."sortOrder" ASC OFFSET $2
-prisma:query SELECT "public"."TrackStem"."id", "public"."TrackStem"."name", "public"."TrackStem"."group"::text, "public"."TrackStem"."durationSec", "public"."TrackStem"."sortOrder", "public"."TrackStem"."trackId" FROM "public"."TrackStem" WHERE "public"."TrackStem"."trackId" IN ($1) ORDER BY "public"."TrackStem"."sortOrder" ASC OFFSET $2
-[AdminTrackEditPage] track cmkx1ed3f000duq9glemziy2b masterShares: 1
-prisma:query BEGIN
-prisma:query INSERT INTO "public"."Tag" ("id","createdAt","updatedAt","slug","name","type") VALUES ($1,$2,$3,$4,$5,CAST($6::text AS "public"."TagType")) ON CONFLICT ("slug") DO UPDATE SET "name" = $7, "type" = CAST($8::text AS "public"."TagType"), "updatedAt" = $9 WHERE ("public"."Tag"."slug" = $10 AND 1=1) RETURNING "public"."Tag"."id", "public"."Tag"."createdAt", "public"."Tag"."updatedAt", "public"."Tag"."slug", "public"."Tag"."name", "public"."Tag"."type"::text
-prisma:query INSERT INTO "public"."Tag" ("id","createdAt","updatedAt","slug","name","type") VALUES ($1,$2,$3,$4,$5,CAST($6::text AS "public"."TagType")) ON CONFLICT ("slug") DO UPDATE SET "name" = $7, "type" = CAST($8::text AS "public"."TagType"), "updatedAt" = $9 WHERE ("public"."Tag"."slug" = $10 AND 1=1) RETURNING "public"."Tag"."id", "public"."Tag"."createdAt", "public"."Tag"."updatedAt", "public"."Tag"."slug", "public"."Tag"."name", "public"."Tag"."type"::text
-prisma:query INSERT INTO "public"."Tag" ("id","createdAt","updatedAt","slug","name","type") VALUES ($1,$2,$3,$4,$5,CAST($6::text AS "public"."TagType")) ON CONFLICT ("slug") DO UPDATE SET "name" = $7, "type" = CAST($8::text AS "public"."TagType"), "updatedAt" = $9 WHERE ("public"."Tag"."slug" = $10 AND 1=1) RETURNING "public"."Tag"."id", "public"."Tag"."createdAt", "public"."Tag"."updatedAt", "public"."Tag"."slug", "public"."Tag"."name", "public"."Tag"."type"::text
-prisma:query COMMIT
-prisma:query SELECT "public"."Tag"."id", "public"."Tag"."slug", "public"."Tag"."name" FROM "public"."Tag" WHERE "public"."Tag"."type" = CAST($1::text AS "public"."TagType") ORDER BY "public"."Tag"."name" ASC OFFSET $2
- POST /admin/track/cmkx1ed3f000duq9glemziy2b/edit 200 in 1202ms
-prisma:query SELECT 1
-prisma:query SELECT "public"."Track"."id", "public"."Track"."title", "public"."Track"."artist", "public"."Track"."moods", "public"."Track"."uses", "public"."Track"."bpm", "public"."Track"."key", "public"."Track"."trackType"::text, "public"."Track"."genres", "public"."Track"."subgenres", "public"."Track"."audioUrl", "public"."Track"."coverUrl", "public"."Track"."assetKey", "public"."Track"."assetMime", "public"."Track"."assetSize", "public"."Track"."durationSec", "public"."Track"."sampleRateHz", "public"."Track"."channels", "public"."Track"."bitrateKbps", "public"."Track"."loudnessLufs", "public"."Track"."loudnessRangeLu", "public"."Track"."lraLowLufs", "public"."Track"."lraHighLufs", "public"."Track"."truePeakDbfs", "public"."Track"."waveform", "public"."Track"."analysisAt", "public"."Track"."isrc", "public"."Track"."iswc", "public"."Track"."upc", "public"."Track"."master", "public"."Track"."licenseType", "public"."Track"."mediaBuy", "public"."Track"."mfn", "public"."Track"."oneStop", "public"."Track"."clearedForSync", "public"."Track"."exclusiveTerritories", "public"."Track"."exclusiveTermMonths", "public"."Track"."restrictedTerritories", "public"."Track"."restrictedIndustries", "public"."Track"."restrictedPlatforms", "public"."Track"."restrictedBrands", "public"."Track"."pricingTier"::text, "public"."Track"."budgetMin", "public"."Track"."budgetMax", "public"."Track"."budgetCurrency"::text, "public"."Track"."contentIdEnrolled", "public"."Track"."contentIdAdmin", "public"."Track"."contentIdWhitelist", "public"."Track"."restrictions" FROM "public"."Track" WHERE ("public"."Track"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
-prisma:query SELECT "public"."TrackTag"."trackId", "public"."TrackTag"."tagId" FROM "public"."TrackTag" WHERE "public"."TrackTag"."trackId" IN ($1) OFFSET $2
-prisma:query SELECT "public"."Tag"."id", "public"."Tag"."slug", "public"."Tag"."name", "public"."Tag"."type"::text FROM "public"."Tag" WHERE "public"."Tag"."id" IN ($1,$2,$3) OFFSET $4
-prisma:query SELECT "public"."PublishingShare"."id", "public"."PublishingShare"."role"::text, "public"."PublishingShare"."name", "public"."PublishingShare"."ipiNumber", "public"."PublishingShare"."pro", "public"."PublishingShare"."caeNumber", "public"."PublishingShare"."sharePct", "public"."PublishingShare"."trackId" FROM "public"."PublishingShare" WHERE "public"."PublishingShare"."trackId" IN ($1) OFFSET $2
-prisma:query SELECT "public"."MasterShare"."id", "public"."MasterShare"."name", "public"."MasterShare"."sharePct", "public"."MasterShare"."contact", "public"."MasterShare"."notes", "public"."MasterShare"."trackId" FROM "public"."MasterShare" WHERE "public"."MasterShare"."trackId" IN ($1) OFFSET $2
-prisma:query SELECT "public"."TrackVersion"."id", "public"."TrackVersion"."label", "public"."TrackVersion"."durationSec", "public"."TrackVersion"."kind"::text, "public"."TrackVersion"."sortOrder", "public"."TrackVersion"."trackId" FROM "public"."TrackVersion" WHERE "public"."TrackVersion"."trackId" IN ($1) ORDER BY "public"."TrackVersion"."sortOrder" ASC OFFSET $2
-prisma:query SELECT "public"."TrackStem"."id", "public"."TrackStem"."name", "public"."TrackStem"."group"::text, "public"."TrackStem"."durationSec", "public"."TrackStem"."sortOrder", "public"."TrackStem"."trackId" FROM "public"."TrackStem" WHERE "public"."TrackStem"."trackId" IN ($1) ORDER BY "public"."TrackStem"."sortOrder" ASC OFFSET $2
-[AdminTrackEditPage] track cmkx1ed3f000duq9glemziy2b masterShares: 1
-prisma:query BEGIN
-prisma:query INSERT INTO "public"."Tag" ("id","createdAt","updatedAt","slug","name","type") VALUES ($1,$2,$3,$4,$5,CAST($6::text AS "public"."TagType")) ON CONFLICT ("slug") DO UPDATE SET "name" = $7, "type" = CAST($8::text AS "public"."TagType"), "updatedAt" = $9 WHERE ("public"."Tag"."slug" = $10 AND 1=1) RETURNING "public"."Tag"."id", "public"."Tag"."createdAt", "public"."Tag"."updatedAt", "public"."Tag"."slug", "public"."Tag"."name", "public"."Tag"."type"::text
-prisma:query INSERT INTO "public"."Tag" ("id","createdAt","updatedAt","slug","name","type") VALUES ($1,$2,$3,$4,$5,CAST($6::text AS "public"."TagType")) ON CONFLICT ("slug") DO UPDATE SET "name" = $7, "type" = CAST($8::text AS "public"."TagType"), "updatedAt" = $9 WHERE ("public"."Tag"."slug" = $10 AND 1=1) RETURNING "public"."Tag"."id", "public"."Tag"."createdAt", "public"."Tag"."updatedAt", "public"."Tag"."slug", "public"."Tag"."name", "public"."Tag"."type"::text
-prisma:query INSERT INTO "public"."Tag" ("id","createdAt","updatedAt","slug","name","type") VALUES ($1,$2,$3,$4,$5,CAST($6::text AS "public"."TagType")) ON CONFLICT ("slug") DO UPDATE SET "name" = $7, "type" = CAST($8::text AS "public"."TagType"), "updatedAt" = $9 WHERE ("public"."Tag"."slug" = $10 AND 1=1) RETURNING "public"."Tag"."id", "public"."Tag"."createdAt", "public"."Tag"."updatedAt", "public"."Tag"."slug", "public"."Tag"."name", "public"."Tag"."type"::text
-prisma:query COMMIT
-prisma:query SELECT "public"."Tag"."id", "public"."Tag"."slug", "public"."Tag"."name" FROM "public"."Tag" WHERE "public"."Tag"."type" = CAST($1::text AS "public"."TagType") ORDER BY "public"."Tag"."name" ASC OFFSET $2
- GET /admin/track/cmkx1ed3f000duq9glemziy2b/edit 200 in 983ms
-[updateMasterShares] trackId: cmkx1ed3f000duq9glemziy2b shares: 1
-prisma:query BEGIN
-prisma:query DELETE FROM "public"."MasterShare" WHERE "public"."MasterShare"."trackId" = $1
-prisma:query INSERT INTO "public"."MasterShare" ("id","createdAt","updatedAt","trackId","name","sharePct","contact","notes") VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-prisma:query COMMIT
-prisma:query SELECT "public"."Track"."id", "public"."Track"."title", "public"."Track"."artist", "public"."Track"."moods", "public"."Track"."uses", "public"."Track"."bpm", "public"."Track"."key", "public"."Track"."trackType"::text, "public"."Track"."genres", "public"."Track"."subgenres", "public"."Track"."audioUrl", "public"."Track"."coverUrl", "public"."Track"."assetKey", "public"."Track"."assetMime", "public"."Track"."assetSize", "public"."Track"."durationSec", "public"."Track"."sampleRateHz", "public"."Track"."channels", "public"."Track"."bitrateKbps", "public"."Track"."loudnessLufs", "public"."Track"."loudnessRangeLu", "public"."Track"."lraLowLufs", "public"."Track"."lraHighLufs", "public"."Track"."truePeakDbfs", "public"."Track"."waveform", "public"."Track"."analysisAt", "public"."Track"."isrc", "public"."Track"."iswc", "public"."Track"."upc", "public"."Track"."master", "public"."Track"."licenseType", "public"."Track"."mediaBuy", "public"."Track"."mfn", "public"."Track"."oneStop", "public"."Track"."clearedForSync", "public"."Track"."exclusiveTerritories", "public"."Track"."exclusiveTermMonths", "public"."Track"."restrictedTerritories", "public"."Track"."restrictedIndustries", "public"."Track"."restrictedPlatforms", "public"."Track"."restrictedBrands", "public"."Track"."pricingTier"::text, "public"."Track"."budgetMin", "public"."Track"."budgetMax", "public"."Track"."budgetCurrency"::text, "public"."Track"."contentIdEnrolled", "public"."Track"."contentIdAdmin", "public"."Track"."contentIdWhitelist", "public"."Track"."restrictions" FROM "public"."Track" WHERE ("public"."Track"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
-prisma:query SELECT "public"."TrackTag"."trackId", "public"."TrackTag"."tagId" FROM "public"."TrackTag" WHERE "public"."TrackTag"."trackId" IN ($1) OFFSET $2
-prisma:query SELECT "public"."Tag"."id", "public"."Tag"."slug", "public"."Tag"."name", "public"."Tag"."type"::text FROM "public"."Tag" WHERE "public"."Tag"."id" IN ($1,$2,$3) OFFSET $4
-prisma:query SELECT "public"."PublishingShare"."id", "public"."PublishingShare"."role"::text, "public"."PublishingShare"."name", "public"."PublishingShare"."ipiNumber", "public"."PublishingShare"."pro", "public"."PublishingShare"."caeNumber", "public"."PublishingShare"."sharePct", "public"."PublishingShare"."trackId" FROM "public"."PublishingShare" WHERE "public"."PublishingShare"."trackId" IN ($1) OFFSET $2
-prisma:query SELECT "public"."MasterShare"."id", "public"."MasterShare"."name", "public"."MasterShare"."sharePct", "public"."MasterShare"."contact", "public"."MasterShare"."notes", "public"."MasterShare"."trackId" FROM "public"."MasterShare" WHERE "public"."MasterShare"."trackId" IN ($1) OFFSET $2
-prisma:query SELECT "public"."TrackVersion"."id", "public"."TrackVersion"."label", "public"."TrackVersion"."durationSec", "public"."TrackVersion"."kind"::text, "public"."TrackVersion"."sortOrder", "public"."TrackVersion"."trackId" FROM "public"."TrackVersion" WHERE "public"."TrackVersion"."trackId" IN ($1) ORDER BY "public"."TrackVersion"."sortOrder" ASC OFFSET $2
-prisma:query SELECT "public"."TrackStem"."id", "public"."TrackStem"."name", "public"."TrackStem"."group"::text, "public"."TrackStem"."durationSec", "public"."TrackStem"."sortOrder", "public"."TrackStem"."trackId" FROM "public"."TrackStem" WHERE "public"."TrackStem"."trackId" IN ($1) ORDER BY "public"."TrackStem"."sortOrder" ASC OFFSET $2
-[AdminTrackEditPage] track cmkx1ed3f000duq9glemziy2b masterShares: 1
-prisma:query BEGIN
-prisma:query INSERT INTO "public"."Tag" ("id","createdAt","updatedAt","slug","name","type") VALUES ($1,$2,$3,$4,$5,CAST($6::text AS "public"."TagType")) ON CONFLICT ("slug") DO UPDATE SET "name" = $7, "type" = CAST($8::text AS "public"."TagType"), "updatedAt" = $9 WHERE ("public"."Tag"."slug" = $10 AND 1=1) RETURNING "public"."Tag"."id", "public"."Tag"."createdAt", "public"."Tag"."updatedAt", "public"."Tag"."slug", "public"."Tag"."name", "public"."Tag"."type"::text
-prisma:query INSERT INTO "public"."Tag" ("id","createdAt","updatedAt","slug","name","type") VALUES ($1,$2,$3,$4,$5,CAST($6::text AS "public"."TagType")) ON CONFLICT ("slug") DO UPDATE SET "name" = $7, "type" = CAST($8::text AS "public"."TagType"), "updatedAt" = $9 WHERE ("public"."Tag"."slug" = $10 AND 1=1) RETURNING "public"."Tag"."id", "public"."Tag"."createdAt", "public"."Tag"."updatedAt", "public"."Tag"."slug", "public"."Tag"."name", "public"."Tag"."type"::text
-prisma:query INSERT INTO "public"."Tag" ("id","createdAt","updatedAt","slug","name","type") VALUES ($1,$2,$3,$4,$5,CAST($6::text AS "public"."TagType")) ON CONFLICT ("slug") DO UPDATE SET "name" = $7, "type" = CAST($8::text AS "public"."TagType"), "updatedAt" = $9 WHERE ("public"."Tag"."slug" = $10 AND 1=1) RETURNING "public"."Tag"."id", "public"."Tag"."createdAt", "public"."Tag"."updatedAt", "public"."Tag"."slug", "public"."Tag"."name", "public"."Tag"."type"::text
-prisma:query COMMIT
-prisma:query SELECT "public"."Tag"."id", "public"."Tag"."slug", "public"."Tag"."name" FROM "public"."Tag" WHERE "public"."Tag"."type" = CAST($1::text AS "public"."TagType") ORDER BY "public"."Tag"."name" ASC OFFSET $2
- POST /admin/track/cmkx1ed3f000duq9glemziy2b/edit 200 in 1047ms
-prisma:query SELECT "public"."Track"."id", "public"."Track"."title", "public"."Track"."artist", "public"."Track"."moods", "public"."Track"."uses", "public"."Track"."bpm", "public"."Track"."key", "public"."Track"."trackType"::text, "public"."Track"."genres", "public"."Track"."subgenres", "public"."Track"."audioUrl", "public"."Track"."coverUrl", "public"."Track"."assetKey", "public"."Track"."assetMime", "public"."Track"."assetSize", "public"."Track"."durationSec", "public"."Track"."sampleRateHz", "public"."Track"."channels", "public"."Track"."bitrateKbps", "public"."Track"."loudnessLufs", "public"."Track"."loudnessRangeLu", "public"."Track"."lraLowLufs", "public"."Track"."lraHighLufs", "public"."Track"."truePeakDbfs", "public"."Track"."waveform", "public"."Track"."analysisAt", "public"."Track"."isrc", "public"."Track"."iswc", "public"."Track"."upc", "public"."Track"."master", "public"."Track"."licenseType", "public"."Track"."mediaBuy", "public"."Track"."mfn", "public"."Track"."oneStop", "public"."Track"."clearedForSync", "public"."Track"."exclusiveTerritories", "public"."Track"."exclusiveTermMonths", "public"."Track"."restrictedTerritories", "public"."Track"."restrictedIndustries", "public"."Track"."restrictedPlatforms", "public"."Track"."restrictedBrands", "public"."Track"."pricingTier"::text, "public"."Track"."budgetMin", "public"."Track"."budgetMax", "public"."Track"."budgetCurrency"::text, "public"."Track"."contentIdEnrolled", "public"."Track"."contentIdAdmin", "public"."Track"."contentIdWhitelist", "public"."Track"."restrictions" FROM "public"."Track" WHERE ("public"."Track"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
-prisma:query SELECT "public"."TrackTag"."trackId", "public"."TrackTag"."tagId" FROM "public"."TrackTag" WHERE "public"."TrackTag"."trackId" IN ($1) OFFSET $2
-prisma:query SELECT "public"."Tag"."id", "public"."Tag"."slug", "public"."Tag"."name", "public"."Tag"."type"::text FROM "public"."Tag" WHERE "public"."Tag"."id" IN ($1,$2,$3) OFFSET $4
-prisma:query SELECT "public"."PublishingShare"."id", "public"."PublishingShare"."role"::text, "public"."PublishingShare"."name", "public"."PublishingShare"."ipiNumber", "public"."PublishingShare"."pro", "public"."PublishingShare"."caeNumber", "public"."PublishingShare"."sharePct", "public"."PublishingShare"."trackId" FROM "public"."PublishingShare" WHERE "public"."PublishingShare"."trackId" IN ($1) OFFSET $2
-prisma:query SELECT "public"."MasterShare"."id", "public"."MasterShare"."name", "public"."MasterShare"."sharePct", "public"."MasterShare"."contact", "public"."MasterShare"."notes", "public"."MasterShare"."trackId" FROM "public"."MasterShare" WHERE "public"."MasterShare"."trackId" IN ($1) OFFSET $2
-prisma:query SELECT "public"."TrackVersion"."id", "public"."TrackVersion"."label", "public"."TrackVersion"."durationSec", "public"."TrackVersion"."kind"::text, "public"."TrackVersion"."sortOrder", "public"."TrackVersion"."trackId" FROM "public"."TrackVersion" WHERE "public"."TrackVersion"."trackId" IN ($1) ORDER BY "public"."TrackVersion"."sortOrder" ASC OFFSET $2
-prisma:query SELECT "public"."TrackStem"."id", "public"."TrackStem"."name", "public"."TrackStem"."group"::text, "public"."TrackStem"."durationSec", "public"."TrackStem"."sortOrder", "public"."TrackStem"."trackId" FROM "public"."TrackStem" WHERE "public"."TrackStem"."trackId" IN ($1) ORDER BY "public"."TrackStem"."sortOrder" ASC OFFSET $2
-[AdminTrackEditPage] track cmkx1ed3f000duq9glemziy2b masterShares: 1
-prisma:query BEGIN
-prisma:query INSERT INTO "public"."Tag" ("id","createdAt","updatedAt","slug","name","type") VALUES ($1,$2,$3,$4,$5,CAST($6::text AS "public"."TagType")) ON CONFLICT ("slug") DO UPDATE SET "name" = $7, "type" = CAST($8::text AS "public"."TagType"), "updatedAt" = $9 WHERE ("public"."Tag"."slug" = $10 AND 1=1) RETURNING "public"."Tag"."id", "public"."Tag"."createdAt", "public"."Tag"."updatedAt", "public"."Tag"."slug", "public"."Tag"."name", "public"."Tag"."type"::text
-prisma:query INSERT INTO "public"."Tag" ("id","createdAt","updatedAt","slug","name","type") VALUES ($1,$2,$3,$4,$5,CAST($6::text AS "public"."TagType")) ON CONFLICT ("slug") DO UPDATE SET "name" = $7, "type" = CAST($8::text AS "public"."TagType"), "updatedAt" = $9 WHERE ("public"."Tag"."slug" = $10 AND 1=1) RETURNING "public"."Tag"."id", "public"."Tag"."createdAt", "public"."Tag"."updatedAt", "public"."Tag"."slug", "public"."Tag"."name", "public"."Tag"."type"::text
-prisma:query INSERT INTO "public"."Tag" ("id","createdAt","updatedAt","slug","name","type") VALUES ($1,$2,$3,$4,$5,CAST($6::text AS "public"."TagType")) ON CONFLICT ("slug") DO UPDATE SET "name" = $7, "type" = CAST($8::text AS "public"."TagType"), "updatedAt" = $9 WHERE ("public"."Tag"."slug" = $10 AND 1=1) RETURNING "public"."Tag"."id", "public"."Tag"."createdAt", "public"."Tag"."updatedAt", "public"."Tag"."slug", "public"."Tag"."name", "public"."Tag"."type"::text
-prisma:query COMMIT
-prisma:query SELECT "public"."Tag"."id", "public"."Tag"."slug", "public"."Tag"."name" FROM "public"."Tag" WHERE "public"."Tag"."type" = CAST($1::text AS "public"."TagType") ORDER BY "public"."Tag"."name" ASC OFFSET $2
- GET /admin/track/cmkx1ed3f000duq9glemziy2b/edit 200 in 927ms
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <RightsFormClient trackId="cmkx1ed3f0..." track={{mfn:false, ...}} fieldErrors={{}}>
+      <div className="space-y-4">
+        <div>
+        <div className="space-y-4">
+          <div>
+          <div className="space-y-3 ...">
+            <h3>
+            <p>
+            <div>
+            <p>
+            <DndContext sensors={[...]} collisionDetection={function closestCenter} ...>
+              <div className="overflow-x...">
+                <SortableContext items={[...]} strategy={function verticalListSortingStrategy}>
+                  <table className="min-w-full...">
+                    <thead>
+                    <tbody>
+                      <SortableRow id="cml2gmr2i0...">
+                        <tr
+                          ref={function}
+                          style={{transform:undefined,transition:undefined}}
+                          role="button"
+                          tabIndex={0}
+                          aria-disabled={false}
+                          aria-pressed={undefined}
+                          aria-roledescription="sortable"
++                         aria-describedby="DndDescribedBy-2"
+-                         aria-describedby="DndDescribedBy-1"
+                          onPointerDown={function}
+                          className="border-t border-border/60"
+                        >
+              ...
+              ...
+            ...
+          ...
+        ...
+
+
+
+    at tr (<anonymous>:null:null)
+    at SortableRow (src/components/admin/track/RightsFormClient.tsx:98:5)
+    at eval (src/components/admin/track/RightsFormClient.tsx:735:27)
+    at Array.map (<anonymous>:null:null)
+    at RightsFormClient (src/components/admin/track/RightsFormClient.tsx:732:36)
+    at TrackEditForm (src/components/admin/track/TrackEditForm.tsx:197:11)
+    at AdminTrackEditPage (src/app/admin/track/[id]/edit/page.tsx:518:9)
+
+## Code Frame
+   96 |   };
+   97 |   return (
+>  98 |     <tr
+      |     ^
+   99 |       ref={setNodeRef}
+  100 |       style={style}
+  101 |       {...attributes}
+
+Next.js version: 15.5.9 (Webpack)

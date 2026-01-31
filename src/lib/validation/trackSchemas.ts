@@ -283,6 +283,7 @@ export const rightsFormSchema = rightsFormBaseSchema.transform((values) => {
     ipiNumber?: string | null;
     pro?: string | null;
     caeNumber?: string | null;
+    sortOrder?: number | null;
   }[] = [];
 
   let parsedMasterShares: {
@@ -290,6 +291,7 @@ export const rightsFormSchema = rightsFormBaseSchema.transform((values) => {
     sharePct: number | null;
     contact?: string | null;
     notes?: string | null;
+    sortOrder?: number | null;
   }[] = [];
 
   if (typeof values.publishingShares === "string" && values.publishingShares.trim() !== "") {
@@ -304,6 +306,10 @@ export const rightsFormSchema = rightsFormBaseSchema.transform((values) => {
             ipiNumber: normalizeText(s.ipiNumber),
             pro: normalizeText(s.pro),
             caeNumber: normalizeText(s.caeNumber),
+            sortOrder:
+              typeof s.sortOrder === "number" && Number.isFinite(s.sortOrder)
+                ? s.sortOrder
+                : null,
           }))
           .filter((s) => s.name);
       }
@@ -322,6 +328,10 @@ export const rightsFormSchema = rightsFormBaseSchema.transform((values) => {
             sharePct: normalizeNullableInt(s.sharePct),
             contact: normalizeText(s.contact),
             notes: normalizeText(s.notes),
+            sortOrder:
+              typeof s.sortOrder === "number" && Number.isFinite(s.sortOrder)
+                ? s.sortOrder
+                : null,
           }))
           .filter((s) => s.name);
       }

@@ -12,6 +12,7 @@ const shareSchema = z.object({
   ipiNumber: z.string().nullable().optional(),
   pro: z.string().nullable().optional(),
   caeNumber: z.string().nullable().optional(),
+  sortOrder: z.number().int().nullable().optional(),
 });
 
 const payloadSchema = z.object({
@@ -61,7 +62,7 @@ export async function updatePublishingShares(input: unknown): Promise<Result> {
 
       if (shares.length) {
         await tx.publishingShare.createMany({
-          data: shares.map((s) => ({
+          data: shares.map((s, idx) => ({
             trackId,
             role: s.role,
             name: s.name,
@@ -69,6 +70,7 @@ export async function updatePublishingShares(input: unknown): Promise<Result> {
             ipiNumber: s.ipiNumber ?? null,
             pro: s.pro ?? null,
             caeNumber: s.caeNumber ?? null,
+            sortOrder: s.sortOrder ?? idx,
           })),
         });
       }

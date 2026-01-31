@@ -9,6 +9,7 @@ const masterShareSchema = z.object({
   sharePct: z.number().int().min(0).max(100).nullable(),
   contact: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+  sortOrder: z.number().int().nullable().optional(),
 });
 
 const payloadSchema = z.object({
@@ -36,12 +37,13 @@ export async function updateMasterShares(input: unknown): Promise<Result> {
       await tx.masterShare.deleteMany({ where: { trackId } });
       if (shares.length) {
         await tx.masterShare.createMany({
-          data: shares.map((s) => ({
+          data: shares.map((s, idx) => ({
             trackId,
             name: s.name,
             sharePct: s.sharePct,
             contact: s.contact ?? null,
             notes: s.notes ?? null,
+            sortOrder: s.sortOrder ?? idx,
           })),
         });
       }

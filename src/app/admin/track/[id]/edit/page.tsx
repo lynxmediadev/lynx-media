@@ -126,15 +126,28 @@ export default async function AdminTrackEditPage({
       // publishingSplit: true,
       publishingShares: {
         select: {
+          id: true,
           role: true,
           name: true,
           ipiNumber: true,
           pro: true,
           caeNumber: true,
           sharePct: true,
+          sortOrder: true,
         },
+        orderBy: { sortOrder: "asc" },
       },
-      masterShares: { select: { id: true, name: true, sharePct: true, contact: true, notes: true } },
+      masterShares: {
+        select: {
+          id: true,
+          name: true,
+          sharePct: true,
+          contact: true,
+          notes: true,
+          sortOrder: true,
+        },
+        orderBy: { sortOrder: "asc" },
+      },
       versions: {
         select: {
           label: true,

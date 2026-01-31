@@ -108,6 +108,8 @@ export async function updateRights(
             pro: s.pro ?? null,
             caeNumber: s.caeNumber ?? null,
             sharePct: s.sharePct ?? null,
+            sortOrder:
+              typeof s.sortOrder === "number" ? s.sortOrder : null,
           })),
         }),
       );
@@ -123,6 +125,7 @@ export async function updateRights(
             sharePct: s.sharePct ?? null,
             contact: s.contact ?? null,
             notes: s.notes ?? null,
+            sortOrder: typeof s.sortOrder === "number" ? s.sortOrder : null,
           })),
         }),
       );

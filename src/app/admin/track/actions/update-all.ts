@@ -130,6 +130,7 @@ export async function updateTrackAll(
         pro: s.pro ?? null,
         caeNumber: s.caeNumber ?? null,
         sharePct: s.sharePct ?? null,
+        sortOrder: typeof s.sortOrder === "number" ? s.sortOrder : null,
       })) ?? [];
 
     const writerSum = sharesToCreate
@@ -145,6 +146,7 @@ export async function updateTrackAll(
         sharePct: s.sharePct ?? null,
         contact: s.contact ?? null,
         notes: s.notes ?? null,
+        sortOrder: typeof s.sortOrder === "number" ? s.sortOrder : null,
       })) ?? [];
 
     if (rightsData.oneStop && (writerSum !== 100 || publisherSum !== 100)) {
@@ -216,6 +218,7 @@ export async function updateTrackAll(
             pro: share.pro ?? null,
             caeNumber: share.caeNumber ?? null,
             sharePct: share.sharePct,
+            sortOrder: share.sortOrder,
           })),
         });
       }
@@ -229,6 +232,7 @@ export async function updateTrackAll(
             sharePct: ms.sharePct,
             contact: ms.contact,
             notes: ms.notes,
+            sortOrder: ms.sortOrder,
           })),
         });
       }
