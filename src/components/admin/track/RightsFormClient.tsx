@@ -21,6 +21,7 @@ import {
 import { updatePublishingShares } from "@/app/admin/track/actions/update-publishing-shares";
 import { updateMasterShares } from "@/app/admin/track/actions/update-master-shares";
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
+import { restrictToParentElement, restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import {
   SortableContext,
   arrayMove,
@@ -578,6 +579,7 @@ export default function RightsFormClient({
               sensors={sensors}
               collisionDetection={closestCenter}
               onDragEnd={handleShareDragEnd}
+              modifiers={[restrictToVerticalAxis, restrictToParentElement]}
               accessibility={{ describedById: dndDescIdShares }}
             >
               <div className="space-y-6">
@@ -624,7 +626,7 @@ export default function RightsFormClient({
                                 <th className="px-2 py-2 text-left">IPI</th>
                                 <th className="px-2 py-2 text-left">PRO</th>
                                 <th className="px-2 py-2 text-left">CAE</th>
-                                <th className="px-2 py-2 text-right">Acciones</th>
+                                <th className="px-2 py-2 text-center">Acciones</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -841,6 +843,7 @@ export default function RightsFormClient({
             sensors={sensors}
             collisionDetection={closestCenter}
             onDragEnd={handleMasterDragEnd}
+            modifiers={[restrictToVerticalAxis, restrictToParentElement]}
             accessibility={{ describedById: dndDescIdMaster }}
           >
             <div className="overflow-x-auto rounded-md border border-border">
@@ -856,7 +859,7 @@ export default function RightsFormClient({
                       <th className="px-2 py-2 text-left w-20">%</th>
                       <th className="px-2 py-2 text-left">Contacto</th>
                       <th className="px-2 py-2 text-left">Notas</th>
-                      <th className="px-2 py-2 text-right">Acciones</th>
+                                <th className="px-2 py-2 text-center">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>

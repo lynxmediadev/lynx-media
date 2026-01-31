@@ -1,28 +1,44 @@
-## Error Type
-Runtime ReferenceError
+ddfer@DESKTOP-8TCFJ8A:~/projects/lynx-media$ rm -rf .next
+ddfer@DESKTOP-8TCFJ8A:~/projects/lynx-media$ npm run dev
 
-## Error Message
-savingWriter is not defined
+> lynx-media@0.1.0 dev
+> next dev
 
+   ▲ Next.js 15.5.9
+   - Local:        http://localhost:3000
+   - Network:      http://172.29.69.123:3000
+   - Environments: .env.local, .env
 
-    at eval (src/components/admin/track/RightsFormClient.tsx:743:70)
-    at Array.map (<anonymous>:null:null)
-    at RightsFormClient (src/components/admin/track/RightsFormClient.tsx:537:53)
-    at TrackEditForm (src/components/admin/track/TrackEditForm.tsx:197:11)
-    at AdminTrackEditPage (src/app/admin/track/[id]/edit/page.tsx:518:9)
+ ✓ Starting...
+ ✓ Ready in 1779ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled /middleware in 459ms (114 modules)
+ ○ Compiling /admin/track/[id]/edit ...
+ ⨯ ./src/components/admin/track/RightsFormClient.tsx:24:1
+Module not found: Can't resolve '@dnd-kit/modifiers'
+  22 | import { updateMasterShares } from "@/app/admin/track/actions/update-master-shares";
+  23 | import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
+> 24 | import { restrictToParentElement, restrictToVerticalAxis } from "@dnd-kit/modifiers";
+     | ^
+  25 | import {
+  26 |   SortableContext,
+  27 |   arrayMove,
 
-## Code Frame
-  741 |                               type="button"
-  742 |                               onClick={() => handleAddShare(role)}
-> 743 |                               disabled={pendingShares || (isWriter ? savingWriter : savingPublisher)}
-      |                                                                      ^
-  744 |                               className="inline-flex h-8 items-center justify-center rounded border border-border bg-card px-3 text-xs font-semibold text-foreground hover:border-foreground/70"
-  745 |                             >
-  746 |                               {isWriter
+https://nextjs.org/docs/messages/module-not-found
 
-Next.js version: 15.5.9 (Webpack)
+Import trace for requested module:
+./src/components/admin/track/TrackEditForm.tsx
+ ⨯ ./src/components/admin/track/RightsFormClient.tsx:24:1
+Module not found: Can't resolve '@dnd-kit/modifiers'
+  22 | import { updateMasterShares } from "@/app/admin/track/actions/update-master-shares";
+  23 | import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
+> 24 | import { restrictToParentElement, restrictToVerticalAxis } from "@dnd-kit/modifiers";
+     | ^
+  25 | import {
+  26 |   SortableContext,
+  27 |   arrayMove,
 
+https://nextjs.org/docs/messages/module-not-found
 
-
-
-
+Import trace for requested module:
+./src/components/admin/track/TrackEditForm.tsx
