@@ -1,5 +1,14 @@
 # RESUMEN DE CAMBIOS (Sesión actual)
 
+## Responsive (público + admin)
+- **Base**: padding responsivo en shells, helpers globales (`.stack-sm`, `.table-scroll`, `.touch-gap`, `.full-sm`, `.btn-touch`), body `text-sm` y radius centralizado.
+- **Catálogo público**: tabla con scroll-x, header responsivo, categorías en wrap, waveform más bajo (22px), tooltips accesibles.
+- **Track público**: hero apilable en mobile (cover + waveform + botones), metadata compacta; “Piezas similares” reutiliza layout del catálogo con scroll-x.
+- **Servicios**: formularios stack en mobile (inputs full-width, CTA adaptables), breakdown sticky solo en desktop.
+- **Admin requests**: filtros en grid responsivo, lista con scroll-x; detalle con tablas en `table-scroll`.
+- **Admin tracks list**: tabla con scroll-x y min-width.
+- **Admin track edit**: botón “Guardar todo” adaptable; tablas de Writers/Publishers/Master con `table-scroll`.
+
 ## Nuevas páginas de servicios
 - **/servicios/design**: página completa de Diseño Gráfico con hero, catálogo de servicios, proceso, paquetes y CTAs (shadcn cards, botones e íconos).
 - **/servicios/sound-design**: página de Diseño Sonoro para audiovisual con módulos de servicio, flujo de trabajo, entregables y opcionales (shadcn cards, botones, íconos).

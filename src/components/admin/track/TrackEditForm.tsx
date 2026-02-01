@@ -144,7 +144,7 @@ export default function TrackEditForm({
             disabled={pending}
             variant="outline"
             size="lg"
-            className="h-12 px-6 text-xs font-semibold"
+            className="h-12 px-6 text-xs font-semibold full-sm btn-touch"
           >
             {pending ? "Guardando..." : "Guardar todo"}
           </Button>

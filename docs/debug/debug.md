@@ -33,3 +33,6 @@ Creo que llevamos demasiado tiempo en esto, ¿será mejor crear desde cero esa s
 Crear el schema de Titulares de master (múltiples) desde cero, agregar a prisma o a db desde cero?
 se habrá hecho mal la migración de prisma? habrá un problema con supabase?
 ¿la conexión estará mal hecha?
+- Responsivo (mar 2026): helpers en globals (`.stack-sm`, `.table-scroll`, `.touch-gap`, `.full-sm`, `.btn-touch`).
+- Catálogo/track: tabla scrollable, waveform 22px, hero apilable, similares usan `table-scroll`.
+- Admin: headers con wrap; requests lista/detalle scroll-x; tracks list scroll-x; track edit shares/master con `table-scroll` y botón guardar adaptable.

@@ -69,6 +69,12 @@
 - Archivo local no versionado: `PRE_PROD.md` (checklist antes de prod).
 - Ruta de licencia duplicada eliminada: no existe `/tracks/[id]/license`.
 
+## Responsivo (guía rápida)
+- Helpers en `globals.css`: `.stack-sm` (columna en mobile), `.table-scroll` (scroll-x amable), `.touch-gap`, `.full-sm` (botón full en sm), `.btn-touch` (hit-area ≥40px).
+- Catálogo/track: tablas con scroll-x y waveform bajo; hero del track apila cover/waveform/botones en mobile.
+- Admin: headers con wrap, listas (requests, tracks) con scroll-x; track edit usa `table-scroll` para shares/master y botón guardar adaptable.
+- Mantener radio global 2px; no hardcodear colores (usar tokens).
+
 ## Buenas practicas de UX
 - Estetica cinematografica, elegante, minimalista, dark-by-default.
 - Alto contraste y jerarquia tipografica clara.

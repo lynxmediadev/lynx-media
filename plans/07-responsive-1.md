@@ -47,23 +47,24 @@ Objetivo: Adaptar **todo el proyecto** a mobile (>=320px) sin romper desktop. Ca
 - [x] Tabla scrollable; columnas críticas visibles; acciones en botón icónico con tooltip/label.
 
 ## Paso 8 · Admin: track edit
-- [ ] Secciones largas (`TrackEditForm`): usar `grid md:grid-cols-2` → `grid-cols-1` en `sm`; reducir gaps.
-- [ ] Tablas de shares/master (`RightsFormClient`): 
+- [x] Secciones largas (`TrackEditForm`): usar `grid md:grid-cols-2` → `grid-cols-1` en `sm`; reducir gaps.
+- [x] Tablas de shares/master (`RightsFormClient`): 
   - `table-scroll` en `sm`.
   - Celdas compactas, inputs 100% ancho; DnD handle-only ya aplicado.
   - Botón “Guardar todo” visible y usable en mobile (considerar `w-full sm:w-auto`).
-- [ ] Otros bloques (stems/versions/restricciones): stack y scroll-x donde aplique.
+- [x] Otros bloques (stems/versions/restricciones): stack y scroll-x donde aplique.
 
 ## Paso 9 · Componentes transversales
-- [ ] Buttons/inputs/selects/tooltips/modals: revisar tamaños en mobile; padding/hit-area.
-- [ ] Audio components (WaveformScrubber/PublicAudioBar): alturas y paddings responsivos; evitar overflow.
+- [x] Buttons/inputs/selects/tooltips/modals: revisar tamaños en mobile; padding/hit-area.
+- [x] Audio components (WaveformScrubber/PublicAudioBar): alturas y paddings responsivos; evitar overflow.
 
 ## Paso 10 · QA
-- [ ] Breakpoints: 320, 375, 414, 768, 1024, 1280.
-- [ ] Flujos: catálogo → track → acciones; servicios formulario envío; admin requests CRUD; admin track edit (shares/master con DnD).
-- [ ] Validar scroll-x en tablas y que no aparezcan scrollbars innecesarios.
+- [x] Breakpoints: 320, 375, 414, 768, 1024, 1280.
+- [x] Flujos: catálogo → track → acciones; servicios formulario envío; admin requests CRUD; admin track edit (shares/master con DnD).
+- [x] Validar scroll-x en tablas y que no aparezcan scrollbars innecesarios.
+- [x] Probar DnD en mobile (writer/publisher/master) y que el handle-only siga permitiendo selección de texto en inputs.
 
 ## Paso 11 · Documentación
-- [ ] Actualizar `RESUMEN.md` y `AI_CONTEXT.md` con cobertura responsive.
-- [ ] Si hubo cambios de helpers, documentarlos en `docs/debug/debug.md` o `RESUMEN.md`.
+- [x] Actualizar `RESUMEN.md` y `AI_CONTEXT.md` con cobertura responsive.
+- [x] Si hubo cambios de helpers, documentarlos en `docs/debug/debug.md` o `RESUMEN.md`.
 - [ ] Confirmar push final a `codex1`.

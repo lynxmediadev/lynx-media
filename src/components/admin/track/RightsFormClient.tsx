@@ -629,6 +629,7 @@ export default function RightsFormClient({
                           </span>
                         </div>
                         <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+                          <div className="table-scroll">
                           <table className="min-w-full text-xs">
                             <thead className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
                               <tr>
@@ -726,6 +727,7 @@ export default function RightsFormClient({
                               )}
                             </tbody>
                           </table>
+                          </div>
                         </SortableContext>
                       </div>
 
@@ -868,7 +870,7 @@ export default function RightsFormClient({
             modifiers={[restrictToVerticalAxis, restrictToParentElement]}
             accessibility={{ describedById: dndDescIdMaster }}
           >
-            <div className="overflow-x-auto rounded-md border border-border">
+            <div className="overflow-x-auto rounded-md border border-border table-scroll">
               <SortableContext
                 items={masterShares.map((ms, idx) => ms.id ?? `ms-${idx}`)}
                 strategy={verticalListSortingStrategy}
