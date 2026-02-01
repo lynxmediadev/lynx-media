@@ -85,16 +85,20 @@ const sortByOrder = <T extends { sortOrder?: number | null; name?: string }>(
   return (a.name ?? "").localeCompare(b.name ?? "");
 };
 
+type HandleProps = {
+  ref: (node: HTMLElement | null) => void;
+} & React.HTMLAttributes<HTMLElement>;
+
 function SortableRow({
   id,
   children,
   describedBy,
 }: {
   id: string;
-  children: React.ReactNode;
+  children: (handleProps: HandleProps) => React.ReactNode;
   describedBy?: string;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition } =
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } =
     useSortable({ id });
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -111,10 +115,12 @@ function SortableRow({
       ref={setNodeRef}
       style={style}
       {...attrs}
-      {...listeners}
       className="border-t border-border/60"
     >
-      {children}
+      {children({
+        ref: setActivatorNodeRef,
+        ...listeners,
+      })}
     </tr>
   );
 }
@@ -543,6 +549,13 @@ export default function RightsFormClient({
       .finally(() => setSavingMaster(false));
   };
 
+  const handleMasterKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddMaster();
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-2 border-b border-border pb-3 sm:flex-row sm:items-center sm:justify-between">
@@ -645,58 +658,68 @@ export default function RightsFormClient({
                                       id={rowId}
                                       describedBy={dndDescIdShares}
                                     >
-                                      <td className="px-2 py-2 text-center w-10">
-                                        <GripHorizontal className="mx-auto h-4 w-4 text-muted-foreground" />
-                                      </td>
-                                      <td className="px-2 py-2">
-                                        <Input
-                                          value={share.name}
-                                          onChange={(e) => handleShareChange(globalIdx, "name", e.target.value)}
-                                          className="h-8 text-xs"
-                                        />
-                                      </td>
-                                      <td className="px-2 py-2">
-                                        <Input
-                                          type="number"
-                                          min={0}
-                                          max={100}
-                                          value={share.sharePct ?? ""}
-                                          onChange={(e) => handleShareChange(globalIdx, "sharePct", e.target.value)}
-                                          className="h-8 text-xs text-right"
-                                        />
-                                      </td>
-                                      <td className="px-2 py-2">
-                                        <Input
-                                          value={share.ipiNumber ?? ""}
-                                          onChange={(e) => handleShareChange(globalIdx, "ipiNumber", e.target.value)}
-                                          className="h-8 text-xs"
-                                        />
-                                      </td>
-                                      <td className="px-2 py-2">
-                                        <Input
-                                          value={share.pro ?? ""}
-                                          onChange={(e) => handleShareChange(globalIdx, "pro", e.target.value)}
-                                          className="h-8 text-xs"
-                                        />
-                                      </td>
-                                      <td className="px-2 py-2">
-                                        <Input
-                                          value={share.caeNumber ?? ""}
-                                          onChange={(e) => handleShareChange(globalIdx, "caeNumber", e.target.value)}
-                                          className="h-8 text-xs"
-                                        />
-                                      </td>
-                                      <td className="px-2 py-2 text-right">
-                                        <button
-                                          type="button"
-                                          onClick={() => handleDeleteShare(globalIdx)}
-                                          className="inline-flex w-full items-center justify-center text-destructive hover:text-destructive/80"
-                                          aria-label="Eliminar share"
-                                          disabled={pendingShares}
-                                        >
-                                          <SquareX className="h-4 w-4" />
-                                        </button>
-                                      </td>
+                                      {(handleProps) => (
+                                        <>
+                                          <td className="px-2 py-2 text-center w-10">
+                                            <span
+                                              {...handleProps}
+                                              className="mx-auto inline-flex h-4 w-4 cursor-grab items-center justify-center text-muted-foreground"
+                                              aria-label="Reordenar"
+                                            >
+                                              <GripHorizontal className="h-4 w-4" />
+                                            </span>
+                                          </td>
+                                          <td className="px-2 py-2">
+                                            <Input
+                                              value={share.name}
+                                              onChange={(e) => handleShareChange(globalIdx, "name", e.target.value)}
+                                              className="h-8 text-xs"
+                                            />
+                                          </td>
+                                          <td className="px-2 py-2">
+                                            <Input
+                                              type="number"
+                                              min={0}
+                                              max={100}
+                                              value={share.sharePct ?? ""}
+                                              onChange={(e) => handleShareChange(globalIdx, "sharePct", e.target.value)}
+                                              className="h-8 text-xs text-right"
+                                            />
+                                          </td>
+                                          <td className="px-2 py-2">
+                                            <Input
+                                              value={share.ipiNumber ?? ""}
+                                              onChange={(e) => handleShareChange(globalIdx, "ipiNumber", e.target.value)}
+                                              className="h-8 text-xs"
+                                            />
+                                          </td>
+                                          <td className="px-2 py-2">
+                                            <Input
+                                              value={share.pro ?? ""}
+                                              onChange={(e) => handleShareChange(globalIdx, "pro", e.target.value)}
+                                              className="h-8 text-xs"
+                                            />
+                                          </td>
+                                          <td className="px-2 py-2">
+                                            <Input
+                                              value={share.caeNumber ?? ""}
+                                              onChange={(e) => handleShareChange(globalIdx, "caeNumber", e.target.value)}
+                                              className="h-8 text-xs"
+                                            />
+                                          </td>
+                                          <td className="px-2 py-2 text-right">
+                                            <button
+                                              type="button"
+                                              onClick={() => handleDeleteShare(globalIdx)}
+                                              className="inline-flex w-full items-center justify-center text-destructive hover:text-destructive/80"
+                                              aria-label="Eliminar share"
+                                              disabled={pendingShares}
+                                            >
+                                              <SquareX className="h-4 w-4" />
+                                            </button>
+                                          </td>
+                                        </>
+                                      )}
                                     </SortableRow>
                                   );
                                 })
@@ -877,55 +900,61 @@ export default function RightsFormClient({
                             id={rowId}
                             describedBy={dndDescIdMaster}
                           >
-                            <td className="px-2 py-2 text-center w-10">
-                              <GripHorizontal className="mx-auto h-4 w-4 text-muted-foreground" />
-                            </td>
-                            <td className="px-2 py-2">
-                              <Input
-                                value={ms.name}
-                                onChange={(e) => handleMasterChange(idx, "name", e.target.value)}
-                                onBlur={(e) => handleMasterBlur(idx, "name", e.target.value)}
-                                className="h-8 text-xs"
-                              />
-                            </td>
-                            <td className="px-2 py-2">
-                              <Input
-                                type="number"
-                                min={0}
-                                max={100}
-                                value={ms.sharePct ?? ""}
-                                onChange={(e) => handleMasterChange(idx, "sharePct", e.target.value)}
-                                onBlur={(e) => handleMasterBlur(idx, "sharePct", e.target.value)}
-                                className="h-8 text-xs text-right"
-                              />
-                            </td>
-                            <td className="px-2 py-2">
-                              <Input
-                                value={ms.contact ?? ""}
-                                onChange={(e) => handleMasterChange(idx, "contact", e.target.value)}
-                                onBlur={(e) => handleMasterBlur(idx, "contact", e.target.value)}
-                                className="h-8 text-xs"
-                              />
-                            </td>
-                            <td className="px-2 py-2">
-                              <Input
-                                value={ms.notes ?? ""}
-                                onChange={(e) => handleMasterChange(idx, "notes", e.target.value)}
-                                onBlur={(e) => handleMasterBlur(idx, "notes", e.target.value)}
-                                className="h-8 text-xs"
-                              />
-                            </td>
-                <td className="px-2 py-2 text-right">
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteMaster(idx)}
-                    className="inline-flex w-full items-center justify-center text-destructive hover:text-destructive/80"
-                    aria-label="Eliminar titular master"
-                    disabled={pendingMaster}
-                  >
-                    <SquareX className="h-4 w-4" />
-                              </button>
-                            </td>
+                            {(handleProps) => (
+                              <>
+                                <td className="px-2 py-2 text-center w-10">
+                                  <span
+                                    {...handleProps}
+                                    className="mx-auto inline-flex h-4 w-4 cursor-grab items-center justify-center text-muted-foreground"
+                                    aria-label="Reordenar"
+                                  >
+                                    <GripHorizontal className="h-4 w-4" />
+                                  </span>
+                                </td>
+                                <td className="px-2 py-2">
+                                  <Input
+                                    value={ms.name}
+                                    onChange={(e) => handleMasterChange(idx, "name", e.target.value)}
+                                    className="h-8 text-xs"
+                                  />
+                                </td>
+                                <td className="px-2 py-2">
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    value={ms.sharePct ?? ""}
+                                    onChange={(e) => handleMasterChange(idx, "sharePct", e.target.value)}
+                                    className="h-8 text-xs text-right"
+                                  />
+                                </td>
+                                <td className="px-2 py-2">
+                                  <Input
+                                    value={ms.contact ?? ""}
+                                    onChange={(e) => handleMasterChange(idx, "contact", e.target.value)}
+                                    className="h-8 text-xs"
+                                  />
+                                </td>
+                                <td className="px-2 py-2">
+                                  <Input
+                                    value={ms.notes ?? ""}
+                                    onChange={(e) => handleMasterChange(idx, "notes", e.target.value)}
+                                    className="h-8 text-xs"
+                                  />
+                                </td>
+                                <td className="px-2 py-2 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteMaster(idx)}
+                                    className="inline-flex w-full items-center justify-center text-destructive hover:text-destructive/80"
+                                    aria-label="Eliminar titular master"
+                                    disabled={pendingMaster}
+                                  >
+                                    <SquareX className="h-4 w-4" />
+                                  </button>
+                                </td>
+                              </>
+                            )}
                           </SortableRow>
                         );
                       })
@@ -945,12 +974,7 @@ export default function RightsFormClient({
                   onChange={(e) => setNewMaster((prev) => ({ ...prev, name: e.target.value }))}
                   className="h-8 text-xs"
                   placeholder="Titular master"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddMaster();
-                    }
-                  }}
+                  onKeyDown={handleMasterKeyDown}
                 />
               </div>
               <div className="flex w-20 flex-col gap-1">
@@ -967,6 +991,7 @@ export default function RightsFormClient({
                     }))
                   }
                   className="h-8 text-xs text-right"
+                  onKeyDown={handleMasterKeyDown}
                 />
               </div>
               <div className="flex min-w-[160px] flex-1 flex-col gap-1">
@@ -976,6 +1001,7 @@ export default function RightsFormClient({
                   onChange={(e) => setNewMaster((prev) => ({ ...prev, contact: e.target.value }))}
                   className="h-8 text-xs"
                   placeholder="Email / teléfono"
+                  onKeyDown={handleMasterKeyDown}
                 />
               </div>
               <div className="flex min-w-[160px] flex-1 flex-col gap-1">
@@ -985,6 +1011,7 @@ export default function RightsFormClient({
                   onChange={(e) => setNewMaster((prev) => ({ ...prev, notes: e.target.value }))}
                   className="h-8 text-xs"
                   placeholder="Observaciones"
+                  onKeyDown={handleMasterKeyDown}
                 />
               </div>
               <button

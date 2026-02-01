@@ -1,44 +1,26 @@
-ddfer@DESKTOP-8TCFJ8A:~/projects/lynx-media$ rm -rf .next
-ddfer@DESKTOP-8TCFJ8A:~/projects/lynx-media$ npm run dev
+## Error Type
+Runtime ReferenceError
 
-> lynx-media@0.1.0 dev
-> next dev
+## Error Message
+handleMasterBlur is not defined
 
-   ▲ Next.js 15.5.9
-   - Local:        http://localhost:3000
-   - Network:      http://172.29.69.123:3000
-   - Environments: .env.local, .env
 
- ✓ Starting...
- ✓ Ready in 1779ms
- ⚠ Fast Refresh had to perform a full reload due to a runtime error.
- ✓ Compiled /middleware in 459ms (114 modules)
- ○ Compiling /admin/track/[id]/edit ...
- ⨯ ./src/components/admin/track/RightsFormClient.tsx:24:1
-Module not found: Can't resolve '@dnd-kit/modifiers'
-  22 | import { updateMasterShares } from "@/app/admin/track/actions/update-master-shares";
-  23 | import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
-> 24 | import { restrictToParentElement, restrictToVerticalAxis } from "@dnd-kit/modifiers";
-     | ^
-  25 | import {
-  26 |   SortableContext,
-  27 |   arrayMove,
+    at onBlur (src/components/admin/track/RightsFormClient.tsx:898:48)
+    at input (<anonymous>:null:null)
+    at Input (src/components/ui/input.tsx:7:5)
+    at eval (src/components/admin/track/RightsFormClient.tsx:892:31)
+    at Array.map (<anonymous>:null:null)
+    at RightsFormClient (src/components/admin/track/RightsFormClient.tsx:872:36)
+    at TrackEditForm (src/components/admin/track/TrackEditForm.tsx:197:11)
+    at AdminTrackEditPage (src/app/admin/track/[id]/edit/page.tsx:518:9)
 
-https://nextjs.org/docs/messages/module-not-found
+## Code Frame
+  896 |                                 value={ms.sharePct ?? ""}
+  897 |                                 onChange={(e) => handleMasterChange(idx, "sharePct", e.target.value)}
+> 898 |                                 onBlur={(e) => handleMasterBlur(idx, "sharePct", e.target.value)}
+      |                                                ^
+  899 |                                 className="h-8 text-xs text-right"
+  900 |                               />
+  901 |                             </td>
 
-Import trace for requested module:
-./src/components/admin/track/TrackEditForm.tsx
- ⨯ ./src/components/admin/track/RightsFormClient.tsx:24:1
-Module not found: Can't resolve '@dnd-kit/modifiers'
-  22 | import { updateMasterShares } from "@/app/admin/track/actions/update-master-shares";
-  23 | import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
-> 24 | import { restrictToParentElement, restrictToVerticalAxis } from "@dnd-kit/modifiers";
-     | ^
-  25 | import {
-  26 |   SortableContext,
-  27 |   arrayMove,
-
-https://nextjs.org/docs/messages/module-not-found
-
-Import trace for requested module:
-./src/components/admin/track/TrackEditForm.tsx
+Next.js version: 15.5.9 (Webpack)
