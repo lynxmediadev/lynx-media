@@ -101,10 +101,10 @@ export default async function RequestDetailPage({
               <h1 className="text-2xl font-semibold text-foreground">{req.serviceType}</h1>
               <p className="text-xs text-muted-foreground">{req.id}</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary" className="text-xs uppercase tracking-wide">{req.status}</Badge>
               <Badge variant="outline" className="text-xs">U{req.urgency}</Badge>
-              <Button asChild variant="outline" className="rounded-[2px] text-xs">
+              <Button asChild variant="outline" className="rounded-[2px] text-xs full-sm">
                 <Link href="/admin/requests">Volver a la lista</Link>
               </Button>
             </div>
@@ -118,72 +118,74 @@ export default async function RequestDetailPage({
             <CardTitle className="text-sm font-semibold">Datos + Contacto</CardTitle>
           </CardHeader>
           <CardContent className="text-xs">
-            <table className="w-full border border-border text-xs">
-              <thead className="bg-card">
-                <tr>
-                  <th className="px-2 py-1 text-left text-[10px] uppercase text-muted-foreground border-b border-border">Ítem</th>
-                  <th className="px-2 py-1 text-left text-[10px] uppercase text-muted-foreground border-b border-border">Dato</th>
-                  <th className="px-2 py-1 text-right text-[10px] uppercase text-muted-foreground border-b border-border">Detalle</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                <tr>
-                  <td className="px-2 py-1">Servicio</td>
-                  <td className="px-2 py-1">{req.serviceType}</td>
-                  <td className="px-2 py-1 text-right">—</td>
-                </tr>
-                <tr>
-                  <td className="px-2 py-1">Estado</td>
-                  <td className="px-2 py-1">{req.status}</td>
-                  <td className="px-2 py-1 text-right">U{req.urgency}</td>
-                </tr>
-                <tr>
-                  <td className="px-2 py-1">Creada</td>
-                  <td className="px-2 py-1">{fmt.format(req.createdAt)}</td>
-                  <td className="px-2 py-1 text-right">—</td>
-                </tr>
-                <tr>
-                  <td className="px-2 py-1">Actualizada</td>
-                  <td className="px-2 py-1">{fmt.format(req.updatedAt)}</td>
-                  <td className="px-2 py-1 text-right">—</td>
-                </tr>
-                <tr>
-                  <td className="px-2 py-1">Deadline</td>
-                  <td className="px-2 py-1">{req.deadlineAt ? fmt.format(req.deadlineAt) : "—"}</td>
-                  <td className="px-2 py-1 text-right">—</td>
-                </tr>
-                <tr>
-                  <td className="px-2 py-1">Origen</td>
-                  <td className="px-2 py-1">{req.pageUrl ?? "—"}</td>
-                  <td className="px-2 py-1 text-right">—</td>
-                </tr>
-                <tr>
-                  <td className="px-2 py-1">Nombre</td>
-                  <td className="px-2 py-1">{contact.name ?? req.name}</td>
-                  <td className="px-2 py-1 text-right">—</td>
-                </tr>
-                <tr>
-                  <td className="px-2 py-1">Email</td>
-                  <td className="px-2 py-1">{contact.email ?? req.email}</td>
-                  <td className="px-2 py-1 text-right">—</td>
-                </tr>
-                <tr>
-                  <td className="px-2 py-1">Compañía</td>
-                  <td className="px-2 py-1">{contact.company ?? "—"}</td>
-                  <td className="px-2 py-1 text-right">—</td>
-                </tr>
-                <tr>
-                  <td className="px-2 py-1">Teléfono</td>
-                  <td className="px-2 py-1">{contact.phone ?? "—"}</td>
-                  <td className="px-2 py-1 text-right">—</td>
-                </tr>
-                <tr>
-                  <td className="px-2 py-1">Notas contacto</td>
-                  <td className="px-2 py-1">{contact.notes ?? "—"}</td>
-                  <td className="px-2 py-1 text-right">—</td>
-                </tr>
-              </tbody>
-            </table>
+            <div className="table-scroll">
+              <table className="w-full border border-border text-xs">
+                <thead className="bg-card">
+                  <tr>
+                    <th className="px-2 py-1 text-left text-[10px] uppercase text-muted-foreground border-b border-border">Ítem</th>
+                    <th className="px-2 py-1 text-left text-[10px] uppercase text-muted-foreground border-b border-border">Dato</th>
+                    <th className="px-2 py-1 text-right text-[10px] uppercase text-muted-foreground border-b border-border">Detalle</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  <tr>
+                    <td className="px-2 py-1">Servicio</td>
+                    <td className="px-2 py-1">{req.serviceType}</td>
+                    <td className="px-2 py-1 text-right">—</td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1">Estado</td>
+                    <td className="px-2 py-1">{req.status}</td>
+                    <td className="px-2 py-1 text-right">U{req.urgency}</td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1">Creada</td>
+                    <td className="px-2 py-1">{fmt.format(req.createdAt)}</td>
+                    <td className="px-2 py-1 text-right">—</td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1">Actualizada</td>
+                    <td className="px-2 py-1">{fmt.format(req.updatedAt)}</td>
+                    <td className="px-2 py-1 text-right">—</td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1">Deadline</td>
+                    <td className="px-2 py-1">{req.deadlineAt ? fmt.format(req.deadlineAt) : "—"}</td>
+                    <td className="px-2 py-1 text-right">—</td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1">Origen</td>
+                    <td className="px-2 py-1">{req.pageUrl ?? "—"}</td>
+                    <td className="px-2 py-1 text-right">—</td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1">Nombre</td>
+                    <td className="px-2 py-1">{contact.name ?? req.name}</td>
+                    <td className="px-2 py-1 text-right">—</td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1">Email</td>
+                    <td className="px-2 py-1">{contact.email ?? req.email}</td>
+                    <td className="px-2 py-1 text-right">—</td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1">Compañía</td>
+                    <td className="px-2 py-1">{contact.company ?? "—"}</td>
+                    <td className="px-2 py-1 text-right">—</td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1">Teléfono</td>
+                    <td className="px-2 py-1">{contact.phone ?? "—"}</td>
+                    <td className="px-2 py-1 text-right">—</td>
+                  </tr>
+                  <tr>
+                    <td className="px-2 py-1">Notas contacto</td>
+                    <td className="px-2 py-1">{contact.notes ?? "—"}</td>
+                    <td className="px-2 py-1 text-right">—</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </CardContent>
         </Card>
 

@@ -17,10 +17,7 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur">
-        <div
-          className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 md:px-6"
-          style={{ height: "var(--header-h)" }}
-        >
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-2 md:flex-nowrap md:px-6">
           <div className="flex flex-col leading-tight">
             <Link
               href="/admin/tracks"
@@ -33,7 +30,7 @@ export default function AdminLayout({
             </span>
           </div>
 
-          <nav className="flex items-center gap-4 text-xs md:text-sm">
+          <nav className="flex flex-wrap items-center gap-3 text-xs md:flex-nowrap md:gap-4 md:text-sm">
             <Button asChild variant="secondary" size="sm" className="h-8">
               <Link href="/">Sitio público</Link>
             </Button>

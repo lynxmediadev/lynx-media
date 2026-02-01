@@ -216,6 +216,62 @@ body {
 }
 
 /* =========================================================
+   Helpers responsivos reutilizables
+   ======================================================= */
+/* Stack en mobile: fuerza columna en md- y libera min-width de hijos */
+.stack-sm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--stack-gap, 0.75rem);
+}
+@media (min-width: 768px) {
+  .stack-sm {
+    flex-direction: row;
+  }
+}
+@media (max-width: 767px) {
+  .stack-sm {
+    flex-direction: column;
+  }
+  .stack-sm > * {
+    min-width: 0;
+  }
+}
+
+/* Contenedor de tabla con scroll horizontal amigable a touch */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.table-scroll > table {
+  min-width: 640px;
+}
+
+/* Padding/gap aumentado para touch en pantallas pequeñas */
+@media (max-width: 767px) {
+  .touch-gap {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+}
+
+/* CTA adaptable: ancho completo en mobile, auto en desktop */
+.full-sm {
+  width: 100%;
+}
+@media (min-width: 640px) {
+  .full-sm {
+    width: auto;
+  }
+}
+
+/* Hit-area mínimo para botones en touch */
+.btn-touch {
+  min-height: 40px;
+}
+
+/* =========================================================
    Base layer
    ======================================================= */
 @layer base {
@@ -224,7 +280,6 @@ body {
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground text-sm leading-relaxed;
   }
 }
- 

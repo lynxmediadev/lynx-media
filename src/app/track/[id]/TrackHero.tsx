@@ -88,10 +88,10 @@ export default function TrackHero({
       />
       <div className="absolute inset-0 bg-gradient-to-br from-background/85 via-background/70 to-background/90" />
 
-      <div className="relative z-10 flex flex-col gap-6 px-5 py-6">
+      <div className="relative z-10 flex flex-col gap-6 px-4 py-5 sm:px-5">
         {/* Fila superior: cover a la izquierda, título a la derecha + acciones arriba */}
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4">
-          <div className="flex w-full max-w-[300px] flex-col items-start gap-3 lg:w-[32%]">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch lg:gap-4">
+          <div className="flex w-full max-w-[320px] flex-col items-start gap-3 lg:w-[32%]">
             <div className="relative aspect-square w-full max-w-[280px] overflow-hidden rounded-[2px] border border-border bg-card">
               <Image
                 src={cover}
@@ -119,8 +119,8 @@ export default function TrackHero({
 
           <div className="flex min-w-0 flex-1">
             <div className="flex h-full min-h-[280px] w-full flex-col justify-between gap-3">
-              <div className="flex flex-wrap items-start justify-between gap-6">
-              <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex flex-wrap items-start justify-between gap-3 sm:gap-4">
+                <div className="min-w-0 flex-1 space-y-1">
                   <p className="sr-only">Track público</p>
                   <h1 className="text-2xl font-semibold leading-tight line-clamp-2 break-words">
                     {track.title ?? "Sin título"}
@@ -138,10 +138,10 @@ export default function TrackHero({
                     </span>
                   )}
                 </div>
-                <div className="flex shrink-0 flex-nowrap items-start justify-end gap-2">
-                  <CopyLinkButton />
+                <div className="flex w-full flex-wrap items-start justify-start gap-2 sm:justify-end">
+                  <CopyLinkButton className="full-sm btn-touch" />
                   <LicensingDialog
-                    className="rounded-[2px]"
+                    className="rounded-[2px] full-sm btn-touch"
                     track={{
                       id: track.id,
                       title: track.title,
@@ -156,11 +156,11 @@ export default function TrackHero({
               </div>
 
               <div className="w-full rounded-[2px] border border-border bg-card/40 p-3">
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <h2 className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
                     Metadata
                   </h2>
-                  <span className="text-[11px] text-muted-foreground">Vista rapida</span>
+                  <span className="text-[11px] text-muted-foreground">Vista rápida</span>
                 </div>
                 <div className="mt-3 grid gap-3 sm:grid-cols-3">
                   {metadataItems.map((item) => (
@@ -170,7 +170,7 @@ export default function TrackHero({
               </div>
 
               {detailSections.length ? (
-                <div className="flex w-full flex-row items-stretch gap-2">
+                <div className="flex w-full flex-row items-stretch gap-2 overflow-x-auto py-1">
                   {detailSections.map((section) => (
                     <ActionIconButton
                       key={section.id}

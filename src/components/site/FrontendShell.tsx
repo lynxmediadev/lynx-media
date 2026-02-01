@@ -27,7 +27,7 @@ export default function FrontendShell({ children }: FrontendShellProps) {
   return (
     <div className="min-h-dvh">
       {!hideHeader && <SiteHeader />}
-      <main>{children}</main>
+      <main className="px-4 sm:px-6">{children}</main>
     </div>
   );
 }

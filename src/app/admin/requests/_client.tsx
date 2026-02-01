@@ -334,7 +334,7 @@ export default function RequestsAdminClient(props: {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
+      <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Solicitudes</h1>
           <p className="text-sm text-muted-foreground">
@@ -353,7 +353,7 @@ export default function RequestsAdminClient(props: {
             variant="outline"
             size="sm"
             disabled={isCreatingDummy}
-            className="h-8 rounded-[2px] text-xs"
+            className="h-8 rounded-[2px] text-xs full-sm"
             onClick={() => createDummy("single")}
           >
             Dummy Single
@@ -363,7 +363,7 @@ export default function RequestsAdminClient(props: {
             variant="outline"
             size="sm"
             disabled={isCreatingDummy}
-            className="h-8 rounded-[2px] text-xs"
+            className="h-8 rounded-[2px] text-xs full-sm"
             onClick={() => createDummy("album")}
           >
             Dummy Álbum
@@ -392,7 +392,7 @@ export default function RequestsAdminClient(props: {
       </header>
 
       <section className="rounded-[2px] border border-border bg-card/80 p-4 backdrop-blur">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-6">
           <input
             className="col-span-2 rounded-[2px] border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             placeholder="Buscar nombre/email/detalle"
@@ -432,18 +432,18 @@ export default function RequestsAdminClient(props: {
               </option>
             ))}
           </select>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => applyFilters(1)}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-[2px] border border-border bg-foreground px-3 py-2 text-sm font-semibold text-background transition hover:bg-foreground/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-[2px] border border-border bg-foreground px-3 py-2 text-sm font-semibold text-background transition hover:bg-foreground/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               Aplicar
             </button>
             <button
               type="button"
               onClick={resetFilters}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-[2px] border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground transition hover:bg-border/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-[2px] border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground transition hover:bg-border/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               Limpiar
             </button>
@@ -460,7 +460,7 @@ export default function RequestsAdminClient(props: {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-[1.4fr_140px_1.4fr_140px_160px_120px_120px_120px_36px] items-stretch gap-0 divide-x divide-border/30 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground text-center">
+              <div className="grid grid-cols-[1.4fr_140px_1.4fr_140px_160px_120px_120px_120px_36px] items-stretch gap-0 divide-x divide-border/30 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground text-center">
                 <span className="px-2 flex h-full items-center justify-center">Cliente</span>
                 <span className="px-2 flex h-full items-center justify-center">Proyecto</span>
                 <span className="px-2 flex h-full items-center justify-center">Metadata</span>

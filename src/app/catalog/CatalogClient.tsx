@@ -232,86 +232,78 @@ export default function CatalogClient({
       <div
         className={cn(
           "mx-auto flex w-full max-w-7xl flex-col flex-1",
-          compact ? "gap-2 px-0 py-0" : "gap-4 px-4 py-8 sm:px-6 lg:px-8",
+          compact ? "gap-2 px-0 py-0" : "gap-4 px-4 py-6 sm:px-5 md:px-6 lg:px-8",
         )}
       >
         {!hideHeader && (
           <header className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-col gap-1">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex min-w-0 flex-col gap-1">
                 <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
                   {eyebrow}
                 </p>
                 <h1 className="text-2xl font-semibold">{title}</h1>
+                <p className="max-w-3xl text-sm text-muted-foreground">{subtitle}</p>
               </div>
               {categories.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                    Categoría
-                  </span>
-                  <div className="flex rounded-[2px] border border-border/60 bg-card/80 p-1">
-                    {categories.map((cat) => {
-                      const active = activeCat === cat.slug;
-                      return (
-                        <button
-                          key={cat.slug}
-                          type="button"
-                          onClick={() => handleCategoryChange(cat.slug)}
-                          className={cn(
-                            "px-3 py-1 text-xs font-medium transition",
-                            active
-                              ? "bg-foreground text-background"
-                              : "text-foreground/80 hover:bg-border/40",
-                          )}
-                        >
-                          {cat.name}
-                        </button>
-                      );
-                    })}
+                <div className="flex w-full flex-wrap items-center gap-2 sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={() => handleCategoryChange(null)}
+                    className={cn(
+                      "rounded border px-3 py-1 text-xs font-semibold transition",
+                      !activeCat
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-border bg-card text-foreground hover:border-foreground/60",
+                    )}
+                  >
+                    Todos
+                  </button>
+                  {categories.map((cat) => (
                     <button
+                      key={cat.slug}
                       type="button"
-                      onClick={() => handleCategoryChange(null)}
+                      onClick={() => handleCategoryChange(cat.slug)}
                       className={cn(
-                        "px-3 py-1 text-xs font-medium transition",
-                        activeCat === null
-                          ? "bg-foreground text-background"
-                          : "text-foreground/80 hover:bg-border/40",
+                        "rounded border px-3 py-1 text-xs font-semibold transition",
+                        activeCat === cat.slug
+                          ? "border-foreground bg-foreground text-background"
+                          : "border-border bg-card text-foreground hover:border-foreground/60",
                       )}
                     >
-                      Todos
+                      {cat.name.toUpperCase()}
                     </button>
-                  </div>
+                  ))}
                 </div>
               )}
             </div>
-            <p className="max-w-2xl text-sm text-muted-foreground">{subtitle}</p>
           </header>
         )}
 
-        <section className="relative overflow-visible rounded-[2px] border border-border/70 bg-transparent shadow-sm">
+        <section className="relative overflow-visible rounded-[2px] border border-border/70 bg-transparent shadow-sm table-scroll">
           <table className="min-w-full table-auto">
             <colgroup>
-              <col className="w-[22%]" />
-              <col className="w-[48%]" />
-              <col className="w-[10%]" />
-              <col className="w-[20%]" />
+              <col className="w-[260px]" />
+              <col className="w-[360px]" />
+              <col className="w-[120px]" />
+              <col className="w-[160px]" />
             </colgroup>
             <thead className="bg-transparent text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground border-b border-border/60">
               <tr>
-                <th className="relative px-4 py-2 after:absolute after:right-0 after:top-[25%] after:bottom-[25%] after:w-px after:bg-border/70 last:after:hidden">
+                <th className="relative px-3 py-2 after:absolute after:right-0 after:top-[25%] after:bottom-[25%] after:w-px after:bg-border/70 last:after:hidden">
                   Title
                 </th>
-                <th className="relative px-4 py-2 after:absolute after:right-0 after:top-[25%] after:bottom-[25%] after:w-px after:bg-border/70 last:after:hidden">
+                <th className="relative px-3 py-2 after:absolute after:right-0 after:top-[25%] after:bottom-[25%] after:w-px after:bg-border/70 last:after:hidden">
                   Waveform
                 </th>
-                <th className="relative px-4 py-2 text-center after:absolute after:right-0 after:top-[25%] after:bottom-[25%] after:w-px after:bg-border/70 last:after:hidden">
+                <th className="relative px-3 py-2 text-center after:absolute after:right-0 after:top-[25%] after:bottom-[25%] after:w-px after:bg-border/70 last:after:hidden">
                   Length
                 </th>
-                <th className="px-4 py-2 text-center">Actions</th>
+                <th className="px-3 py-2 text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {tracks.map((track, index) => (
+              {tracks.map((track) => (
                 <TrackRow
                   key={track.id}
                   track={track}
@@ -320,11 +312,9 @@ export default function CatalogClient({
                   rowClass=""
                   progress={progressMap[track.id] ?? 0}
                   waveformB64={waveformMap[track.id]}
-          durationSec={
-            track.durationSec ?? parseDurationSeconds(track.duration) ?? null
-          }
-          onPlayPause={() => handlePlayPause(track)}
-          onSeek={(r) => handleSeek(track, r)}
+                  durationSec={track.durationSec ?? parseDurationSeconds(track.duration) ?? null}
+                  onPlayPause={() => handlePlayPause(track)}
+                  onSeek={(r) => handleSeek(track, r)}
                   onOpenLicense={() => setLicenseTrack(track)}
                   onOpenStems={() => setStemsTrack(track)}
                   onCopy={() => handleCopyLink(track)}
@@ -691,7 +681,7 @@ function WaveCell({
     <div className="flex min-w-0 flex-1 items-center rounded-[2px] bg-transparent px-1 py-0.5 text-foreground">
       <WaveformScrubber
         waveformB64={waveformB64}
-        height={28}
+        height={22}
         durationSec={durationSec ?? undefined}
         progress={filledRatio}
         onSeek={durationSec ? handleSeekTime : undefined}

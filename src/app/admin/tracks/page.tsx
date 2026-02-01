@@ -169,7 +169,7 @@ export default async function Page(props: {
   };
 
   return (
-    <main className="mx-auto w-full max-w-7xl space-y-6 p-6">
+    <main className="mx-auto w-full max-w-7xl space-y-6 px-4 py-4 sm:px-5 md:px-6">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold text-foreground">
           Análisis técnico de tracks
@@ -207,7 +207,8 @@ export default async function Page(props: {
           {tracks.length} track{tracks.length === 1 ? "" : "s"} en esta página
         </div>
 
-        <table className="w-full table-auto text-sm">
+        <div className="table-scroll">
+        <table className="w-full table-auto text-sm min-w-[1100px]">
           <thead className="bg-muted/60 text-xs tracking-wide text-muted-foreground uppercase">
             <tr>
               <th className="px-4 py-3 text-left align-middle">Track</th>
@@ -290,6 +291,7 @@ export default async function Page(props: {
             )}
           </tbody>
         </table>
+        </div>
       </section>
     </main>
   );

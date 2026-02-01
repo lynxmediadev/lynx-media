@@ -27,10 +27,7 @@ const homeAnchors = [
 export default function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur">
-      <div
-        className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4"
-        style={{ height: "var(--header-h)" }}
-      >
+      <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-2 md:flex-nowrap">
         {/* Branding */}
         <Link href="/" className="flex flex-col leading-tight">
           <span className="text-sm font-semibold tracking-wide">Lynx Media</span>

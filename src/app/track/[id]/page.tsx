@@ -664,7 +664,7 @@ export default async function TrackPublicPage({ params, searchParams }: PageProp
         />
 
         <section className="rounded-[2px] border border-border bg-card p-4 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-medium leading-tight">Entregables</h2>
             <span className="text-xs text-muted-foreground">
               Versiones y stems
@@ -707,7 +707,7 @@ export default async function TrackPublicPage({ params, searchParams }: PageProp
         </section>
 
         <section className="rounded-[2px] border border-border bg-card p-4 shadow-sm">
-          <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-lg font-medium leading-tight">Piezas similares</h2>
             <span className="text-xs text-muted-foreground">
               {track.moods?.length ? `Mood · ${track.moods[0]}` : "Recientes"}
@@ -724,6 +724,7 @@ export default async function TrackPublicPage({ params, searchParams }: PageProp
               title="Piezas similares"
               subtitle=""
               eyebrow=""
+              className="table-scroll"
             />
           )}
         </section>
