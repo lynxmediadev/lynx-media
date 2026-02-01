@@ -271,6 +271,11 @@ body {
   min-height: 40px;
 }
 
+/* Forzar barra fija inferior sin offset (guardar todo) */
+#save-bar {
+  bottom: 0 !important;
+}
+
 /* =========================================================
    Base layer
    ======================================================= */

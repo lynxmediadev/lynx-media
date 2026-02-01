@@ -275,7 +275,7 @@ export default async function AdminTrackEditPage({
     track.analysisAt !== null;
 
   return (
-    <main className="mx-auto w-[80vw] max-w-7xl space-y-4 p-4">
+    <div className="space-y-4 min-h-screen pb-12">
       {/* HEADER PRINCIPAL */}
       <header className="flex flex-col gap-3 border-b border-border pb-3 md:flex-row md:items-center md:justify-between">
         <div>
@@ -559,6 +559,6 @@ export default async function AdminTrackEditPage({
           catalogTagOptions={catalogTags}
         />
       </div>
-    </main>
+    </div>
   );
 }

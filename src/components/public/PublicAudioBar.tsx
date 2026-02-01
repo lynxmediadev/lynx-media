@@ -142,8 +142,8 @@ export default function PublicAudioBar({
 
   // Progreso para pintar la parte “reproducida”
   const progress = !dur ? 0 : Math.max(0, Math.min(1, cur / dur));
-  const baseWaveHeight = layout === "inline" ? 86 : 72;
-  const waveHeight = Math.round(baseWaveHeight * 0.45); // altura reducida ~55%
+  const baseWaveHeight = layout === "inline" ? 64 : 64;
+  const waveHeight = Math.round(baseWaveHeight * 0.5); // altura reducida ~50%
 
   // Avisar estado al padre si se requiere
   React.useEffect(() => {
@@ -162,13 +162,12 @@ export default function PublicAudioBar({
   return (
     <div className={cn("rounded-[2px] border border-border bg-card/80 p-3 shadow-sm", className)}>
       {layout === "stacked" ? (
-        <div className="flex items-stretch gap-3">
-          {/* Columna izquierda: Play (arriba) + tiempo (abajo) */}
-          <div className="flex min-h-[64px] w-[128px] min-w-[128px] flex-col justify-between">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               className={cn(
-                "flex h-10 items-center justify-center rounded-[2px] border border-border bg-background px-3 text-sm font-medium transition",
+                "flex h-10 w-10 items-center justify-center rounded-[2px] border border-border bg-background text-sm font-medium transition",
                 disabled
                   ? "cursor-not-allowed opacity-70"
                   : "text-foreground hover:bg-border/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
@@ -179,14 +178,12 @@ export default function PublicAudioBar({
               <span className="sr-only">{isPlaying ? "Pausar" : "Reproducir"}</span>
               {isPlaying ? <Pause size={16} /> : <Play size={16} />}
             </button>
-
-            <div className="mt-1 flex h-9 items-center justify-center rounded-[2px] bg-background/70 px-2 text-[11px] tabular-nums text-muted-foreground ring-1 ring-border/70">
+            <div className="flex h-9 min-w-[92px] items-center justify-center rounded-[2px] border border-border bg-background/80 px-2 text-[11px] tabular-nums text-muted-foreground">
               {fmtTime(cur)} / {fmtTime(dur)}
             </div>
-            </div>
+          </div>
 
-            {/* Columna derecha: waveform (misma “altura visual” que la columna de controles) */}
-          <div className="flex min-h-[64px] flex-1 items-center">
+          <div className="flex min-h-[48px] flex-1 items-center">
             <WaveformScrubber
               waveformB64={waveformB64}
               height={waveHeight}

@@ -276,7 +276,7 @@ export default function AdminTrackIngestPage(props: AdminTrackIngestPageProps) {
   }
 
   return (
-    <main className="mx-auto w-[80vw] max-w-7xl space-y-6 p-4">
+    <div className="w-full space-y-6">
       {/* Header */}
       <header className="border-b border-border pb-3">
         <h1 className="text-lg font-semibold text-foreground">{heading}</h1>
@@ -440,6 +440,6 @@ export default function AdminTrackIngestPage(props: AdminTrackIngestPageProps) {
           </div>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

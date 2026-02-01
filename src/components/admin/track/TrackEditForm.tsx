@@ -123,11 +123,16 @@ export default function TrackEditForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 pb-8">
       <input type="hidden" name="id" defaultValue={track.id} />
 
-      <div className="sticky top-[var(--header-h)] z-40 -mx-4 border-b border-border bg-background/90 px-4 py-2 backdrop-blur">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* Barra fija inferior: siempre visible, sin dejar hueco debajo */}
+      <div
+        id="save-bar"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background"
+        style={{ bottom: 0, margin: 0 }}
+      >
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-6">
           <div className="text-xs text-muted-foreground">
             {status ? (
               <span
@@ -136,7 +141,7 @@ export default function TrackEditForm({
                 {status.message}
               </span>
             ) : (
-              <span>Guardar todos los cambios desde un solo boton.</span>
+              <span>Guardar todos los cambios desde un solo botón.</span>
             )}
           </div>
           <Button
@@ -144,7 +149,7 @@ export default function TrackEditForm({
             disabled={pending}
             variant="outline"
             size="lg"
-            className="h-12 px-6 text-xs font-semibold full-sm btn-touch"
+            className="h-11 px-6 text-xs font-semibold full-sm btn-touch"
           >
             {pending ? "Guardando..." : "Guardar todo"}
           </Button>

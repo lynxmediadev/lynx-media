@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { SquareX, GripHorizontal } from "lucide-react";
+import { SquareX, GripHorizontal, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -125,6 +125,42 @@ function SortableRow({
   );
 }
 
+function SortableCard({
+  id,
+  children,
+  describedBy,
+}: {
+  id: string;
+  children: (handleProps: HandleProps) => React.ReactNode;
+  describedBy?: string;
+}) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } =
+    useSortable({ id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  const attrs = { ...attributes } as React.HTMLAttributes<HTMLDivElement>;
+  if (describedBy) {
+    attrs["aria-describedby"] = describedBy;
+  } else {
+    delete (attrs as any)["aria-describedby"];
+  }
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attrs}
+      className="rounded-lg border border-border bg-card/80 p-3 shadow-sm"
+    >
+      {children({
+        ref: setActivatorNodeRef,
+        ...listeners,
+      })}
+    </div>
+  );
+}
+
 export default function RightsFormClient({
   trackId,
   track,
@@ -190,6 +226,8 @@ export default function RightsFormClient({
   const [savingWriter, setSavingWriter] = React.useState(false);
   const [savingPublisher, setSavingPublisher] = React.useState(false);
   const [savingMaster, setSavingMaster] = React.useState(false);
+  const [expandedShares, setExpandedShares] = React.useState<Record<string, boolean>>({});
+  const [expandedMasters, setExpandedMasters] = React.useState<Record<string, boolean>>({});
   const [deleteTarget, setDeleteTarget] = React.useState<
     | { type: "share"; index: number }
     | { type: "master"; index: number }
@@ -629,111 +667,224 @@ export default function RightsFormClient({
                           </span>
                         </div>
                         <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-                          <div className="table-scroll">
-                          <table className="min-w-full text-xs">
-                            <thead className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
-                              <tr>
-                                <th className="px-2 py-2 text-center w-10"> </th>
-                                <th className="px-2 py-2 text-left">Nombre</th>
-                                <th className="px-2 py-2 text-left w-20">%</th>
-                                <th className="px-2 py-2 text-left">IPI</th>
-                                <th className="px-2 py-2 text-left">PRO</th>
-                                <th className="px-2 py-2 text-left">CAE</th>
-                                <th className="px-2 py-2 text-center">Acciones</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {roleShares.length === 0 ? (
+                          {/* Desktop table */}
+                          <div className="hidden md:block table-scroll">
+                            <table className="min-w-full text-xs">
+                              <thead className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
                                 <tr>
-                                  <td colSpan={7} className="px-2 py-3 text-center text-muted-foreground">
-                                    Sin {isWriter ? "writers" : "publishers"}.
-                                  </td>
+                                  <th className="px-2 py-2 text-center w-10"> </th>
+                                  <th className="px-2 py-2 text-left">Nombre</th>
+                                  <th className="px-2 py-2 text-left w-20">%</th>
+                                  <th className="px-2 py-2 text-left">IPI</th>
+                                  <th className="px-2 py-2 text-left">PRO</th>
+                                  <th className="px-2 py-2 text-left">CAE</th>
+                                  <th className="px-2 py-2 text-center">Acciones</th>
                                 </tr>
-                              ) : (
-                                roleShares.map((share) => {
-                                  const globalIdx = shares.findIndex((s) => s === share);
-                                  const rowId = shareDomId(share, globalIdx);
-                                  return (
-                                    <SortableRow
-                                      key={rowId}
-                                      id={rowId}
-                                      describedBy={dndDescIdShares}
-                                    >
-                                      {(handleProps) => (
-                                        <>
-                                          <td className="px-2 py-2 text-center w-10">
-                                            <span
-                                              {...handleProps}
-                                              className="mx-auto inline-flex h-4 w-4 cursor-grab items-center justify-center text-muted-foreground"
-                                              aria-label="Reordenar"
-                                            >
-                                              <GripHorizontal className="h-4 w-4" />
+                              </thead>
+                              <tbody>
+                                {roleShares.length === 0 ? (
+                                  <tr>
+                                    <td colSpan={7} className="px-2 py-3 text-center text-muted-foreground">
+                                      Sin {isWriter ? "writers" : "publishers"}.
+                                    </td>
+                                  </tr>
+                                ) : (
+                                  roleShares.map((share) => {
+                                    const globalIdx = shares.findIndex((s) => s === share);
+                                    const rowId = shareDomId(share, globalIdx);
+                                    return (
+                                      <SortableRow
+                                        key={rowId}
+                                        id={rowId}
+                                        describedBy={dndDescIdShares}
+                                      >
+                                        {(handleProps) => (
+                                          <>
+                                            <td className="px-2 py-2 text-center w-10">
+                                              <span
+                                                {...handleProps}
+                                                className="mx-auto inline-flex h-4 w-4 cursor-grab items-center justify-center text-muted-foreground"
+                                                aria-label="Reordenar"
+                                              >
+                                                <GripHorizontal className="h-4 w-4" />
+                                              </span>
+                                            </td>
+                                            <td className="px-2 py-2">
+                                              <Input
+                                                value={share.name}
+                                                onChange={(e) => handleShareChange(globalIdx, "name", e.target.value)}
+                                                className="h-8 text-xs"
+                                              />
+                                            </td>
+                                            <td className="px-2 py-2">
+                                              <Input
+                                                type="number"
+                                                min={0}
+                                                max={100}
+                                                value={share.sharePct ?? ""}
+                                                onChange={(e) => handleShareChange(globalIdx, "sharePct", e.target.value)}
+                                                className="h-8 text-xs text-right"
+                                              />
+                                            </td>
+                                            <td className="px-2 py-2">
+                                              <Input
+                                                value={share.ipiNumber ?? ""}
+                                                onChange={(e) => handleShareChange(globalIdx, "ipiNumber", e.target.value)}
+                                                className="h-8 text-xs"
+                                              />
+                                            </td>
+                                            <td className="px-2 py-2">
+                                              <Input
+                                                value={share.pro ?? ""}
+                                                onChange={(e) => handleShareChange(globalIdx, "pro", e.target.value)}
+                                                className="h-8 text-xs"
+                                              />
+                                            </td>
+                                            <td className="px-2 py-2">
+                                              <Input
+                                                value={share.caeNumber ?? ""}
+                                                onChange={(e) => handleShareChange(globalIdx, "caeNumber", e.target.value)}
+                                                className="h-8 text-xs"
+                                              />
+                                            </td>
+                                            <td className="px-2 py-2 text-right">
+                                              <button
+                                                type="button"
+                                                onClick={() => handleDeleteShare(globalIdx)}
+                                                className="inline-flex w-full items-center justify-center text-destructive hover:text-destructive/80"
+                                                aria-label="Eliminar share"
+                                                disabled={pendingShares}
+                                              >
+                                                <SquareX className="h-4 w-4" />
+                                              </button>
+                                            </td>
+                                          </>
+                                        )}
+                                      </SortableRow>
+                                    );
+                                  })
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {/* Mobile cards */}
+                          <div className="space-y-3 md:hidden">
+                            {roleShares.length === 0 ? (
+                              <div className="rounded-lg border border-border/70 bg-card/60 p-3 text-xs text-muted-foreground">
+                                Sin {isWriter ? "writers" : "publishers"}.
+                              </div>
+                            ) : (
+                              roleShares.map((share) => {
+                                const globalIdx = shares.findIndex((s) => s === share);
+                                const rowId = shareDomId(share, globalIdx);
+                                const isOpen = expandedShares[rowId];
+                                return (
+                                  <SortableCard key={rowId} id={rowId} describedBy={dndDescIdShares}>
+                                    {(handleProps) => (
+                                      <div className="space-y-2">
+                                        <div className="flex items-center gap-2">
+                                          <button
+                                            type="button"
+                                            {...handleProps}
+                                            className="inline-flex h-8 w-8 flex-shrink-0 cursor-grab items-center justify-center rounded border border-border/70 text-muted-foreground"
+                                            aria-label="Reordenar"
+                                          >
+                                            <GripHorizontal className="h-4 w-4" />
+                                          </button>
+                                          <div className="flex min-w-0 flex-1 flex-col">
+                                            <span className="truncate text-sm font-semibold">
+                                              {share.name || "Sin nombre"}
                                             </span>
-                                          </td>
-                                          <td className="px-2 py-2">
-                                            <Input
-                                              value={share.name}
-                                              onChange={(e) => handleShareChange(globalIdx, "name", e.target.value)}
-                                              className="h-8 text-xs"
-                                            />
-                                          </td>
-                                          <td className="px-2 py-2">
-                                            <Input
-                                              type="number"
-                                              min={0}
-                                              max={100}
-                                              value={share.sharePct ?? ""}
-                                              onChange={(e) => handleShareChange(globalIdx, "sharePct", e.target.value)}
-                                              className="h-8 text-xs text-right"
-                                            />
-                                          </td>
-                                          <td className="px-2 py-2">
-                                            <Input
-                                              value={share.ipiNumber ?? ""}
-                                              onChange={(e) => handleShareChange(globalIdx, "ipiNumber", e.target.value)}
-                                              className="h-8 text-xs"
-                                            />
-                                          </td>
-                                          <td className="px-2 py-2">
-                                            <Input
-                                              value={share.pro ?? ""}
-                                              onChange={(e) => handleShareChange(globalIdx, "pro", e.target.value)}
-                                              className="h-8 text-xs"
-                                            />
-                                          </td>
-                                          <td className="px-2 py-2">
-                                            <Input
-                                              value={share.caeNumber ?? ""}
-                                              onChange={(e) => handleShareChange(globalIdx, "caeNumber", e.target.value)}
-                                              className="h-8 text-xs"
-                                            />
-                                          </td>
-                                          <td className="px-2 py-2 text-right">
-                                            <button
-                                              type="button"
-                                              onClick={() => handleDeleteShare(globalIdx)}
-                                              className="inline-flex w-full items-center justify-center text-destructive hover:text-destructive/80"
-                                              aria-label="Eliminar share"
-                                              disabled={pendingShares}
-                                            >
-                                              <SquareX className="h-4 w-4" />
-                                            </button>
-                                          </td>
-                                        </>
-                                      )}
-                                    </SortableRow>
-                                  );
-                                })
-                              )}
-                            </tbody>
-                          </table>
+                                            <span className="text-[11px] text-muted-foreground">
+                                              {share.sharePct ?? "—"}%
+                                            </span>
+                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              setExpandedShares((prev) => ({
+                                                ...prev,
+                                                [rowId]: !isOpen,
+                                              }))
+                                            }
+                                            className="inline-flex h-8 w-8 items-center justify-center rounded border border-border/70 text-muted-foreground"
+                                            aria-label="Abrir titular"
+                                          >
+                                            <Eye className="h-4 w-4" />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleDeleteShare(globalIdx)}
+                                            className="inline-flex h-8 w-8 items-center justify-center rounded border border-destructive/50 text-destructive hover:border-destructive"
+                                            aria-label="Eliminar share"
+                                            disabled={pendingShares}
+                                          >
+                                            <SquareX className="h-4 w-4" />
+                                          </button>
+                                        </div>
+                                        {isOpen && (
+                                          <div className="space-y-2">
+                                            <div className="grid grid-cols-1 gap-2">
+                                              <div className="space-y-1">
+                                                <Label className="text-[11px] text-muted-foreground">Nombre</Label>
+                                                <Input
+                                                  value={share.name}
+                                                  onChange={(e) => handleShareChange(globalIdx, "name", e.target.value)}
+                                                  className="h-8 text-xs"
+                                                />
+                                              </div>
+                                              <div className="space-y-1">
+                                                <Label className="text-[11px] text-muted-foreground">% </Label>
+                                                <Input
+                                                  type="number"
+                                                  min={0}
+                                                  max={100}
+                                                  value={share.sharePct ?? ""}
+                                                  onChange={(e) => handleShareChange(globalIdx, "sharePct", e.target.value)}
+                                                  className="h-8 text-xs"
+                                                />
+                                              </div>
+                                              <div className="space-y-1">
+                                                <Label className="text-[11px] text-muted-foreground">IPI</Label>
+                                                <Input
+                                                  value={share.ipiNumber ?? ""}
+                                                  onChange={(e) => handleShareChange(globalIdx, "ipiNumber", e.target.value)}
+                                                  className="h-8 text-xs"
+                                                />
+                                              </div>
+                                              <div className="space-y-1">
+                                                <Label className="text-[11px] text-muted-foreground">PRO</Label>
+                                                <Input
+                                                  value={share.pro ?? ""}
+                                                  onChange={(e) => handleShareChange(globalIdx, "pro", e.target.value)}
+                                                  className="h-8 text-xs"
+                                                />
+                                              </div>
+                                              <div className="space-y-1">
+                                                <Label className="text-[11px] text-muted-foreground">CAE</Label>
+                                                <Input
+                                                  value={share.caeNumber ?? ""}
+                                                  onChange={(e) => handleShareChange(globalIdx, "caeNumber", e.target.value)}
+                                                  className="h-8 text-xs"
+                                                />
+                                              </div>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </SortableCard>
+                                );
+                              })
+                            )}
                           </div>
                         </SortableContext>
                       </div>
 
                       {/* Form de alta separado por rol */}
                       <div className="rounded-md border border-border/70 bg-card/60 p-3">
-                        <div className="flex flex-wrap items-end gap-2">
+                        <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-end">
                           <div className="flex min-w-[200px] flex-1 flex-col gap-1">
                             <Label className="text-[11px] text-muted-foreground">
                               Añadir {isWriter ? "Writer/Composer" : "Publisher"}
@@ -755,7 +906,7 @@ export default function RightsFormClient({
                               }}
                             />
                           </div>
-                          <div className="flex w-24 flex-col gap-1">
+                          <div className="flex w-full md:w-24 flex-col gap-1">
                             <Label className="text-[11px] text-muted-foreground">% </Label>
                             <Input
                               type="number"
@@ -776,7 +927,7 @@ export default function RightsFormClient({
                               className="h-8 text-xs text-right"
                             />
                           </div>
-                          <div className="flex min-w-[180px] flex-col gap-1">
+                          <div className="flex min-w-[180px] flex-1 flex-col gap-1">
                             <Label className="text-[11px] text-muted-foreground">IPI</Label>
                             <Input
                               value={isWriter ? newWriter.ipiNumber ?? "" : newPublisher.ipiNumber ?? ""}
@@ -788,7 +939,7 @@ export default function RightsFormClient({
                               className="h-8 text-xs"
                             />
                           </div>
-                          <div className="flex min-w-[140px] flex-col gap-1">
+                          <div className="flex min-w-[140px] flex-1 flex-col gap-1">
                             <Label className="text-[11px] text-muted-foreground">PRO</Label>
                             <Input
                               value={isWriter ? newWriter.pro ?? "" : newPublisher.pro ?? ""}
@@ -800,7 +951,7 @@ export default function RightsFormClient({
                               className="h-8 text-xs"
                             />
                           </div>
-                          <div className="flex min-w-[140px] flex-col gap-1">
+                          <div className="flex min-w-[140px] flex-1 flex-col gap-1">
                             <Label className="text-[11px] text-muted-foreground">CAE</Label>
                             <Input
                               value={isWriter ? newWriter.caeNumber ?? "" : newPublisher.caeNumber ?? ""}
@@ -812,7 +963,7 @@ export default function RightsFormClient({
                               className="h-8 text-xs"
                             />
                           </div>
-                          <div className="flex items-center justify-end">
+                          <div className="flex items-center justify-end md:justify-start">
                             <button
                               type="button"
                               onClick={() => handleAddShare(role)}
@@ -870,7 +1021,7 @@ export default function RightsFormClient({
             modifiers={[restrictToVerticalAxis, restrictToParentElement]}
             accessibility={{ describedById: dndDescIdMaster }}
           >
-            <div className="overflow-x-auto rounded-md border border-border table-scroll">
+            <div className="hidden md:block overflow-x-auto rounded-md border border-border table-scroll">
               <SortableContext
                 items={masterShares.map((ms, idx) => ms.id ?? `ms-${idx}`)}
                 strategy={verticalListSortingStrategy}
@@ -883,7 +1034,7 @@ export default function RightsFormClient({
                       <th className="px-2 py-2 text-left w-20">%</th>
                       <th className="px-2 py-2 text-left">Contacto</th>
                       <th className="px-2 py-2 text-left">Notas</th>
-                                <th className="px-2 py-2 text-center">Acciones</th>
+                      <th className="px-2 py-2 text-center">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -965,10 +1116,115 @@ export default function RightsFormClient({
                 </table>
               </SortableContext>
             </div>
+
+            <div className="space-y-3 md:hidden">
+              {masterShares.length === 0 ? (
+                <div className="rounded-lg border border-border/70 bg-card/60 p-3 text-xs text-muted-foreground">
+                  Sin titulares registrados.
+                </div>
+              ) : (
+                <SortableContext
+                  items={masterShares.map((ms, idx) => ms.id ?? `ms-${idx}`)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {masterShares.map((ms, idx) => {
+                    const rowId = ms.id ?? `ms-${idx}`;
+                    const isOpen = expandedMasters[rowId];
+                    return (
+                      <SortableCard key={rowId} id={rowId} describedBy={dndDescIdMaster}>
+                        {(handleProps) => (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                {...handleProps}
+                                className="inline-flex h-8 w-8 flex-shrink-0 cursor-grab items-center justify-center rounded border border-border/70 text-muted-foreground"
+                                aria-label="Reordenar"
+                              >
+                                <GripHorizontal className="h-4 w-4" />
+                              </button>
+                              <div className="flex min-w-0 flex-1 flex-col">
+                                <span className="truncate text-sm font-semibold">
+                                  {ms.name || "Sin nombre"}
+                                </span>
+                                <span className="text-[11px] text-muted-foreground">
+                                  {ms.sharePct ?? "—"}%
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setExpandedMasters((prev) => ({
+                                    ...prev,
+                                    [rowId]: !isOpen,
+                                  }))
+                                }
+                                className="inline-flex h-8 w-8 items-center justify-center rounded border border-border/70 text-muted-foreground"
+                                aria-label="Abrir titular"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteMaster(idx)}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded border border-destructive/50 text-destructive hover:border-destructive"
+                                aria-label="Eliminar titular master"
+                                disabled={pendingMaster}
+                              >
+                                <SquareX className="h-4 w-4" />
+                              </button>
+                            </div>
+                            {isOpen && (
+                              <div className="space-y-2">
+                                <div className="space-y-1">
+                                  <Label className="text-[11px] text-muted-foreground">Nombre</Label>
+                                  <Input
+                                    value={ms.name}
+                                    onChange={(e) => handleMasterChange(idx, "name", e.target.value)}
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-[11px] text-muted-foreground">% </Label>
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    value={ms.sharePct ?? ""}
+                                    onChange={(e) => handleMasterChange(idx, "sharePct", e.target.value)}
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-[11px] text-muted-foreground">Contacto</Label>
+                                  <Input
+                                    value={ms.contact ?? ""}
+                                    onChange={(e) => handleMasterChange(idx, "contact", e.target.value)}
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-[11px] text-muted-foreground">Notas</Label>
+                                  <Input
+                                    value={ms.notes ?? ""}
+                                    onChange={(e) => handleMasterChange(idx, "notes", e.target.value)}
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </SortableCard>
+                    );
+                  })}
+                </SortableContext>
+              )}
+            </div>
           </DndContext>
 
           <div className="rounded-md border border-border/70 bg-card/60 p-3">
-            <div className="flex flex-wrap items-end gap-2">
+            <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-end">
               <div className="flex min-w-[160px] flex-1 flex-col gap-1">
                 <Label className="text-[11px] text-muted-foreground">Nombre</Label>
                 <Input
@@ -979,7 +1235,7 @@ export default function RightsFormClient({
                   onKeyDown={handleMasterKeyDown}
                 />
               </div>
-              <div className="flex w-20 flex-col gap-1">
+              <div className="flex w-full md:w-20 flex-col gap-1">
                 <Label className="text-[11px] text-muted-foreground">% </Label>
                 <Input
                   type="number"
@@ -1016,14 +1272,16 @@ export default function RightsFormClient({
                   onKeyDown={handleMasterKeyDown}
                 />
               </div>
-              <button
-                type="button"
-                onClick={handleAddMaster}
-                disabled={pendingMaster}
-                className="ml-auto inline-flex h-8 items-center justify-center rounded border border-border bg-card px-3 text-xs font-semibold text-foreground hover:border-foreground/70"
-              >
-                Añadir master
-              </button>
+              <div className="flex items-center justify-end md:justify-start">
+                <button
+                  type="button"
+                  onClick={handleAddMaster}
+                  disabled={pendingMaster}
+                  className="inline-flex h-8 items-center justify-center rounded border border-border bg-card px-3 text-xs font-semibold text-foreground hover:border-foreground/70"
+                >
+                  Añadir master
+                </button>
+              </div>
             </div>
           </div>
         </div>
