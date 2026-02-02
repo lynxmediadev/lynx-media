@@ -69,35 +69,19 @@ export function MasterCards({
         return (
           <div key={rowId} className="rounded-lg border border-border bg-card/80 p-3 shadow-sm">
             <div className="space-y-2">
-              {/* Fila 1: título en wrap + porcentaje debajo ocupando todo el ancho */}
-              <div className="space-y-1">
-                <div className="min-w-0 break-words whitespace-normal text-sm font-semibold">
-                  {ms.name || "Sin nombre"}
-                </div>
-                <div className="w-full rounded-md border border-border px-2 py-1 text-[11px] font-medium text-foreground text-center">
-                  {ms.sharePct ?? "—"}%
-                </div>
+              {/* Fila 1: título */}
+              <div className="min-w-0 break-words whitespace-normal text-sm font-semibold">
+                {ms.name || "Sin nombre"}
               </div>
 
-              {/* Fila 2: ver ocupa todo; pos/flechas alineadas a la derecha */}
+              {/* Fila 2: porcentaje + posición (izq) y flechas (der) */}
               <div className="grid grid-cols-[1fr_auto] items-stretch gap-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setExpanded((prev) => ({
-                      ...prev,
-                      [rowId]: !isOpen,
-                    }))
-                  }
-                  className="inline-flex h-full min-h-[48px] w-full items-center justify-center rounded-md border border-border/70 bg-card text-muted-foreground"
-                  aria-label="Abrir titular"
-                >
-                  <Eye className="h-4 w-4" />
-                </button>
-
-                <div className="flex flex-col gap-1 items-end">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-[11px] text-muted-foreground">Pos.</Label>
+                <div className="flex items-center gap-2">
+                  <div className="rounded-md border border-border px-2 py-1 text-[11px] font-medium text-foreground">
+                    {ms.sharePct ?? "—"}%
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Label className="text-[10px] text-muted-foreground">Pos.</Label>
                     <Input
                       key={`pos-${rowId}`}
                       type="number"
@@ -134,36 +118,51 @@ export function MasterCards({
                           setPosValues({});
                         }
                       }}
-                      className="h-9 w-14 text-center text-xs"
+                      className="h-8 w-14 text-center text-[11px]"
                     />
                   </div>
+                </div>
 
-                  <div className="flex flex-col gap-1">
-                    <button
-                      type="button"
-                      onPointerDown={(e) => onLongPressStart("master", idx, "up", e)}
-                      onPointerUp={onLongPressCancel}
-                      onPointerCancel={onLongPressCancel}
-                      onClick={(e) => moveMaster(idx, e.shiftKey ? -3 : -1)}
-                      className="inline-flex h-10 w-14 items-center justify-center rounded-md border border-border bg-card"
-                      disabled={masterBusy}
-                    >
-                      <ArrowUp className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onPointerDown={(e) => onLongPressStart("master", idx, "down", e)}
-                      onPointerUp={onLongPressCancel}
-                      onPointerCancel={onLongPressCancel}
-                      onClick={(e) => moveMaster(idx, e.shiftKey ? 3 : 1)}
-                      className="inline-flex h-10 w-14 items-center justify-center rounded-md border border-border bg-card"
-                      disabled={masterBusy}
-                    >
-                      <ArrowDown className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onPointerDown={(e) => onLongPressStart("master", idx, "up", e)}
+                    onPointerUp={onLongPressCancel}
+                    onPointerCancel={onLongPressCancel}
+                    onClick={(e) => moveMaster(idx, e.shiftKey ? -3 : -1)}
+                    className="inline-flex h-8 w-10 items-center justify-center rounded-md border border-border bg-card"
+                    disabled={masterBusy}
+                  >
+                    <ArrowUp className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onPointerDown={(e) => onLongPressStart("master", idx, "down", e)}
+                    onPointerUp={onLongPressCancel}
+                    onPointerCancel={onLongPressCancel}
+                    onClick={(e) => moveMaster(idx, e.shiftKey ? 3 : 1)}
+                    className="inline-flex h-8 w-10 items-center justify-center rounded-md border border-border bg-card"
+                    disabled={masterBusy}
+                  >
+                    <ArrowDown className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               </div>
+
+              {/* Fila 3: botón ver (compacto) */}
+              <button
+                type="button"
+                onClick={() =>
+                  setExpanded((prev) => ({
+                    ...prev,
+                    [rowId]: !isOpen,
+                  }))
+                }
+                className="inline-flex h-8 w-full items-center justify-center rounded-md border border-border/70 bg-card text-muted-foreground"
+                aria-label="Abrir titular"
+              >
+                <Eye className="h-4 w-4" />
+              </button>
 
               {isOpen && (
                 <div className="space-y-3">

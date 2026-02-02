@@ -140,6 +140,8 @@ export async function updateTrackAll(
       .filter((s) => s.role === PublishingRole.PUBLISHER && typeof s.sharePct === "number")
       .reduce((acc, s) => acc + (s.sharePct ?? 0), 0);
 
+    const is100 = (val: number) => Math.abs(val - 100) < 0.01; // tolera redondeo
+
     const masterSharesToCreate =
       rightsData.masterShares?.map((s) => ({
         name: s.name,
@@ -150,7 +152,7 @@ export async function updateTrackAll(
       })) ?? [];
 
     const publishingBlocked =
-      rightsData.oneStop && (writerSum !== 100 || publisherSum !== 100);
+      rightsData.oneStop && (!is100(writerSum) || !is100(publisherSum));
 
     await prisma.$transaction(async (tx) => {
       await tx.track.update({
@@ -278,12 +280,12 @@ export async function updateTrackAll(
     return {
       ok: true,
       message: publishingBlocked
-        ? "Guardado parcial: Publishing no se guardó (One-Stop requiere 100/100). Ajusta porcentajes."
+        ? `Guardado parcial: Publishing no se guardó (One-Stop requiere 100/100). Writer: ${writerSum}%, Publisher: ${publisherSum}%. Ajusta porcentajes.`
         : "Guardado",
       fieldErrors: publishingBlocked
         ? {
             publishingShares: [
-              "One-Stop activo: ajustar WRITER y PUBLISHER a 100% (publishing no se guardó).",
+              `One-Stop activo: WRITER=${writerSum}% PUBLISHER=${publisherSum}% (debe ser 100/100). Publishing no se guardó.`,
             ],
           }
         : undefined,

@@ -143,6 +143,10 @@ export default function RightsFormClient({ trackId, track, fieldErrors }: Rights
         e.stopPropagation();
       }}
     >
+      {/* Inputs ocultos para Save All */}
+      <input type="hidden" name="publishingShares" value={JSON.stringify(pub.shares)} />
+      <input type="hidden" name="masterShares" value={JSON.stringify(mas.masterShares)} />
+
       <div className="flex flex-col gap-2 border-b border-border pb-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-base font-semibold text-foreground">Derechos &amp; explotación</h2>
