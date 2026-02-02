@@ -157,7 +157,7 @@ export default function RightsFormClient({ trackId, track, fieldErrors }: Rights
       </div>
 
       {/* Publishing */}
-      <div className="space-y-3 rounded-lg border border-border bg-card/80 p-3">
+      <div className="space-y-3 rounded-lg bg-transparent p-2">
         <h3 className="text-sm font-semibold text-foreground">Master &amp; publishing</h3>
         <p className="mb-2 text-[11px] text-muted-foreground">
           Los titulares de master se administran en la tabla inferior. Puedes ingresar múltiples dueños y porcentajes.
@@ -242,20 +242,35 @@ export default function RightsFormClient({ trackId, track, fieldErrors }: Rights
                     }}
                   />
                 </div>
+
+                {/* Form de alta específico por rol */}
+                {role === "WRITER" ? (
+                  <PublishingNewForms
+                    mode="WRITER"
+                    newWriter={pub.newWriter}
+                    newPublisher={pub.newPublisher}
+                    setNewWriter={pub.setNewWriter}
+                    setNewPublisher={pub.setNewPublisher}
+                    savingWriter={pub.savingWriter}
+                    savingPublisher={pub.savingPublisher}
+                    addShare={pub.addShare}
+                  />
+                ) : (
+                  <PublishingNewForms
+                    mode="PUBLISHER"
+                    newWriter={pub.newWriter}
+                    newPublisher={pub.newPublisher}
+                    setNewWriter={pub.setNewWriter}
+                    setNewPublisher={pub.setNewPublisher}
+                    savingWriter={pub.savingWriter}
+                    savingPublisher={pub.savingPublisher}
+                    addShare={pub.addShare}
+                  />
+                )}
               </div>
             );
           })}
         </div>
-
-        <PublishingNewForms
-          newWriter={pub.newWriter}
-          newPublisher={pub.newPublisher}
-          setNewWriter={pub.setNewWriter}
-          setNewPublisher={pub.setNewPublisher}
-          savingWriter={pub.savingWriter}
-          savingPublisher={pub.savingPublisher}
-          addShare={pub.addShare}
-        />
       </div>
 
       {/* Master */}

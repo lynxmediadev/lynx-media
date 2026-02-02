@@ -65,13 +65,11 @@ export function PublishingTable({
   }, [positionSignature]);
 
   return (
-    <div className="space-y-2">
-      <div className="overflow-x-auto rounded-md border border-border">
-        <div className="flex items-center justify-between bg-card/70 px-2 py-2 text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
+    <div className="space-y-2 w-full min-w-0">
+      <div className="w-full overflow-x-auto rounded-md bg-transparent p-1.5">
+        <div className="flex items-center justify-between rounded-md border border-border/50 bg-muted/60 px-3 py-2 text-[11px] uppercase tracking-[0.08em] font-semibold text-foreground">
           <span className="flex items-center gap-2">
-            <span>
-              {role} · Total: {total}%
-            </span>
+            <span>{role} · Total: {total}%</span>
             {roleMsg ? (
               <>
                 <span>·</span>
@@ -80,13 +78,13 @@ export function PublishingTable({
             ) : missing ? (
               <span className="text-amber-400">incompleto</span>
             ) : (
-              <span className="text-emerald-400">OK</span>
+              <span className="text-emerald-500">OK</span>
             )}
           </span>
           {shareBusy && <span className="text-[11px] text-muted-foreground">Moviendo…</span>}
         </div>
         <div className="hidden table-scroll md:block">
-          <table className="min-w-full text-xs">
+          <table className="min-w-full w-full text-xs">
             <thead className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
               <tr>
                 <th className="w-10 px-2 py-2 text-center"> </th>

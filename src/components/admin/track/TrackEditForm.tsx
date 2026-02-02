@@ -166,7 +166,7 @@ export default function TrackEditForm({
           derechos de explotacion y publishing, desde un mismo panel.
         </p>
 
-        <div className="rounded-lg border border-border bg-card/90 p-3">
+        <div className="p-2 border-t border-border/60">
           <CreativeForm
             track={{
               title: track.title,
@@ -178,7 +178,7 @@ export default function TrackEditForm({
           />
         </div>
 
-        <div className="mt-4 rounded-lg border border-border bg-card/90 p-3">
+        <div className="mt-2 p-2 border-t border-border/60">
           <CatalogTagsForm
             trackId={track.id}
             options={catalogTagOptions}
@@ -187,7 +187,7 @@ export default function TrackEditForm({
           />
         </div>
 
-        <div className="mt-4 rounded-lg border border-border bg-card/90 p-3">
+        <div className="mt-2 p-2 border-t border-border/60">
           <IdsForm
             track={{
               isrc: track.isrc,
@@ -198,7 +198,7 @@ export default function TrackEditForm({
           />
         </div>
 
-        <div className="mt-4 rounded-lg border border-border bg-card/90 p-3">
+        <div className="mt-2 p-2 border-t border-border/60">
           <RightsFormClient
             trackId={track.id}
             track={{
@@ -217,7 +217,7 @@ export default function TrackEditForm({
         </div>
       </section>
 
-      <section className="rounded-xl border border-border bg-card/80 p-4">
+      <section className="rounded-xl border border-border bg-card/80 p-4 mt-6">
         <h2 className="text-base font-semibold text-foreground">
           Metadata sync &amp; entregables
         </h2>
@@ -226,7 +226,7 @@ export default function TrackEditForm({
           exclusividad y pricing), junto con versiones y stems disponibles.
         </p>
 
-        <div className="rounded-lg border border-border bg-card/90 p-3">
+        <div className="p-2 border-t border-border/60">
           <SyncMetaForm
             track={{
               licenseType: track.licenseType,
@@ -252,7 +252,7 @@ export default function TrackEditForm({
           />
         </div>
 
-        <div className="mt-4 rounded-lg border border-border bg-card/90 p-3">
+        <div className="mt-2 p-2 border-t border-border/60">
           <DeliverablesForm
             track={{
               versions: track.versions,

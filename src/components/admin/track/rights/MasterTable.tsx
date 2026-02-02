@@ -61,12 +61,12 @@ export function MasterTable({
   }, [positionSignature]);
 
   return (
-    <div className="space-y-3 rounded-lg border border-border bg-card/80 p-3">
+    <div className="space-y-3 rounded-lg bg-transparent p-2 w-full min-w-0">
       <h3 className="text-sm font-semibold text-foreground">Titulares de master (múltiples)</h3>
       <p className="mb-2 text-[11px] text-muted-foreground">
         Lista de titulares del master y porcentajes. Si no se indica %, se considera parcial/pendiente.
       </p>
-      <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-2 rounded-md border border-border/50 bg-muted/60 px-3 py-2 text-[11px] uppercase tracking-[0.08em] font-semibold text-foreground">
         <span className="flex items-center gap-2">
           <span>MASTER · TOTAL: {sumMaster()}%</span>
           {masterError ? (
@@ -77,14 +77,14 @@ export function MasterTable({
           ) : sumMaster() < 100 ? (
             <span className="text-amber-400">INCOMPLETO</span>
           ) : (
-            <span className="text-emerald-400">OK</span>
+            <span className="text-emerald-500">OK</span>
           )}
         </span>
         {masterBusy && <span className="text-[11px] text-muted-foreground">Moviendo…</span>}
       </div>
 
-      <div className="hidden overflow-x-auto rounded-md border border-border table-scroll md:block">
-        <table className="min-w-full text-xs">
+      <div className="hidden w-full overflow-x-auto rounded-md bg-transparent p-1.5 table-scroll md:block">
+        <table className="min-w-full w-full text-xs">
           <thead className="bg-card/70 text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
             <tr>
               <th className="w-10 px-2 py-2 text-center"> </th>

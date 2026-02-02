@@ -66,8 +66,16 @@ export function PublishingCards({
         const rowId = `${share.id ?? `${role}-${idx}`}-${share.sortOrder ?? idx}`;
         const isOpen = expanded[rowId];
         return (
-          <div key={rowId} className="rounded-lg border border-border bg-card/80 p-3 shadow-sm">
-            <div className="space-y-2">
+          <div
+            key={rowId}
+            className={`bg-transparent p-2 pb-3 mb-2 border-b border-border/50 ${
+              idx > 0 ? "pt-2" : ""
+            }`}
+          >
+            <div className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground mb-1">
+              {role === "WRITER" ? "Writer" : "Publisher"}
+            </div>
+            <div className="space-y-1">
               {/* Fila 1: título */}
               <div className="min-w-0 break-words whitespace-normal text-sm font-semibold">
                 {share.name || "Sin nombre"}
