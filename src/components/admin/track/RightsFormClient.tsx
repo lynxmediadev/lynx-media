@@ -7,8 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
-import { SquareX, GripHorizontal, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,37 +18,19 @@ import {
 } from "@/components/ui/dialog";
 import { updatePublishingShares } from "@/app/admin/track/actions/update-publishing-shares";
 import { updateMasterShares } from "@/app/admin/track/actions/update-master-shares";
-import { DndContext, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
-import { restrictToParentElement, restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import {
-  SortableContext,
-  arrayMove,
-  verticalListSortingStrategy,
-  useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import type { Share, MasterShare } from "./rights/types";
+import { usePublishingShares } from "./rights/usePublishingShares";
+import { useMasterShares } from "./rights/useMasterShares";
+import { PublishingTable } from "./rights/PublishingTable";
+import { PublishingCards } from "./rights/PublishingCards";
+import { PublishingNewForms } from "./rights/PublishingNewForms";
+import { MasterTable } from "./rights/MasterTable";
+import { MasterCards } from "./rights/MasterCards";
+import { MasterNewForm } from "./rights/MasterNewForm";
+import { RightsToggles } from "./rights/RightsToggles";
 
-type Share = {
-  id?: string;
-  role: "WRITER" | "PUBLISHER";
-  name: string;
-  sharePct: number | null;
-  ipiNumber?: string | null;
-  pro?: string | null;
-  caeNumber?: string | null;
-  sortOrder?: number | null;
-};
-
-type MasterShare = {
-  id?: string;
-  name: string;
-  sharePct: number | null;
-  contact?: string | null;
-  notes?: string | null;
-  sortOrder?: number | null;
-};
-
-type RightsTrackFormProps = {
+// Tipado de props
+ type RightsTrackFormProps = {
   trackId: string;
   track: {
     mfn: boolean;
@@ -62,423 +42,75 @@ type RightsTrackFormProps = {
     clearedForSync: boolean;
     publishingShares: Share[];
     masterShares: MasterShare[];
+    restrictions?: string[] | null;
   };
   fieldErrors?: Record<string, string[]>;
 };
-type FieldErrors = Record<string, string[]>;
 
-function firstError(fieldErrors: FieldErrors | undefined, key: string) {
+function firstError(fieldErrors: Record<string, string[]> | undefined, key: string) {
   if (!fieldErrors) return null;
   const arr = fieldErrors[key];
   return arr && arr.length > 0 ? arr[0] : null;
 }
 
-const sortByOrder = <T extends { sortOrder?: number | null; name?: string }>(
-  a: T,
-  b: T,
-) => {
-  const ao =
-    typeof a.sortOrder === "number" ? a.sortOrder : Number.MAX_SAFE_INTEGER;
-  const bo =
-    typeof b.sortOrder === "number" ? b.sortOrder : Number.MAX_SAFE_INTEGER;
-  if (ao !== bo) return ao - bo;
-  return (a.name ?? "").localeCompare(b.name ?? "");
-};
+export default function RightsFormClient({ trackId, track, fieldErrors }: RightsTrackFormProps) {
+  const serverErrors = fieldErrors ?? {};
 
-type HandleProps = {
-  ref: (node: HTMLElement | null) => void;
-} & React.HTMLAttributes<HTMLElement>;
-
-function SortableRow({
-  id,
-  children,
-  describedBy,
-}: {
-  id: string;
-  children: (handleProps: HandleProps) => React.ReactNode;
-  describedBy?: string;
-}) {
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } =
-    useSortable({ id });
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-  const attrs = { ...attributes } as React.HTMLAttributes<HTMLTableRowElement>;
-  if (describedBy) {
-    attrs["aria-describedby"] = describedBy;
-  } else {
-    delete (attrs as any)["aria-describedby"];
-  }
-  return (
-    <tr
-      ref={setNodeRef}
-      style={style}
-      {...attrs}
-      className="border-t border-border/60"
-    >
-      {children({
-        ref: setActivatorNodeRef,
-        ...listeners,
-      })}
-    </tr>
-  );
-}
-
-function SortableCard({
-  id,
-  children,
-  describedBy,
-}: {
-  id: string;
-  children: (handleProps: HandleProps) => React.ReactNode;
-  describedBy?: string;
-}) {
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition } =
-    useSortable({ id });
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-  const attrs = { ...attributes } as React.HTMLAttributes<HTMLDivElement>;
-  if (describedBy) {
-    attrs["aria-describedby"] = describedBy;
-  } else {
-    delete (attrs as any)["aria-describedby"];
-  }
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attrs}
-      className="rounded-lg border border-border bg-card/80 p-3 shadow-sm"
-    >
-      {children({
-        ref: setActivatorNodeRef,
-        ...listeners,
-      })}
-    </div>
-  );
-}
-
-export default function RightsFormClient({
-  trackId,
-  track,
-  fieldErrors,
-}: RightsTrackFormProps) {
-  const serverErrors: FieldErrors = fieldErrors ?? {};
-  const dndDescIdShares = "dnd-pub-desc";
-  const dndDescIdMaster = "dnd-master-desc";
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-  );
+  // Toggles
   const [mfnChecked, setMfnChecked] = React.useState(track.mfn);
   const [oneStopChecked, setOneStopChecked] = React.useState(track.oneStop);
-  const [clearedChecked, setClearedChecked] = React.useState(
-    track.clearedForSync,
-  );
-  const [contentIdChecked, setContentIdChecked] = React.useState(
-    track.contentIdEnrolled,
-  );
+  const [clearedChecked, setClearedChecked] = React.useState(track.clearedForSync);
+  const [contentIdChecked, setContentIdChecked] = React.useState(track.contentIdEnrolled);
 
-  const [shares, setShares] = React.useState<Share[]>(
-    (track.publishingShares ?? []).slice().sort(sortByOrder),
-  );
-  const [pendingShares] = React.useTransition();
-  const [shareError, setShareError] = React.useState<string | null>(null);
-  const [shareRoleErrors, setShareRoleErrors] = React.useState<{
-    WRITER?: string;
-    PUBLISHER?: string;
-  }>({});
-  const [newWriter, setNewWriter] = React.useState<Share & { ipiNumber: string; pro: string; caeNumber: string }>({
-    role: "WRITER",
-    name: "",
-    sharePct: 50,
-    ipiNumber: "",
-    pro: "",
-    caeNumber: "",
-  });
-  const [newPublisher, setNewPublisher] = React.useState<Share & { ipiNumber: string; pro: string; caeNumber: string }>({
-    role: "PUBLISHER",
-    name: "",
-    sharePct: 50,
-    ipiNumber: "",
-    pro: "",
-    caeNumber: "",
-  });
+  // Long press (compartido)
+  const longPressTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [longPress, setLongPress] = React.useState<
+    | { type: "share" | "master"; index: number; direction: "up" | "down" }
+    | null
+  >(null);
+  const handleLongPress = (
+    type: "share" | "master",
+    index: number,
+    direction: "up" | "down",
+    e: React.PointerEvent,
+  ) => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    longPressTimer.current = setTimeout(() => setLongPress({ type, index, direction }), 450);
+  };
+  const cancelLongPress = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    longPressTimer.current = null;
+    setLongPress(null);
+  };
 
-  React.useEffect(() => {
-    setShares((track.publishingShares ?? []).slice().sort(sortByOrder));
-  }, [track.publishingShares]);
+  // Publishing hook
+  const pub = usePublishingShares({ trackId, initialShares: track.publishingShares });
 
-  const [masterShares, setMasterShares] = React.useState<MasterShare[]>(
-    (track.masterShares ?? []).slice().sort(sortByOrder),
-  );
-  const [pendingMaster] = React.useTransition();
-  const [masterError, setMasterError] = React.useState<string | null>(null);
-  const [newMaster, setNewMaster] = React.useState({
-    name: "",
-    sharePct: 100,
-    contact: "",
-    notes: "",
-  });
-  const [savingShare, setSavingShare] = React.useState(false);
-  const [savingWriter, setSavingWriter] = React.useState(false);
-  const [savingPublisher, setSavingPublisher] = React.useState(false);
-  const [savingMaster, setSavingMaster] = React.useState(false);
-  const [expandedShares, setExpandedShares] = React.useState<Record<string, boolean>>({});
-  const [expandedMasters, setExpandedMasters] = React.useState<Record<string, boolean>>({});
+  // Master hook
+  const mas = useMasterShares({ trackId, initialMasterShares: track.masterShares });
+
+  // Confirm delete dialog
   const [deleteTarget, setDeleteTarget] = React.useState<
-    | { type: "share"; index: number }
-    | { type: "master"; index: number }
+    | { type: "share"; globalIdx: number }
+    | { type: "master"; idx: number }
     | null
   >(null);
   const [deleteLoading, setDeleteLoading] = React.useState(false);
-  const hiddenJson = JSON.stringify(shares);
-  const hiddenMasterJson = JSON.stringify(masterShares);
 
-  React.useEffect(() => {
-    setMasterShares((track.masterShares ?? []).slice().sort(sortByOrder));
-  }, [track.masterShares]);
+  const shareBusy = pub.reorderSharePending || pub.savingWriter || pub.savingPublisher || deleteLoading;
+  const masterBusy = mas.reorderMasterPending || mas.savingMaster || deleteLoading;
 
-  const applyRoleSortOrders = (list: Share[]) => {
-    let w = 0;
-    let p = 0;
-    return list.map((s) => ({
-      ...s,
-      sortOrder: s.role === "WRITER" ? w++ : p++,
-    }));
-  };
-
-  const shareDomId = (share: Share, idx: number) =>
-    `${share.role}-${share.id ?? "row"}-${idx}`;
-
-  const handleShareDragEnd = (event: { active: any; over: any }) => {
-    const { active, over } = event;
-    if (!over) return;
-    const activeIdx = shares.findIndex(
-      (_, i) => shareDomId(shares[i], i) === active.id,
-    );
-    const overIdx = shares.findIndex(
-      (_, i) => shareDomId(shares[i], i) === over.id,
-    );
-    if (activeIdx === -1 || overIdx === -1) return;
-    if (shares[activeIdx].role !== shares[overIdx].role) return;
-    const role = shares[activeIdx].role;
-    const roleIndices = shares
-      .map((s, i) => (s.role === role ? i : -1))
-      .filter((i) => i >= 0);
-    const from = roleIndices.indexOf(activeIdx);
-    const to = roleIndices.indexOf(overIdx);
-    if (from === -1 || to === -1 || from === to) return;
-    const roleList = roleIndices.map((i) => shares[i]);
-    const reordered = arrayMove(roleList, from, to);
-    const next = [...shares];
-    roleIndices.forEach((pos, idx) => {
-      next[pos] = reordered[idx];
-    });
-    setShares(applyRoleSortOrders(next));
-    validateShares(next);
-  };
-
-  const handleDeleteShare = (idx: number) => {
-    setDeleteTarget({ type: "share", index: idx });
-  };
-
-  const handleMasterDragEnd = (event: { active: any; over: any }) => {
-    const { active, over } = event;
-    if (!over) return;
-    const activeIdx = masterShares.findIndex(
-      (_, i) => (masterShares[i].id ?? `ms-${i}`) === active.id,
-    );
-    const overIdx = masterShares.findIndex(
-      (_, i) => (masterShares[i].id ?? `ms-${i}`) === over.id,
-    );
-    if (activeIdx === -1 || overIdx === -1 || activeIdx === overIdx) return;
-    const reordered = arrayMove(masterShares, activeIdx, overIdx);
-    saveMasterShares(reordered);
-  };
-
-  const validateShares = (list: Share[]) => {
-    const totalW = sumByRole("WRITER", list);
-    const totalP = sumByRole("PUBLISHER", list);
-    const roleErrors: { WRITER?: string; PUBLISHER?: string } = {};
-
-    if (totalW > 100) {
-      roleErrors.WRITER = "WRITER supera 100%. Ajusta porcentajes.";
-    } else if (oneStopChecked && totalW !== 100) {
-      roleErrors.WRITER = "WRITER debe sumar 100% para One-Stop.";
+  // Map roleIdx -> globalIdx
+  const roleIndexToGlobal = (role: "WRITER" | "PUBLISHER") => (roleIdx: number) => {
+    let count = -1;
+    for (let i = 0; i < pub.shares.length; i++) {
+      const share = pub.shares[i];
+      if (share?.role === role) {
+        count += 1;
+        if (count === roleIdx) return i;
+      }
     }
-
-    if (totalP > 100) {
-      roleErrors.PUBLISHER = "PUBLISHER supera 100%. Ajusta porcentajes.";
-    } else if (oneStopChecked && totalP !== 100) {
-      roleErrors.PUBLISHER = "PUBLISHER debe sumar 100% para One-Stop.";
-    }
-
-    setShareRoleErrors(roleErrors);
-    setShareError(
-      roleErrors.WRITER ?? roleErrors.PUBLISHER ?? null,
-    );
-  };
-
-  const updateSharesState = (next: Share[]) => {
-    const ordered = applyRoleSortOrders(next);
-    setShares(ordered);
-    validateShares(ordered);
-  };
-
-  const handleShareChange = (
-    idx: number,
-    field: keyof Share,
-    value: string,
-  ) => {
-    const next = shares.map((s, i) =>
-      i === idx
-        ? {
-            ...s,
-            [field]:
-              field === "sharePct"
-                ? value === ""
-                  ? null
-                  : Number(value)
-                : value,
-          }
-        : s,
-    );
-    updateSharesState(next);
-  };
-
-  const handleAddShare = (roleForAdd: "WRITER" | "PUBLISHER") => {
-    const formState = roleForAdd === "WRITER" ? newWriter : newPublisher;
-    if (!formState.name.trim()) {
-      setShareError("Ingresa un nombre para el share.");
-      return;
-    }
-    const next = [
-      ...shares,
-      {
-        role: roleForAdd,
-        name: formState.name.trim(),
-        sharePct:
-          formState.sharePct === null || Number.isNaN(Number(formState.sharePct))
-            ? null
-            : Number(formState.sharePct),
-        ipiNumber: formState.ipiNumber.trim() || "",
-        pro: formState.pro.trim() || "",
-        caeNumber: formState.caeNumber.trim() || "",
-      },
-    ];
-    const ordered = applyRoleSortOrders(next);
-    // Validación local rápida
-    const totalW = sumByRole("WRITER", ordered);
-    const totalP = sumByRole("PUBLISHER", ordered);
-    if (roleForAdd === "WRITER" && totalW > 100) {
-      setShareRoleErrors((prev) => ({
-        ...prev,
-        WRITER: "AJUSTAR PORCENTAJES (%). WRITER NO PUEDE SUPERAR EL 100%",
-      }));
-      setShareError("AJUSTAR PORCENTAJES (%). WRITER NO PUEDE SUPERAR EL 100%");
-      return;
-    }
-    if (roleForAdd === "PUBLISHER" && totalP > 100) {
-      setShareRoleErrors((prev) => ({
-        ...prev,
-        PUBLISHER: "AJUSTAR PORCENTAJES (%). PUBLISHER NO PUEDE SUPERAR EL 100%",
-      }));
-      setShareError("AJUSTAR PORCENTAJES (%). PUBLISHER NO PUEDE SUPERAR EL 100%");
-      return;
-    }
-    // One-Stop: si falta llegar a 100, sólo marcamos incompleto en el header (sin error).
-    setShareRoleErrors((prev) => ({
-      ...prev,
-      WRITER: totalW > 100 ? prev.WRITER : undefined,
-      PUBLISHER: totalP > 100 ? prev.PUBLISHER : undefined,
-    }));
-    setShareError(null);
-    const setter = roleForAdd === "WRITER" ? setNewWriter : setNewPublisher;
-    const savingSetter = roleForAdd === "WRITER" ? setSavingWriter : setSavingPublisher;
-    savingSetter(true);
-    updatePublishingShares({
-      trackId,
-      // Permitimos guardar parcial; validación estricta queda para Guardar todo
-      oneStop: false,
-      shares: ordered.map((s) => ({
-        ...s,
-        sharePct:
-          s.sharePct === null || Number.isNaN(Number(s.sharePct))
-            ? null
-            : Number(s.sharePct),
-      })),
-    })
-      .then((res) => {
-        if (!res.ok) {
-          setShareError(res.message ?? "Error al guardar share.");
-        } else {
-          setShareError(null);
-          setShares(ordered);
-          setter((prev) => ({ ...prev, name: "", ipiNumber: "", pro: "", caeNumber: "" }));
-        }
-      })
-      .finally(() => savingSetter(false));
-  };
-
-  const sumByRole = (role: "WRITER" | "PUBLISHER", list = shares) =>
-    list
-      .filter((s) => s.role === role && typeof s.sharePct === "number")
-      .reduce((acc, s) => acc + (s.sharePct ?? 0), 0);
-
-  const sumMaster = () =>
-    masterShares
-      .filter((s) => typeof s.sharePct === "number")
-      .reduce((acc, s) => acc + (s.sharePct ?? 0), 0);
-
-  const applyMasterOrders = (list: MasterShare[]) =>
-    list.map((s, idx) => ({ ...s, sortOrder: idx }));
-
-  const saveMasterShares = (next: MasterShare[]) => {
-    const ordered = applyMasterOrders(next);
-    setMasterShares(ordered);
-    // Validación ligera local (opcional)
-  };
-
-  const validateMasterTotal = (list: MasterShare[]) => {
-    const total = list
-      .filter((s) => typeof s.sharePct === "number")
-      .reduce((acc, s) => acc + (s.sharePct ?? 0), 0);
-    if (total > 100) {
-      setMasterError("AJUSTAR PORCENTAJES (%). MASTER NO PUEDE SUPERAR EL 100%");
-      return false;
-    }
-    setMasterError(null);
-    return true;
-  };
-
-  const handleMasterChange = (
-    idx: number,
-    field: keyof typeof newMaster,
-    value: string,
-  ) => {
-    const next = masterShares.map((s, i) =>
-      i === idx
-        ? {
-            ...s,
-            [field]:
-              field === "sharePct"
-                ? value === ""
-                  ? null
-                  : Number(value)
-                : value,
-          }
-        : s,
-    );
-    const ordered = applyMasterOrders(next);
-    setMasterShares(ordered);
-    validateMasterTotal(ordered);
-  };
-
-  const handleDeleteMaster = (idx: number) => {
-    setDeleteTarget({ type: "master", index: idx });
+    return -1;
   };
 
   const confirmDelete = async () => {
@@ -486,49 +118,9 @@ export default function RightsFormClient({
     setDeleteLoading(true);
     try {
       if (deleteTarget.type === "share") {
-        const next = shares.filter((_, i) => i !== deleteTarget.index);
-        const ordered = applyRoleSortOrders(next);
-        const result = await updatePublishingShares({
-          trackId,
-          // Evitar bloqueo por totales < 100 al eliminar; la validación completa se hará en el submit global
-          oneStop: false,
-          shares: ordered.map((s) => ({
-            ...s,
-            sharePct:
-              s.sharePct === null || Number.isNaN(Number(s.sharePct))
-                ? null
-                : Number(s.sharePct),
-          })),
-        });
-        if (!result.ok) {
-          setShareError(result.message ?? "Error al eliminar share.");
-        } else {
-          setShareError(null);
-          setShares(ordered);
-          validateShares(ordered);
-        }
+        await pub.deleteShare(deleteTarget.globalIdx);
       } else {
-        const next = masterShares.filter((_, i) => i !== deleteTarget.index);
-        const ordered = applyMasterOrders(next);
-        const result = await updateMasterShares({
-          trackId,
-          shares: ordered.map((s) => ({
-            name: s.name,
-            sharePct:
-              s.sharePct === null || Number.isNaN(Number(s.sharePct))
-                ? null
-                : Number(s.sharePct),
-            contact: s.contact ?? null,
-            notes: s.notes ?? null,
-            sortOrder: s.sortOrder ?? null,
-          })),
-        });
-        if (!result.ok) {
-          setMasterError(result.message ?? "Error al eliminar titular de master.");
-        } else {
-          setMasterError(null);
-          setMasterShares(ordered);
-        }
+        await mas.deleteMaster(deleteTarget.idx);
       }
     } finally {
       setDeleteLoading(false);
@@ -536,947 +128,206 @@ export default function RightsFormClient({
     }
   };
 
-  const handleAddMaster = () => {
-    if (!newMaster.name.trim()) {
-      setMasterError("Ingresa un nombre para el titular del master.");
-      return;
-    }
-    const tempId =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `tmp-${Date.now()}-${Math.random()}`;
-    const next = [
-      ...masterShares,
-      {
-        id: tempId,
-        name: newMaster.name.trim(),
-        sharePct:
-          newMaster.sharePct === null || Number.isNaN(newMaster.sharePct)
-            ? null
-            : Number(newMaster.sharePct),
-        contact: newMaster.contact.trim() || "",
-        notes: newMaster.notes.trim() || "",
-        sortOrder: masterShares.length,
-      },
-    ];
-    const ordered = applyMasterOrders(next);
-    if (!validateMasterTotal(ordered)) return;
-    setSavingMaster(true);
-    updateMasterShares({
-      trackId,
-      shares: ordered.map((s) => ({
-        name: s.name,
-        sharePct:
-          s.sharePct === null || Number.isNaN(Number(s.sharePct))
-            ? null
-            : Number(s.sharePct),
-        contact: s.contact ?? null,
-        notes: s.notes ?? null,
-        sortOrder: s.sortOrder ?? null,
-      })),
-    })
-      .then((res) => {
-        if (!res.ok) {
-          setMasterError(res.message ?? "Error al guardar titular de master.");
-        } else {
-          setMasterError(null);
-          setMasterShares(ordered);
-          setNewMaster((prev) => ({ ...prev, name: "", contact: "", notes: "" }));
-        }
-      })
-      .finally(() => setSavingMaster(false));
-  };
-
-  const handleMasterKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleAddMaster();
-    }
-  };
+  // Enter control para evitar submits globales
+  const allowEnterAttr = { "data-allow-enter": "true" } as const;
 
   return (
-    <div className="space-y-4">
+    <div
+      className="space-y-4"
+      onKeyDownCapture={(e) => {
+        if (e.key !== "Enter") return;
+        const target = e.target as HTMLElement;
+        if (target instanceof HTMLTextAreaElement) return;
+        if (target.getAttribute("data-allow-enter") === "true") return;
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+    >
       <div className="flex flex-col gap-2 border-b border-border pb-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-base font-semibold text-foreground">
-            Derechos &amp; explotación
-          </h2>
+          <h2 className="text-base font-semibold text-foreground">Derechos &amp; explotación</h2>
           <p className="mt-1 text-xs text-muted-foreground">
             Control de master, publishing y administración de Content ID.
           </p>
         </div>
       </div>
 
-      <div className="space-y-4">
-        <div className="space-y-3 rounded-lg border border-border bg-card/80 p-3">
-          <h3 className="text-sm font-semibold text-foreground">
-            Master &amp; publishing
-          </h3>
-          <p className="mb-2 text-[11px] text-muted-foreground">
-            Los titulares de master se administran en la tabla inferior. Puedes ingresar múltiples dueños y porcentajes.
-          </p>
-
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <h4 className="text-xs font-semibold text-foreground">
-                Publishing shares (Writer 100% / Publisher 100%)
-              </h4>
-            </div>
-            <p id={dndDescIdShares} className="sr-only">
-              Usa arrastrar y soltar para reordenar writers o publishers.
-            </p>
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleShareDragEnd}
-              modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-              accessibility={{ describedById: dndDescIdShares }}
-            >
-              <div className="space-y-6">
-                {(["WRITER", "PUBLISHER"] as const).map((role) => {
-                  const roleShares = shares
-                    .filter((s) => s.role === role)
-                    .map((s) => s)
-                    .sort(sortByOrder);
-                  const total = sumByRole(role);
-                  const over = total > 100;
-                  const missing = total < 100;
-                  const roleMsg = shareRoleErrors[role];
-                  const ids = roleShares.map((share, idx) =>
-                    shareDomId(share, shares.findIndex((s) => s === share)),
-                  );
-                  const isWriter = role === "WRITER";
-                  return (
-                    <div key={role} className="space-y-2">
-                      <div className="overflow-x-auto rounded-md border border-border">
-                        <div className="flex items-center justify-between px-2 py-2 text-[11px] uppercase tracking-[0.08em] text-muted-foreground bg-card/70">
-                          <span className="flex items-center gap-2">
-                            <span>
-                              {role} · Total: {total}%
-                            </span>
-                            {roleMsg ? (
-                              <>
-                                <span>·</span>
-                                <span className="text-destructive">{roleMsg}</span>
-                              </>
-                            ) : missing ? (
-                              <span className="text-amber-400">incompleto</span>
-                            ) : (
-                              <span className="text-emerald-400">OK</span>
-                            )}
-                          </span>
-                        </div>
-                        <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-                          {/* Desktop table */}
-                          <div className="hidden md:block table-scroll">
-                            <table className="min-w-full text-xs">
-                              <thead className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
-                                <tr>
-                                  <th className="px-2 py-2 text-center w-10"> </th>
-                                  <th className="px-2 py-2 text-left">Nombre</th>
-                                  <th className="px-2 py-2 text-left w-20">%</th>
-                                  <th className="px-2 py-2 text-left">IPI</th>
-                                  <th className="px-2 py-2 text-left">PRO</th>
-                                  <th className="px-2 py-2 text-left">CAE</th>
-                                  <th className="px-2 py-2 text-center">Acciones</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {roleShares.length === 0 ? (
-                                  <tr>
-                                    <td colSpan={7} className="px-2 py-3 text-center text-muted-foreground">
-                                      Sin {isWriter ? "writers" : "publishers"}.
-                                    </td>
-                                  </tr>
-                                ) : (
-                                  roleShares.map((share) => {
-                                    const globalIdx = shares.findIndex((s) => s === share);
-                                    const rowId = shareDomId(share, globalIdx);
-                                    return (
-                                      <SortableRow
-                                        key={rowId}
-                                        id={rowId}
-                                        describedBy={dndDescIdShares}
-                                      >
-                                        {(handleProps) => (
-                                          <>
-                                            <td className="px-2 py-2 text-center w-10">
-                                              <span
-                                                {...handleProps}
-                                                className="mx-auto inline-flex h-4 w-4 cursor-grab items-center justify-center text-muted-foreground"
-                                                aria-label="Reordenar"
-                                              >
-                                                <GripHorizontal className="h-4 w-4" />
-                                              </span>
-                                            </td>
-                                            <td className="px-2 py-2">
-                                              <Input
-                                                value={share.name}
-                                                onChange={(e) => handleShareChange(globalIdx, "name", e.target.value)}
-                                                className="h-8 text-xs"
-                                              />
-                                            </td>
-                                            <td className="px-2 py-2">
-                                              <Input
-                                                type="number"
-                                                min={0}
-                                                max={100}
-                                                value={share.sharePct ?? ""}
-                                                onChange={(e) => handleShareChange(globalIdx, "sharePct", e.target.value)}
-                                                className="h-8 text-xs text-right"
-                                              />
-                                            </td>
-                                            <td className="px-2 py-2">
-                                              <Input
-                                                value={share.ipiNumber ?? ""}
-                                                onChange={(e) => handleShareChange(globalIdx, "ipiNumber", e.target.value)}
-                                                className="h-8 text-xs"
-                                              />
-                                            </td>
-                                            <td className="px-2 py-2">
-                                              <Input
-                                                value={share.pro ?? ""}
-                                                onChange={(e) => handleShareChange(globalIdx, "pro", e.target.value)}
-                                                className="h-8 text-xs"
-                                              />
-                                            </td>
-                                            <td className="px-2 py-2">
-                                              <Input
-                                                value={share.caeNumber ?? ""}
-                                                onChange={(e) => handleShareChange(globalIdx, "caeNumber", e.target.value)}
-                                                className="h-8 text-xs"
-                                              />
-                                            </td>
-                                            <td className="px-2 py-2 text-right">
-                                              <button
-                                                type="button"
-                                                onClick={() => handleDeleteShare(globalIdx)}
-                                                className="inline-flex w-full items-center justify-center text-destructive hover:text-destructive/80"
-                                                aria-label="Eliminar share"
-                                                disabled={pendingShares}
-                                              >
-                                                <SquareX className="h-4 w-4" />
-                                              </button>
-                                            </td>
-                                          </>
-                                        )}
-                                      </SortableRow>
-                                    );
-                                  })
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-
-                          {/* Mobile cards */}
-                          <div className="space-y-3 md:hidden">
-                            {roleShares.length === 0 ? (
-                              <div className="rounded-lg border border-border/70 bg-card/60 p-3 text-xs text-muted-foreground">
-                                Sin {isWriter ? "writers" : "publishers"}.
-                              </div>
-                            ) : (
-                              roleShares.map((share) => {
-                                const globalIdx = shares.findIndex((s) => s === share);
-                                const rowId = shareDomId(share, globalIdx);
-                                const isOpen = expandedShares[rowId];
-                                return (
-                                  <SortableCard key={rowId} id={rowId} describedBy={dndDescIdShares}>
-                                    {(handleProps) => (
-                                      <div className="space-y-2">
-                                        <div className="flex items-center gap-2">
-                                          <button
-                                            type="button"
-                                            {...handleProps}
-                                            className="inline-flex h-8 w-8 flex-shrink-0 cursor-grab items-center justify-center rounded border border-border/70 text-muted-foreground"
-                                            aria-label="Reordenar"
-                                          >
-                                            <GripHorizontal className="h-4 w-4" />
-                                          </button>
-                                          <div className="flex min-w-0 flex-1 flex-col">
-                                            <span className="truncate text-sm font-semibold">
-                                              {share.name || "Sin nombre"}
-                                            </span>
-                                            <span className="text-[11px] text-muted-foreground">
-                                              {share.sharePct ?? "—"}%
-                                            </span>
-                                          </div>
-                                          <button
-                                            type="button"
-                                            onClick={() =>
-                                              setExpandedShares((prev) => ({
-                                                ...prev,
-                                                [rowId]: !isOpen,
-                                              }))
-                                            }
-                                            className="inline-flex h-8 w-8 items-center justify-center rounded border border-border/70 text-muted-foreground"
-                                            aria-label="Abrir titular"
-                                          >
-                                            <Eye className="h-4 w-4" />
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={() => handleDeleteShare(globalIdx)}
-                                            className="inline-flex h-8 w-8 items-center justify-center rounded border border-destructive/50 text-destructive hover:border-destructive"
-                                            aria-label="Eliminar share"
-                                            disabled={pendingShares}
-                                          >
-                                            <SquareX className="h-4 w-4" />
-                                          </button>
-                                        </div>
-                                        {isOpen && (
-                                          <div className="space-y-2">
-                                            <div className="grid grid-cols-1 gap-2">
-                                              <div className="space-y-1">
-                                                <Label className="text-[11px] text-muted-foreground">Nombre</Label>
-                                                <Input
-                                                  value={share.name}
-                                                  onChange={(e) => handleShareChange(globalIdx, "name", e.target.value)}
-                                                  className="h-8 text-xs"
-                                                />
-                                              </div>
-                                              <div className="space-y-1">
-                                                <Label className="text-[11px] text-muted-foreground">% </Label>
-                                                <Input
-                                                  type="number"
-                                                  min={0}
-                                                  max={100}
-                                                  value={share.sharePct ?? ""}
-                                                  onChange={(e) => handleShareChange(globalIdx, "sharePct", e.target.value)}
-                                                  className="h-8 text-xs"
-                                                />
-                                              </div>
-                                              <div className="space-y-1">
-                                                <Label className="text-[11px] text-muted-foreground">IPI</Label>
-                                                <Input
-                                                  value={share.ipiNumber ?? ""}
-                                                  onChange={(e) => handleShareChange(globalIdx, "ipiNumber", e.target.value)}
-                                                  className="h-8 text-xs"
-                                                />
-                                              </div>
-                                              <div className="space-y-1">
-                                                <Label className="text-[11px] text-muted-foreground">PRO</Label>
-                                                <Input
-                                                  value={share.pro ?? ""}
-                                                  onChange={(e) => handleShareChange(globalIdx, "pro", e.target.value)}
-                                                  className="h-8 text-xs"
-                                                />
-                                              </div>
-                                              <div className="space-y-1">
-                                                <Label className="text-[11px] text-muted-foreground">CAE</Label>
-                                                <Input
-                                                  value={share.caeNumber ?? ""}
-                                                  onChange={(e) => handleShareChange(globalIdx, "caeNumber", e.target.value)}
-                                                  className="h-8 text-xs"
-                                                />
-                                              </div>
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-                                  </SortableCard>
-                                );
-                              })
-                            )}
-                          </div>
-                        </SortableContext>
-                      </div>
-
-                      {/* Form de alta separado por rol */}
-                      <div className="rounded-md border border-border/70 bg-card/60 p-3">
-                        <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-end">
-                          <div className="flex min-w-[200px] flex-1 flex-col gap-1">
-                            <Label className="text-[11px] text-muted-foreground">
-                              Añadir {isWriter ? "Writer/Composer" : "Publisher"}
-                            </Label>
-                            <Input
-                              value={isWriter ? newWriter.name : newPublisher.name}
-                              onChange={(e) =>
-                                isWriter
-                                  ? setNewWriter((prev) => ({ ...prev, name: e.target.value }))
-                                  : setNewPublisher((prev) => ({ ...prev, name: e.target.value }))
-                              }
-                              className="h-8 text-xs"
-                              placeholder={isWriter ? "Writer / Composer" : "Publisher"}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  handleAddShare(role);
-                                }
-                              }}
-                            />
-                          </div>
-                          <div className="flex w-full md:w-24 flex-col gap-1">
-                            <Label className="text-[11px] text-muted-foreground">% </Label>
-                            <Input
-                              type="number"
-                              min={0}
-                              max={100}
-                              value={isWriter ? newWriter.sharePct ?? "" : newPublisher.sharePct ?? ""}
-                              onChange={(e) =>
-                                isWriter
-                                  ? setNewWriter((prev) => ({
-                                      ...prev,
-                                      sharePct: e.target.value === "" ? null : Number(e.target.value),
-                                    }))
-                                  : setNewPublisher((prev) => ({
-                                      ...prev,
-                                      sharePct: e.target.value === "" ? null : Number(e.target.value),
-                                    }))
-                              }
-                              className="h-8 text-xs text-right"
-                            />
-                          </div>
-                          <div className="flex min-w-[180px] flex-1 flex-col gap-1">
-                            <Label className="text-[11px] text-muted-foreground">IPI</Label>
-                            <Input
-                              value={isWriter ? newWriter.ipiNumber ?? "" : newPublisher.ipiNumber ?? ""}
-                              onChange={(e) =>
-                                isWriter
-                                  ? setNewWriter((prev) => ({ ...prev, ipiNumber: e.target.value }))
-                                  : setNewPublisher((prev) => ({ ...prev, ipiNumber: e.target.value }))
-                              }
-                              className="h-8 text-xs"
-                            />
-                          </div>
-                          <div className="flex min-w-[140px] flex-1 flex-col gap-1">
-                            <Label className="text-[11px] text-muted-foreground">PRO</Label>
-                            <Input
-                              value={isWriter ? newWriter.pro ?? "" : newPublisher.pro ?? ""}
-                              onChange={(e) =>
-                                isWriter
-                                  ? setNewWriter((prev) => ({ ...prev, pro: e.target.value }))
-                                  : setNewPublisher((prev) => ({ ...prev, pro: e.target.value }))
-                              }
-                              className="h-8 text-xs"
-                            />
-                          </div>
-                          <div className="flex min-w-[140px] flex-1 flex-col gap-1">
-                            <Label className="text-[11px] text-muted-foreground">CAE</Label>
-                            <Input
-                              value={isWriter ? newWriter.caeNumber ?? "" : newPublisher.caeNumber ?? ""}
-                              onChange={(e) =>
-                                isWriter
-                                  ? setNewWriter((prev) => ({ ...prev, caeNumber: e.target.value }))
-                                  : setNewPublisher((prev) => ({ ...prev, caeNumber: e.target.value }))
-                              }
-                              className="h-8 text-xs"
-                            />
-                          </div>
-                          <div className="flex items-center justify-end md:justify-start">
-                            <button
-                              type="button"
-                              onClick={() => handleAddShare(role)}
-                              disabled={pendingShares || (isWriter ? savingWriter : savingPublisher)}
-                              className="inline-flex h-8 items-center justify-center rounded border border-border bg-card px-3 text-xs font-semibold text-foreground hover:border-foreground/70"
-                            >
-                              {isWriter
-                                ? savingWriter
-                                  ? "Guardando…"
-                                  : "Añadir Writer"
-                                : savingPublisher
-                                  ? "Guardando…"
-                                  : "Añadir Publisher"}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </DndContext>
-          </div>
-        </div>
-
-        <div className="space-y-3 rounded-lg border border-border bg-card/80 p-3">
-          <h3 className="text-sm font-semibold text-foreground">
-            Titulares de master (múltiples)
-          </h3>
-          <p className="mb-2 text-[11px] text-muted-foreground">
-            Lista de titulares del master y porcentajes. Si no se indica %, se considera parcial/pendiente.
-          </p>
-          <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-            <span className="flex items-center gap-2">
-              <span>MASTER · TOTAL: {sumMaster()}%</span>
-              {masterError ? (
-                <>
-                  <span>·</span>
-                  <span className="text-destructive">{masterError}</span>
-                </>
-              ) : sumMaster() < 100 ? (
-                <span className="text-amber-400">INCOMPLETO</span>
-              ) : (
-                <span className="text-emerald-400">OK</span>
-              )}
-            </span>
-          </div>
-          <p id={dndDescIdMaster} className="sr-only">
-            Arrastra los titulares de master para ajustar el orden.
-          </p>
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleMasterDragEnd}
-            modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-            accessibility={{ describedById: dndDescIdMaster }}
-          >
-            <div className="hidden md:block overflow-x-auto rounded-md border border-border table-scroll">
-              <SortableContext
-                items={masterShares.map((ms, idx) => ms.id ?? `ms-${idx}`)}
-                strategy={verticalListSortingStrategy}
-              >
-                <table className="min-w-full text-xs">
-                  <thead className="bg-card/70 text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
-                    <tr>
-                      <th className="px-2 py-2 text-center w-10"> </th>
-                      <th className="px-2 py-2 text-left">Nombre</th>
-                      <th className="px-2 py-2 text-left w-20">%</th>
-                      <th className="px-2 py-2 text-left">Contacto</th>
-                      <th className="px-2 py-2 text-left">Notas</th>
-                      <th className="px-2 py-2 text-center">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {masterShares.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="px-2 py-3 text-center text-muted-foreground">
-                          Sin titulares registrados.
-                        </td>
-                      </tr>
-                    ) : (
-                      masterShares.map((ms, idx) => {
-                        const rowId = ms.id ?? `ms-${idx}`;
-                        return (
-                          <SortableRow
-                            key={rowId}
-                            id={rowId}
-                            describedBy={dndDescIdMaster}
-                          >
-                            {(handleProps) => (
-                              <>
-                                <td className="px-2 py-2 text-center w-10">
-                                  <span
-                                    {...handleProps}
-                                    className="mx-auto inline-flex h-4 w-4 cursor-grab items-center justify-center text-muted-foreground"
-                                    aria-label="Reordenar"
-                                  >
-                                    <GripHorizontal className="h-4 w-4" />
-                                  </span>
-                                </td>
-                                <td className="px-2 py-2">
-                                  <Input
-                                    value={ms.name}
-                                    onChange={(e) => handleMasterChange(idx, "name", e.target.value)}
-                                    className="h-8 text-xs"
-                                  />
-                                </td>
-                                <td className="px-2 py-2">
-                                  <Input
-                                    type="number"
-                                    min={0}
-                                    max={100}
-                                    value={ms.sharePct ?? ""}
-                                    onChange={(e) => handleMasterChange(idx, "sharePct", e.target.value)}
-                                    className="h-8 text-xs text-right"
-                                  />
-                                </td>
-                                <td className="px-2 py-2">
-                                  <Input
-                                    value={ms.contact ?? ""}
-                                    onChange={(e) => handleMasterChange(idx, "contact", e.target.value)}
-                                    className="h-8 text-xs"
-                                  />
-                                </td>
-                                <td className="px-2 py-2">
-                                  <Input
-                                    value={ms.notes ?? ""}
-                                    onChange={(e) => handleMasterChange(idx, "notes", e.target.value)}
-                                    className="h-8 text-xs"
-                                  />
-                                </td>
-                                <td className="px-2 py-2 text-right">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteMaster(idx)}
-                                    className="inline-flex w-full items-center justify-center text-destructive hover:text-destructive/80"
-                                    aria-label="Eliminar titular master"
-                                    disabled={pendingMaster}
-                                  >
-                                    <SquareX className="h-4 w-4" />
-                                  </button>
-                                </td>
-                              </>
-                            )}
-                          </SortableRow>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </SortableContext>
-            </div>
-
-            <div className="space-y-3 md:hidden">
-              {masterShares.length === 0 ? (
-                <div className="rounded-lg border border-border/70 bg-card/60 p-3 text-xs text-muted-foreground">
-                  Sin titulares registrados.
-                </div>
-              ) : (
-                <SortableContext
-                  items={masterShares.map((ms, idx) => ms.id ?? `ms-${idx}`)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {masterShares.map((ms, idx) => {
-                    const rowId = ms.id ?? `ms-${idx}`;
-                    const isOpen = expandedMasters[rowId];
-                    return (
-                      <SortableCard key={rowId} id={rowId} describedBy={dndDescIdMaster}>
-                        {(handleProps) => (
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                {...handleProps}
-                                className="inline-flex h-8 w-8 flex-shrink-0 cursor-grab items-center justify-center rounded border border-border/70 text-muted-foreground"
-                                aria-label="Reordenar"
-                              >
-                                <GripHorizontal className="h-4 w-4" />
-                              </button>
-                              <div className="flex min-w-0 flex-1 flex-col">
-                                <span className="truncate text-sm font-semibold">
-                                  {ms.name || "Sin nombre"}
-                                </span>
-                                <span className="text-[11px] text-muted-foreground">
-                                  {ms.sharePct ?? "—"}%
-                                </span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setExpandedMasters((prev) => ({
-                                    ...prev,
-                                    [rowId]: !isOpen,
-                                  }))
-                                }
-                                className="inline-flex h-8 w-8 items-center justify-center rounded border border-border/70 text-muted-foreground"
-                                aria-label="Abrir titular"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteMaster(idx)}
-                                className="inline-flex h-8 w-8 items-center justify-center rounded border border-destructive/50 text-destructive hover:border-destructive"
-                                aria-label="Eliminar titular master"
-                                disabled={pendingMaster}
-                              >
-                                <SquareX className="h-4 w-4" />
-                              </button>
-                            </div>
-                            {isOpen && (
-                              <div className="space-y-2">
-                                <div className="space-y-1">
-                                  <Label className="text-[11px] text-muted-foreground">Nombre</Label>
-                                  <Input
-                                    value={ms.name}
-                                    onChange={(e) => handleMasterChange(idx, "name", e.target.value)}
-                                    className="h-8 text-xs"
-                                  />
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-[11px] text-muted-foreground">% </Label>
-                                  <Input
-                                    type="number"
-                                    min={0}
-                                    max={100}
-                                    value={ms.sharePct ?? ""}
-                                    onChange={(e) => handleMasterChange(idx, "sharePct", e.target.value)}
-                                    className="h-8 text-xs"
-                                  />
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-[11px] text-muted-foreground">Contacto</Label>
-                                  <Input
-                                    value={ms.contact ?? ""}
-                                    onChange={(e) => handleMasterChange(idx, "contact", e.target.value)}
-                                    className="h-8 text-xs"
-                                  />
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-[11px] text-muted-foreground">Notas</Label>
-                                  <Input
-                                    value={ms.notes ?? ""}
-                                    onChange={(e) => handleMasterChange(idx, "notes", e.target.value)}
-                                    className="h-8 text-xs"
-                                  />
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </SortableCard>
-                    );
-                  })}
-                </SortableContext>
-              )}
-            </div>
-          </DndContext>
-
-          <div className="rounded-md border border-border/70 bg-card/60 p-3">
-            <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-end">
-              <div className="flex min-w-[160px] flex-1 flex-col gap-1">
-                <Label className="text-[11px] text-muted-foreground">Nombre</Label>
-                <Input
-                  value={newMaster.name}
-                  onChange={(e) => setNewMaster((prev) => ({ ...prev, name: e.target.value }))}
-                  className="h-8 text-xs"
-                  placeholder="Titular master"
-                  onKeyDown={handleMasterKeyDown}
-                />
-              </div>
-              <div className="flex w-full md:w-20 flex-col gap-1">
-                <Label className="text-[11px] text-muted-foreground">% </Label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={newMaster.sharePct ?? ""}
-                  onChange={(e) =>
-                    setNewMaster((prev) => ({
-                      ...prev,
-                      sharePct: e.target.value === "" ? null : Number(e.target.value),
-                    }))
+      {/* Publishing */}
+      <div className="space-y-3 rounded-lg border border-border bg-card/80 p-3">
+        <h3 className="text-sm font-semibold text-foreground">Master &amp; publishing</h3>
+        <p className="mb-2 text-[11px] text-muted-foreground">
+          Los titulares de master se administran en la tabla inferior. Puedes ingresar múltiples dueños y porcentajes.
+        </p>
+        <div className="space-y-6">
+          {(["WRITER", "PUBLISHER"] as const).map((role) => {
+            const roleShares = pub.shares
+              .filter((s) => s.role === role)
+              .map((s) => s)
+              .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+            const total = pub.sumByRole(role);
+            const missing = total < 100;
+            const roleMsg = pub.shareRoleErrors[role];
+            const toGlobal = roleIndexToGlobal(role);
+            return (
+              <div key={role} className="space-y-3">
+                <PublishingTable
+                  role={role}
+                  roleShares={roleShares}
+                  total={total}
+                  roleMsg={roleMsg}
+                  missing={missing}
+                  shareBusy={shareBusy}
+                  pendingShares={false}
+                  longPress={longPress}
+                  onLongPressStart={(type, idx, dir, e) =>
+                    handleLongPress(type, toGlobal(idx), dir, e)
                   }
-                  className="h-8 text-xs text-right"
-                  onKeyDown={handleMasterKeyDown}
+                  onLongPressCancel={cancelLongPress}
+                  moveShare={(idx, delta) => {
+                    const g = toGlobal(idx);
+                    if (g >= 0) pub.moveShare(g, delta);
+                  }}
+                  moveShareTo={(idx, target) => {
+                    const g = toGlobal(idx);
+                    if (g >= 0) pub.moveShareTo(g, target);
+                  }}
+                  moveShareTop={(idx) => {
+                    const g = toGlobal(idx);
+                    if (g >= 0) pub.moveShareTop(g);
+                  }}
+                  moveShareBottom={(idx) => {
+                    const g = toGlobal(idx);
+                    if (g >= 0) pub.moveShareBottom(g);
+                  }}
+                  onChange={(idx, field, value) => {
+                    const g = toGlobal(idx);
+                    if (g >= 0) pub.handleShareChange(g, field, value);
+                  }}
+                  onDelete={(idx) => {
+                    const g = toGlobal(idx);
+                    if (g >= 0) setDeleteTarget({ type: "share", globalIdx: g });
+                  }}
                 />
-              </div>
-              <div className="flex min-w-[160px] flex-1 flex-col gap-1">
-                <Label className="text-[11px] text-muted-foreground">Contacto</Label>
-                <Input
-                  value={newMaster.contact}
-                  onChange={(e) => setNewMaster((prev) => ({ ...prev, contact: e.target.value }))}
-                  className="h-8 text-xs"
-                  placeholder="Email / teléfono"
-                  onKeyDown={handleMasterKeyDown}
-                />
-              </div>
-              <div className="flex min-w-[160px] flex-1 flex-col gap-1">
-                <Label className="text-[11px] text-muted-foreground">Notas</Label>
-                <Input
-                  value={newMaster.notes}
-                  onChange={(e) => setNewMaster((prev) => ({ ...prev, notes: e.target.value }))}
-                  className="h-8 text-xs"
-                  placeholder="Observaciones"
-                  onKeyDown={handleMasterKeyDown}
-                />
-              </div>
-              <div className="flex items-center justify-end md:justify-start">
-                <button
-                  type="button"
-                  onClick={handleAddMaster}
-                  disabled={pendingMaster}
-                  className="inline-flex h-8 items-center justify-center rounded border border-border bg-card px-3 text-xs font-semibold text-foreground hover:border-foreground/70"
-                >
-                  Añadir master
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        <div className="space-y-2 pt-1">
-          <div className="rounded-md border border-border bg-card/70 p-2">
-            <div className="flex items-center gap-2">
-              <input
-                type="hidden"
-                name="mfn"
-                value={mfnChecked ? "true" : "false"}
-              />
-              <Checkbox
-                id="mfn"
-                checked={mfnChecked}
-                onCheckedChange={(checked) => setMfnChecked(checked === true)}
-              />
-              <div className="space-y-0.5">
-                <Label
-                  htmlFor="mfn"
-                  className="text-xs font-medium text-foreground"
-                >
-                  MFN (Most Favoured Nations)
-                </Label>
-                <p className="text-[11px] text-muted-foreground">
-                  Marca esto si las condiciones de este master deben ser al
-                  menos tan favorables como las de otros proveedores en el
-                  mismo proyecto/campaña.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-md border border-border bg-card/70 p-2">
-            <div className="flex flex-col gap-2">
-              <p className="text-xs font-medium text-foreground">
-                One-stop / Cleared
-              </p>
-              <div className="flex flex-wrap gap-4">
-                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                  <input
-                    type="hidden"
-                    name="oneStop"
-                    value={oneStopChecked ? "true" : "false"}
-                  />
-                  <Checkbox
-                    id="oneStop"
-                    checked={oneStopChecked}
-                    onCheckedChange={(checked) =>
-                      setOneStopChecked(checked === true)
+                <div className="md:hidden">
+                  <PublishingCards
+                    role={role}
+                    roleShares={roleShares}
+                    shareBusy={shareBusy}
+                    pendingShares={false}
+                    longPress={longPress}
+                    onLongPressStart={(type, idx, dir, e) =>
+                      handleLongPress(type, toGlobal(idx), dir, e)
                     }
+                    onLongPressCancel={cancelLongPress}
+                    moveShare={(idx, delta) => {
+                      const g = toGlobal(idx);
+                      if (g >= 0) pub.moveShare(g, delta);
+                    }}
+                    moveShareTo={(idx, target) => {
+                      const g = toGlobal(idx);
+                      if (g >= 0) pub.moveShareTo(g, target);
+                    }}
+                    onChange={(idx, field, value) => {
+                      const g = toGlobal(idx);
+                      if (g >= 0) pub.handleShareChange(g, field, value);
+                    }}
+                    onDelete={(idx) => {
+                      const g = toGlobal(idx);
+                      if (g >= 0) setDeleteTarget({ type: "share", globalIdx: g });
+                    }}
                   />
-                  <Label
-                    htmlFor="oneStop"
-                    className="text-[11px] text-muted-foreground"
-                  >
-                    One-stop (master + publishing)
-                  </Label>
-                </div>
-                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                  <input
-                    type="hidden"
-                    name="clearedForSync"
-                    value={clearedChecked ? "true" : "false"}
-                  />
-                  <Checkbox
-                    id="clearedForSync"
-                    checked={clearedChecked}
-                    onCheckedChange={(checked) =>
-                      setClearedChecked(checked === true)
-                    }
-                  />
-                  <Label
-                    htmlFor="clearedForSync"
-                    className="text-[11px] text-muted-foreground"
-                  >
-                    Cleared para sync
-                  </Label>
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div className="rounded-md border border-border bg-card/70 p-2">
-            <div className="flex items-center gap-2">
-              <input
-                type="hidden"
-                name="contentIdEnrolled"
-                value={contentIdChecked ? "true" : "false"}
-              />
-              <Checkbox
-                id="contentIdEnrolled"
-                checked={contentIdChecked}
-                onCheckedChange={(checked) =>
-                  setContentIdChecked(checked === true)
-                }
-              />
-              <div className="space-y-0.5">
-                <Label
-                  htmlFor="contentIdEnrolled"
-                  className="text-xs font-medium text-foreground"
-                >
-                  Enrolado en Content ID (YouTube)
-                </Label>
-                <p className="text-[11px] text-muted-foreground">
-                  Márcalo si este master está (o estará) registrado en un
-                  sistema de Content ID (YouTube, Facebook, etc.).
-                </p>
-              </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
 
-        <div className="space-y-1 rounded-lg border border-border bg-card/80 p-3">
-          <h3 className="text-sm font-semibold text-foreground">
-            Content ID &amp; administración
-          </h3>
-          <p className="mb-3 text-[11px] text-muted-foreground">
-            Define quién administra Content ID y qué canales deben estar
-            exentos de reclamaciones (whitelist).
-          </p>
-
-          <FormField
-            htmlFor="contentIdAdmin"
-            error={firstError(serverErrors, "contentIdAdmin")}
-            label="Admin Content ID"
-            descriptionPosition="above"
-            className="mb-5"
-            description={
-              <>
-                Quién administra Content ID. Ej:{" "}
-                <span className="font-mono">Identifyy</span>,{" "}
-                <span className="font-mono">HAWWK</span>,{" "}
-                <span className="font-mono">Propietario directo</span>.
-              </>
-            }
-          >
-            <Input
-              id="contentIdAdmin"
-              name="contentIdAdmin"
-              type="text"
-              defaultValue={track.contentIdAdmin}
-              className="mt-0.5 w-full text-xs"
-              placeholder="Ej: Identifyy como administrador de Content ID"
-            />
-          </FormField>
-
-          <FormField
-            htmlFor="contentIdWhitelist"
-            error={firstError(serverErrors, "contentIdWhitelist")}
-            label="Whitelist Content ID"
-            descriptionPosition="above"
-            description={
-              <>
-                Canales o cuentas excluidas de reclamaciones. Una por línea o
-                separadas por comas. Ej: nombres de canales de clientes, tu
-                propio canal, etc.
-              </>
-            }
-          >
-            <Textarea
-              id="contentIdWhitelist"
-              name="contentIdWhitelist"
-              defaultValue={track.contentIdWhitelist}
-              rows={4}
-              className="mt-0.5 w-full resize-y text-xs"
-              placeholder={`Ej: lynxmediaofficial
-cliente_marca_tv
-cliente_youtube_channel`}
-            />
-          </FormField>
-        </div>
+        <PublishingNewForms
+          newWriter={pub.newWriter}
+          newPublisher={pub.newPublisher}
+          setNewWriter={pub.setNewWriter}
+          setNewPublisher={pub.setNewPublisher}
+          savingWriter={pub.savingWriter}
+          savingPublisher={pub.savingPublisher}
+          addShare={pub.addShare}
+        />
       </div>
 
-      {/* Hidden para que el submit global conozca los shares actuales */}
-      <input type="hidden" name="publishingShares" value={hiddenJson} />
-      <input type="hidden" name="master" value={track.master ?? ""} />
-      <input type="hidden" name="masterShares" value={hiddenMasterJson} />
+      {/* Master */}
+      <MasterTable
+        masterShares={mas.masterShares}
+        masterError={mas.masterError}
+        sumMaster={mas.sumMaster}
+        masterBusy={masterBusy}
+        pendingMaster={false}
+        longPress={longPress}
+        onLongPressStart={(type, idx, dir, e) => handleLongPress(type, idx, dir, e)}
+        onLongPressCancel={cancelLongPress}
+        moveMaster={mas.moveMaster}
+        moveMasterTo={mas.moveMasterTo}
+        moveMasterTop={mas.moveMasterTop}
+        moveMasterBottom={mas.moveMasterBottom}
+        onChange={mas.handleMasterChange}
+        onDelete={(idx) => setDeleteTarget({ type: "master", idx })}
+      />
+      <div className="md:hidden">
+        <MasterCards
+          masterShares={mas.masterShares}
+          masterBusy={masterBusy}
+          pendingMaster={false}
+          longPress={longPress}
+          onLongPressStart={(type, idx, dir, e) => handleLongPress(type, idx, dir, e)}
+          onLongPressCancel={cancelLongPress}
+          moveMaster={mas.moveMaster}
+          moveMasterTo={mas.moveMasterTo}
+          onChange={mas.handleMasterChange}
+          onDelete={(idx) => setDeleteTarget({ type: "master", idx })}
+        />
+      </div>
+      <MasterNewForm
+        newMaster={mas.newMaster}
+        setNewMaster={mas.setNewMaster}
+        savingMaster={mas.savingMaster}
+        addMaster={mas.addMaster}
+      />
 
-      {/* Confirmación de borrado */}
-      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && !deleteLoading && setDeleteTarget(null)}>
-        <DialogContent className="max-w-sm">
+      {/* Toggles y metadatos */}
+      <RightsToggles
+        mfnChecked={mfnChecked}
+        setMfnChecked={setMfnChecked}
+        oneStopChecked={oneStopChecked}
+        setOneStopChecked={setOneStopChecked}
+        clearedChecked={clearedChecked}
+        setClearedChecked={setClearedChecked}
+        contentIdChecked={contentIdChecked}
+        setContentIdChecked={setContentIdChecked}
+        track={track}
+        serverErrors={serverErrors}
+      />
+
+      <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirmar eliminación</DialogTitle>
-            <DialogDescription>
-              Esta acción eliminará {deleteTarget?.type === "share" ? "el share" : "el titular de master"} de la lista.
-              En cuanto confirmes, se guardará de inmediato.
-            </DialogDescription>
+            <DialogDescription>Esta acción eliminará el registro seleccionado.</DialogDescription>
           </DialogHeader>
-          <DialogFooter className="flex flex-row justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => setDeleteTarget(null)} disabled={deleteLoading}>
+          <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeleteTarget(null)}
+              disabled={deleteLoading}
+            >
               Cancelar
             </Button>
-            <Button variant="destructive" size="sm" onClick={confirmDelete} disabled={deleteLoading}>
-              {deleteLoading ? "Eliminando..." : "Eliminar"}
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={deleteLoading}
+            >
+              {deleteLoading ? "Eliminando…" : "Eliminar"}
             </Button>
           </DialogFooter>
         </DialogContent>
