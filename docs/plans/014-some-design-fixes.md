@@ -7,6 +7,8 @@ Los cambios pueden ser visuales o de lógica.
 1. Metadata creativa & identificadores → Creativo:
 Necesito hacer un cambio visual y otro de input
 
+Cambio de input: Los moods quiero que sean una lista desplegable (con opción )
+
 DESKTOP:
 
 

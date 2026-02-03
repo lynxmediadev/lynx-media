@@ -67,6 +67,25 @@ function normalizeList(raw: unknown): string[] {
   );
 }
 
+/** Normaliza moods manteniendo casing original (solo trim, separadores y únicos). */
+function normalizeMoods(raw: unknown): string[] {
+  if (typeof raw !== "string") return [];
+  const parts = raw
+    .split(/[\n,]/g)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+    .map((s) => s.toUpperCase());
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const p of parts) {
+    const key = p.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(p);
+  }
+  return result;
+}
+
 /** Normaliza checkbox HTML ("on"/true → true, cualquier otra cosa → false) */
 function normalizeCheckbox(raw: unknown): boolean {
   if (raw === true) return true;
@@ -180,7 +199,7 @@ export const creativeFormSchema = creativeFormBaseSchema.transform((values) => {
   return {
     title: values.title.trim(),
     artist: values.artist.trim(),
-    moods: normalizeList(values.moods),
+    moods: normalizeMoods(values.moods),
     uses: normalizeList(values.uses),
   };
 });

@@ -115,6 +115,7 @@ model Track {
   versions TrackVersion[]
   stems    TrackStem[]
   tags     TrackTag[]
+  moodLinks TrackMood[]
 
   @@index([artist])
   @@index([title])
@@ -385,6 +386,37 @@ model Tag {
 
   @@index([slug])
   @@index([type])
+}
+
+// ───────────────────────────────────────────────────────────────────────────────
+// Mood catalog (vocabulario controlado para chips/autocompletar)
+// ───────────────────────────────────────────────────────────────────────────────
+
+model Mood {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name String @unique @db.Citext
+  slug String @unique @db.Citext
+  category String?
+
+  tracks TrackMood[]
+
+  @@index([name])
+  @@index([slug])
+}
+
+model TrackMood {
+  trackId    String
+  moodId     String
+  track      Track   @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  mood       Mood    @relation(fields: [moodId], references: [id], onDelete: Cascade)
+  assignedAt DateTime @default(now())
+
+  @@id([trackId, moodId])
+  @@index([moodId])
+  @@index([trackId])
 }
 
 model TrackTag {

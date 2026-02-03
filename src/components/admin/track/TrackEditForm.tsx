@@ -169,6 +169,7 @@ export default function TrackEditForm({
         <div className="p-2 border-t border-border/60">
           <CreativeForm
             track={{
+              id: track.id,
               title: track.title,
               artist: track.artist,
               moods: track.moods,

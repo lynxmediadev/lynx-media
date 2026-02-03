@@ -37,6 +37,17 @@ function mergeFieldErrors(
   }
 }
 
+function slugify(input: string) {
+  return input
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
 export async function updateTrackAll(
   formData: FormData,
 ): Promise<UpdateAllResult> {
@@ -154,13 +165,47 @@ export async function updateTrackAll(
     const publishingBlocked =
       rightsData.oneStop && (!is100(writerSum) || !is100(publisherSum));
 
+    // Moods → IDs (máx 10, sin duplicados; nombre en MAYÚSCULAS)
+    const moodNames = (creativeData.moods ?? []).map((m) => m.toUpperCase());
+    if (moodNames.length > 10) {
+      return {
+        ok: false,
+        message: "Máximo 10 moods por track.",
+        fieldErrors: { moods: ["Máximo 10 moods por track."] },
+      };
+    }
+
+    const foundMoods = await prisma.mood.findMany({
+      where: { name: { in: moodNames, mode: "insensitive" } },
+      select: { id: true, name: true, slug: true },
+    });
+    const foundNames = new Set(foundMoods.map((m) => m.name.toLowerCase()));
+    const missing = moodNames.filter((n) => !foundNames.has(n.toLowerCase()));
+
+    if (missing.length > 0) {
+      for (const name of missing) {
+        const slug = slugify(name);
+        await prisma.mood.upsert({
+          where: { slug },
+          update: { name },
+          create: { name, slug },
+        });
+      }
+    }
+
+    const moodRecords = await prisma.mood.findMany({
+      where: { name: { in: moodNames, mode: "insensitive" } },
+      select: { id: true, name: true },
+    });
+    const moodIds = moodRecords.map((m) => m.id);
+
     await prisma.$transaction(async (tx) => {
       await tx.track.update({
         where: { id: trackId },
         data: {
           title: creativeData.title,
           artist: creativeData.artist,
-          moods: creativeData.moods,
+          moods: moodNames, // compat con campo string[]
           uses: creativeData.uses,
           isrc: idsData.isrc,
           iswc: idsData.iswc,
@@ -231,6 +276,14 @@ export async function updateTrackAll(
             notes: ms.notes,
             sortOrder: ms.sortOrder,
           })),
+        });
+      }
+
+      // Sync TrackMood pivote
+      await tx.trackMood.deleteMany({ where: { trackId } });
+      if (moodIds.length > 0) {
+        await tx.trackMood.createMany({
+          data: moodIds.map((moodId) => ({ trackId, moodId })),
         });
       }
 

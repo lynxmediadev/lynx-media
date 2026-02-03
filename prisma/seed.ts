@@ -9,6 +9,14 @@
 import { PrismaClient } from "@prisma/client";
 const db = new PrismaClient();
 
+const slugify = (str: string) =>
+  str
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 50);
+
 async function main() {
   // Puedes ajustar audioUrl a una URL pública si prefieres.
   const AUDIO = "/audio/demo.mp3";
@@ -41,6 +49,32 @@ async function main() {
       create: { slug: t.slug, name: t.name, type: t.type },
     });
   }
+
+  // Mood catálogo controlado
+  const moodSeeds = [
+    { name: "Happy" },
+    { name: "Dark" },
+    { name: "Epic" },
+    { name: "Chill" },
+    { name: "Dramatic" },
+    { name: "Romantic" },
+    { name: "Aggressive" },
+    { name: "Uplifting" },
+    { name: "Tension" },
+    { name: "Minimal" },
+  ];
+
+  const moodRecords = [];
+  for (const mood of moodSeeds) {
+    const slug = slugify(mood.name);
+    const record = await db.mood.upsert({
+      where: { slug },
+      update: { name: mood.name },
+      create: { name: mood.name, slug },
+    });
+    moodRecords.push(record);
+  }
+  const moodMap = new Map(moodRecords.map((m) => [m.name.toLowerCase(), m.id]));
 
   const seedTracks = [
     {
@@ -221,6 +255,20 @@ async function main() {
       },
       create: t,
     });
+
+    // Mantener relación TrackMood alineada con moods string[]
+    const moodIds =
+      t.moods
+        ?.map((name: string) => moodMap.get(name.toLowerCase()))
+        .filter((id): id is string => Boolean(id)) ?? [];
+
+    if (moodIds.length > 0) {
+      await db.trackMood.deleteMany({ where: { trackId: t.id } });
+      await db.trackMood.createMany({
+        data: moodIds.map((moodId: string) => ({ trackId: t.id, moodId })),
+        skipDuplicates: true,
+      });
+    }
   }
 }
 

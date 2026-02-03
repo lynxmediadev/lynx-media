@@ -4,7 +4,8 @@
 import * as React from "react";
 import FormField from "../ui/FormField";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { MoodChips } from "./MoodChips";
+import { UseChips } from "./UseChips";
 
 type FieldErrors = Record<string, string[]>;
 
@@ -17,6 +18,7 @@ type ClientErrors = {
 
 type CreativeFormProps = {
   track: {
+    id: string;
     title: string | null;
     artist: string | null;
     moods: string[];
@@ -27,7 +29,6 @@ type CreativeFormProps = {
 
 export default function CreativeForm({ track, fieldErrors }: CreativeFormProps) {
   const moodsDefault = (track.moods ?? []).join("\n");
-  const usesDefault = (track.uses ?? []).join("\n");
   const serverErrors: FieldErrors = fieldErrors ?? {};
 
   // ⬇⬇⬇ NUEVO: estado de errores en el cliente ⬇⬇⬇
@@ -61,7 +62,7 @@ export default function CreativeForm({ track, fieldErrors }: CreativeFormProps) 
 
   // Se dispara al salir del campo (onBlur)
   function handleBlur(
-    e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: React.FocusEvent<HTMLInputElement>,
   ) {
     const { name, value } = e.target;
     if (!["title", "artist", "moods", "uses"].includes(name)) return;
@@ -124,53 +125,48 @@ export default function CreativeForm({ track, fieldErrors }: CreativeFormProps) 
         </FormField>
       </div>
 
-      {/* Fila: Moods + Usos */}
+      {/* Sección: Moods */}
       <div className="grid gap-2 md:grid-cols-2">
-        <FormField
-          htmlFor="moods"
-          label={"Moods"}
-          descriptionPosition="above"
-          description={
-            <>
-              Un mood por línea (o separados por comas). Se normalizan en el
-              servidor.
-            </>
-          }
-          error={clientErrors.moods ?? serverErrors.moods?.[0] ?? null}
-        >
-          <Textarea
-            id="moods"
-            name="moods"
-            defaultValue={moodsDefault}
-            onBlur={handleBlur}
-            rows={5}
-            className="w-full resize-y text-sm"
-            placeholder={`SAD\nDARK\nEMOTIONAL\nHOPENESS\nSUSPENSE`}
-          />
-        </FormField>
+        <div className="md:col-span-1">
+          <FormField
+            htmlFor="moods"
+            label={"Moods"}
+            descriptionPosition="above"
+            description={<>Busca y añade moods del catálogo; puedes proponer uno nuevo si no existe.</>}
+            error={clientErrors.moods ?? serverErrors.moods?.[0] ?? null}
+          >
+            <MoodChips
+              name="moods"
+              initialMoods={track.moods ?? []}
+              trackId={track.id}
+              error={clientErrors.moods ?? serverErrors.moods?.[0] ?? null}
+            />
+          </FormField>
+        </div>
 
-        <FormField
-          htmlFor="uses"
-          label={"Usos previstos"}
-          descriptionPosition="above"
-          description={
-            <>
-              Un uso por línea (o separados por comas). Ayudan a filtrar por
-              tipo de proyecto.
-            </>
-          }
-          error={clientErrors.uses ?? serverErrors.uses?.[0] ?? null}
-        >
-          <Textarea
-            id="uses"
-            name="uses"
-            defaultValue={usesDefault}
-            onBlur={handleBlur}
-            rows={5}
-            className="w-full resize-y text-sm"
-            placeholder={`TRAILER\nSERIE\nDOCUMENTAL\nPUBLICIDAD\nVIDEO GAME`}
-          />
-        </FormField>
+        {/* Sección: Usos */}
+        <div className="md:col-span-1">
+          <FormField
+            htmlFor="uses"
+            label={"Usos previstos"}
+            descriptionPosition="above"
+            description={
+              <>
+                Un uso por línea (o separados por comas). Ayudan a filtrar por
+                tipo de proyecto.
+              </>
+            }
+            error={clientErrors.uses ?? serverErrors.uses?.[0] ?? null}
+          >
+            <UseChips
+              name="uses"
+              initialUses={track.uses ?? []}
+              trackId={track.id}
+              error={clientErrors.uses ?? serverErrors.uses?.[0] ?? null}
+              maxItems={15}
+            />
+          </FormField>
+        </div>
       </div>
     </div>
   );
