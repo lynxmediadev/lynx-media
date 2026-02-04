@@ -763,8 +763,9 @@ function makeBase64Wave(seed: string, pts: number): string {
 
 function float32ToBase64(arr: Float32Array): string {
   if (typeof window === "undefined") {
-    // @ts-expect-error Buffer en SSR
-    return Buffer.from(arr.buffer).toString("base64");
+    const buf = (globalThis as any).Buffer;
+    if (buf) return buf.from(arr.buffer).toString("base64");
+    return "";
   }
   let binary = "";
   const bytes = new Uint8Array(arr.buffer);

@@ -45,22 +45,20 @@ export default function TrackCardWavePlayer({
   // Pausar otros audios del catálogo al darle Play a éste (bus simple)
   // ———————————————————————————————————————————————————————————————
   React.useEffect(() => {
-    function onPauseOthers(e: CustomEvent<{ exceptId: string }>) {
-      if (e.detail.exceptId !== idRef.current) {
+    function onPauseOthers(evt: Event) {
+      const e = evt as CustomEvent<{ exceptId: string }>;
+      if (e.detail?.exceptId !== idRef.current) {
         const a = audioRef.current;
         if (a && !a.paused) a.pause();
       }
     }
-    // @ts-expect-error: evento custom global
-    window.addEventListener("lynx:pause-others", onPauseOthers as any);
+    window.addEventListener("lynx:pause-others", onPauseOthers as EventListener);
     return () => {
-      // @ts-expect-error
-      window.removeEventListener("lynx:pause-others", onPauseOthers as any);
+      window.removeEventListener("lynx:pause-others", onPauseOthers as EventListener);
     };
   }, []);
 
   function pauseOthers() {
-    // @ts-expect-error
     window.dispatchEvent(new CustomEvent("lynx:pause-others", { detail: { exceptId: idRef.current } }));
   }
 

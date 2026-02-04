@@ -32,8 +32,9 @@ export async function POST(req: NextRequest) {
   }
 
   // Presupuesto: puede venir como "700000 CLP" desde el cliente
+  type Currency = "CLP" | "USD" | "EUR";
   let budgetAmount: number | null = null;
-  let budgetCurrency: "CLP" | "USD" | "EUR" | null = null;
+  let budgetCurrency: Currency | null = null;
 
   if (typeof project.budget === "string" && project.budget.trim().length) {
     const parts = project.budget.trim().split(/\s+/);
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
       territories: project.territories ? String(project.territories).slice(0, 200) : null,
       term: project.term ? String(project.term).slice(0, 100) : null,
       budgetAmount,
-      budgetCurrency: budgetCurrency as any,
+      budgetCurrency,
       mfn: Boolean(project.mfn),
       needWhitelist: Boolean(project.needWhitelist),
       notes: project.notes ? String(project.notes) : null,

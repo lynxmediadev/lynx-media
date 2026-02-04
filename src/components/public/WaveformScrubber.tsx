@@ -25,6 +25,8 @@ type Props = {
   height?: number;                            // alto del canvas en px
   durationSec?: number;                       // duración total (para mapear clicks)
   progress?: number;                          // 0..1, progreso actual
+  barWidth?: number;                          // opcional: ancho de barra (para compatibilidad con callers)
+  gap?: number;                               // opcional: gap entre barras (compat)
   onSeek?: (timeSec: number) => void;         // callback al click
   className?: string;
   frameClassName?: string;                     // clases para el contenedor (permite quitar borde)

@@ -431,19 +431,18 @@ export async function GET(req: Request) {
         : "createdAt";
     const dir = dirParam === "asc" || dirParam === "desc" ? dirParam : "desc";
 
-    const filters = [
-      moods.length ? { moods: { hasSome: moods } } : null,
-      uses.length ? { uses: { hasSome: uses } } : null,
-      artist ? { artist: { contains: artist, mode: "insensitive" as const } } : null,
-      q
-        ? {
-            OR: [
-              { title: { contains: q, mode: "insensitive" as const } },
-              { artist: { contains: q, mode: "insensitive" as const } },
-            ],
-          }
-        : null,
-    ].filter(Boolean);
+    const filters: any[] = [];
+    if (moods.length) filters.push({ moods: { hasSome: moods } });
+    if (uses.length) filters.push({ uses: { hasSome: uses } });
+    if (artist) filters.push({ artist: { contains: artist, mode: "insensitive" as const } });
+    if (q) {
+      filters.push({
+        OR: [
+          { title: { contains: q, mode: "insensitive" as const } },
+          { artist: { contains: q, mode: "insensitive" as const } },
+        ],
+      });
+    }
 
     const where = filters.length ? { AND: filters } : undefined;
 

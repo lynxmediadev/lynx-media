@@ -38,18 +38,14 @@ export async function getObjectReadableFromPublicUrl(publicUrl: string): Promise
   if (!key || !BUCKET) return null;
   const s3 = getS3();
   const res = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
-  // SDK puede retornar Node.Readable o Web ReadableStream
-  // @ts-expect-error tipos de SDK
-  const body: any = res.Body;
+  const body: any = (res as any).Body; // SDK puede retornar Node.Readable o Web ReadableStream
   if (!body) return null;
 
   if (typeof body.pipe === "function") {
     return body as Readable; // Node.Readable
   }
-  if (body.getReader) {
-    // Node >= 18: convertir Web ReadableStream a Node.Readable
-    // @ts-ignore
-    return Readable.fromWeb(body);
+  if (typeof (Readable as any).fromWeb === "function" && body.getReader) {
+    return (Readable as any).fromWeb(body);
   }
   return null;
 }

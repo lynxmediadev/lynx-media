@@ -49,4 +49,7 @@ prisma:query SELECT "public"."Track"."id" FROM "public"."Track" WHERE ("public".
 prisma:query SELECT "public"."Mood"."id", "public"."Mood"."createdAt", "public"."Mood"."updatedAt", "public"."Mood"."name", "public"."Mood"."slug", "public"."Mood"."category" FROM "public"."Mood" WHERE 1=1 ORDER BY "public"."Mood"."name" ASC LIMIT $1 OFFSET $2
  GET /api/moods 200 in 501ms
 prisma:query SELECT "public"."Track"."id" FROM "public"."Track" WHERE ("public"."Track"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
- POST /api/tracks/undefined/moods 404 in 90ms
+POST /api/tracks/undefined/moods 404 in 90ms
+
+--- 2026-02-03 ---
+`npx tsc --noEmit` (post refactors TagChips/moods/usos + plan 015 avances) → sigue fallando por deuda previa en licensing (enums/export), catalog (where builder/event listeners), audio (sparkline/waveform), middleware, trpc server generics, casing de button/Button, etc. Sin fallos nuevos asociados a los cambios recientes.

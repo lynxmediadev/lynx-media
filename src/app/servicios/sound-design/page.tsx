@@ -1,4 +1,4 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AudioLines, Film, Headphones, Radio, Volume2, Waves } from "lucide-react";
 import { Button } from "@/components/ui/button";

@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardFooter,
@@ -32,9 +31,9 @@ export default function Gallery() {
             <CardDescription>
               Enter your email below to login to your account
             </CardDescription>
-            <CardAction>
+            <div className="mt-2">
               <Button variant="link">Sign Up</Button>
-            </CardAction>
+            </div>
           </CardHeader>
           <CardContent>
             <form>
@@ -80,9 +79,9 @@ export default function Gallery() {
             <CardDescription>
               Enter your email below to login to your account
             </CardDescription>
-            <CardAction>
+            <div className="mt-2">
               <Button variant="link">Sign Up</Button>
-            </CardAction>
+            </div>
           </CardHeader>
           <CardContent>
             <form>

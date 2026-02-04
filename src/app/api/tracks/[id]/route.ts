@@ -151,8 +151,8 @@ function mapDb(row: any) {
   };
 }
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   try {
     const row = await db.track.findUnique({
       where: { id },
@@ -244,8 +244,8 @@ function normalizePublishingShares(
     .filter((share) => share.name.length > 0);
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   try {
     const json = await req.json();
     const parsed = trackMetaUpdateSchema.safeParse(json);

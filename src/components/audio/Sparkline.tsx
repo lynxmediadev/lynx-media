@@ -51,15 +51,15 @@ type Props = {
 /** Decodifica base64 → Uint8Array de forma isomórfica (browser + Node SSR). */
 function bytesFromBase64(b64: string): Uint8Array {
   if (typeof atob === "function") {
-    // Navegador: usar atob
     const bin = atob(b64);
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
     return bytes;
   }
-  // SSR / Node: usar Buffer
-  // @ts-expect-error Buffer existe en SSR aunque no esté tipado en client file
-  const buf: Buffer = Buffer.from(b64, "base64");
+  const buf = (globalThis as any).Buffer
+    ? (globalThis as any).Buffer.from(b64, "base64")
+    : null;
+  if (!buf) return new Uint8Array(0);
   return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
 }
 

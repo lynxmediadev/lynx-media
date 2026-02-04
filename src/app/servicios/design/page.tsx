@@ -1,4 +1,4 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Brush, FileText, Layers, Palette, PenTool, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";

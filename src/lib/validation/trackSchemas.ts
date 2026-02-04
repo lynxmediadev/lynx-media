@@ -453,8 +453,8 @@ function parseVersionLines(raw: string | null | undefined) {
       .split("|")
       .map((part) => part.trim());
     return {
-      label: labelPart,
-      durationSec: parseDurationToSec(durationPart ?? null),
+      label: labelPart || "(Sin título)",
+      durationSec: parseDurationToSec(durationPart ?? null) ?? null,
       kind: normalizeEnum(kindPart ?? null, VERSION_KIND_VALUES),
       sortOrder: index,
     };
@@ -471,7 +471,7 @@ function parseStemLines(raw: string | null | undefined) {
   return lines.map((line, index) => {
     const [namePart, groupPart] = line.split("|").map((part) => part.trim());
     return {
-      name: namePart,
+      name: namePart || "(Sin nombre)",
       group: normalizeEnum(groupPart ?? null, STEM_GROUP_VALUES),
       sortOrder: index,
     };

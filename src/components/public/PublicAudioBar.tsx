@@ -34,6 +34,8 @@ type Props = {
   waveformColors?: { base?: string; progress?: string };
   className?: string;
   frameClassName?: string;
+  barWidth?: number;
+  gap?: number;
   onPlaybackChange?: (isPlaying: boolean) => void;
   onReady?: (controls: { toggle: () => Promise<void> | void; play: () => Promise<void> | void; pause: () => void }) => void;
   layout?: "stacked" | "inline";
@@ -55,6 +57,8 @@ export default function PublicAudioBar({
   waveformColors,
   className,
   frameClassName,
+  barWidth = 3,
+  gap = 0,
   onPlaybackChange,
   onReady,
   layout = "stacked",
@@ -191,8 +195,8 @@ export default function PublicAudioBar({
               progress={progress}
               onSeek={interactive ? handleSeek : undefined}
               className="w-full"
-              barWidth={3} // barras compactas pero sólidas
-              gap={0} // sin huecos entre barras
+              barWidth={barWidth} // barras compactas pero sólidas
+              gap={gap} // sin huecos entre barras
               frameClassName={frameClassName}
               colors={{
                 base: waveformColors?.base ?? "__theme_base__", // COLOR BASE DEL PLAYER
@@ -211,8 +215,8 @@ export default function PublicAudioBar({
               progress={progress}
               onSeek={interactive ? handleSeek : undefined}
               className="h-full w-full"
-              barWidth={3}
-              gap={0}
+              barWidth={barWidth}
+              gap={gap}
               frameClassName={frameClassName}
               colors={{
                 base: waveformColors?.base ?? "__theme_base__",

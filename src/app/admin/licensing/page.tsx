@@ -38,32 +38,19 @@ function normalizeStatusFromQS(
 ): RequestStatus | undefined {
   if (!value) return undefined;
   const raw = value.trim();
-  // Intento directo por exact match (por si ya viene en upper)
-  if ((RequestStatus as any)[raw]) {
-    return (RequestStatus as any)[raw] as RequestStatus;
-  }
-  // Intento por case-insensitive (upper)
+  // Case-insensitive directo
   const upper = raw.toUpperCase();
   if ((RequestStatus as any)[upper]) {
     return (RequestStatus as any)[upper] as RequestStatus;
   }
-  // Intento por mapeo legacy (ej: "in-progress" → "IN_PROGRESS")
-  const legacyMap: Record<string, keyof typeof RequestStatus> = {
-    open: "OPEN",
-    "in-progress": "IN_PROGRESS",
-    in_progress: "IN_PROGRESS",
-    snoozed: "SNOOZED",
-    pending: "PENDING",
-    done: "DONE",
-    closed: "CLOSED",
-    archived: "ARCHIVED",
-    // agrega aquí si tu proyecto viejo tenía variantes adicionales
+  // Map legacy -> enum actual
+  const legacyMap: Record<string, RequestStatus> = {
+    OPEN: RequestStatus.NEW,
+    "IN-PROGRESS": RequestStatus.IN_REVIEW,
+    IN_PROGRESS: RequestStatus.IN_REVIEW,
   };
-  const key = legacyMap[raw] ?? legacyMap[upper.toLowerCase()];
-  if (key && (RequestStatus as any)[key]) {
-    return (RequestStatus as any)[key] as RequestStatus;
-  }
-  return undefined; // si no calza, no aplicamos filtro por status
+  const mapped = legacyMap[upper];
+  return mapped ?? undefined; // si no calza, omitimos filtro
 }
 
 function normalizePriorityFromQS(
