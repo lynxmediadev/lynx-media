@@ -22,9 +22,11 @@ const createContext = cache(async () => {
 });
 
 const getQueryClient = cache(createQueryClient);
-const caller = createCaller(createContext);
+const caller = (await createCaller(await createContext())) as ReturnType<typeof createCaller>;
 
-export const { trpc: api, HydrateClient } = createHydrationHelpers<AppRouter>(
-  caller,
+const hydration = createHydrationHelpers<AppRouter>(
+  caller as any,
   getQueryClient,
 );
+
+export const { trpc: api, HydrateClient } = hydration;

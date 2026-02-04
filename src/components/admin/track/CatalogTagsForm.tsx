@@ -102,8 +102,8 @@ export function CatalogTagsForm({ trackId, options, selectedSlugs, fieldErrors }
         });
         setNewName("");
         setSuccessMsg(`Categoría "${result.tag.name.toUpperCase()}" añadida`);
-      } else if (result?.message) {
-        setFormError(result.message);
+      } else if (result && "error" in result) {
+        setFormError(result.error ? String(result.error) : "Error al crear categoría");
       }
     });
   };

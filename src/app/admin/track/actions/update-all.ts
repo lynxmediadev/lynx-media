@@ -94,6 +94,23 @@ export async function updateTrackAll(
       };
     }
 
+    // En este punto todos los parsed deberían ser success=true; afirmamos para TS.
+    if (
+      !(
+        creativeParsed.success &&
+        idsParsed.success &&
+        rightsParsed.success &&
+        syncParsed.success &&
+        deliverablesParsed.success
+      )
+    ) {
+      return {
+        ok: false,
+        message: "Hay errores de validación en el formulario.",
+        fieldErrors,
+      };
+    }
+
     const creativeData: CreativeFormValues = creativeParsed.data;
     const idsData: IdsFormValues = idsParsed.data;
     const rightsData: RightsFormValues = rightsParsed.data;

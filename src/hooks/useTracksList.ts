@@ -41,7 +41,8 @@ export function useTracksList(params: UseTracksListParams) {
     return clean;
   }, [params.q, params.limit, params.order, params.dir, params.mood, params.use]);
 
-  const [items, setItems] = useState<ReturnType<typeof getTracksList> extends Promise<infer R> ? R["items"] : never>([]);
+  type TracksListResult = Awaited<ReturnType<typeof getTracksList>>;
+  const [items, setItems] = useState<TracksListResult["items"]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);

@@ -208,6 +208,8 @@ function MiniWave({
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    const wfSafe = wf;
+    const ctxSafe = ctx;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Medidas
@@ -224,7 +226,7 @@ function MiniWave({
     function minmax(start: number, end: number) {
       let mn = 1.0, mx = -1.0;
       for (let i = start; i < end; i++) {
-        const v = wf[i] ?? 0;
+        const v = wfSafe[i] ?? 0;
         if (v < mn) mn = v;
         if (v > mx) mx = v;
       }
@@ -233,7 +235,7 @@ function MiniWave({
 
     // Dibujo de barras: usamos `fillRect` (no líneas), centradas en el mid.
     function paintBars(color: string) {
-      ctx.fillStyle = color;
+      ctxSafe.fillStyle = color;
       for (let c = 0; c < cols; c++) {
         const iStart = Math.floor((c / cols) * N);
         const iEnd = Math.floor(((c + 1) / cols) * N);
@@ -246,7 +248,7 @@ function MiniWave({
         // centramos la barrita dentro del step para estética
         const bw = Math.max(1, Math.floor(barWidth * dpr));
         const xPad = Math.max(0, Math.floor((step - bw) / 2));
-        ctx.fillRect(x + xPad, y1, bw, barH);
+        ctxSafe.fillRect(x + xPad, y1, bw, barH);
       }
     }
 
@@ -255,12 +257,12 @@ function MiniWave({
 
     // Overlay “played” con clip hasta X de progreso
     const cut = Math.max(0, Math.min(1, progress)) * fullW;
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(0, 0, cut, fullH);
-    ctx.clip();
+    ctxSafe.save();
+    ctxSafe.beginPath();
+    ctxSafe.rect(0, 0, cut, fullH);
+    ctxSafe.clip();
     paintBars(playedColor);
-    ctx.restore();
+    ctxSafe.restore();
   }, [height, barWidth, gap, backColor, playedColor, progress]);
 
   // Cargar waveform

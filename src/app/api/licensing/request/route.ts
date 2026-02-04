@@ -15,6 +15,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers"; // Dynamic API (async)
+import { Currency } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { isHoneypotTripped, isTooFast, getClientIp } from "@/lib/antibot";
 import { verifyCsrfToken } from "@/lib/csrf";
@@ -72,9 +73,16 @@ export async function POST(req: NextRequest) {
     const territories = clampText(String(body.territories || ""), 200) || null;
     const term = clampText(String(body.term || ""), 200) || null;
 
-    const budgetAmount = Number(body.budgetAmount) || null;
-    const budgetCurrency =
-      typeof body.budgetCurrency === "string" && body.budgetCurrency ? String(body.budgetCurrency) : null;
+    const budgetAmount = Number.isFinite(Number(body.budgetAmount))
+      ? Number(body.budgetAmount)
+      : null;
+    const budgetCurrencyInput =
+      typeof body.budgetCurrency === "string" ? body.budgetCurrency.toUpperCase() : "";
+    const budgetCurrency: Currency | null = (["CLP", "USD", "EUR"] as const).includes(
+      budgetCurrencyInput as Currency
+    )
+      ? (budgetCurrencyInput as Currency)
+      : null;
 
     const mfn = Boolean(body.mfn);
     const needWhitelist = Boolean(body.needWhitelist);
@@ -85,8 +93,8 @@ export async function POST(req: NextRequest) {
     const notes = clampText(String(body.notes || ""), 2000) || null;
 
     const trackId = String(body.trackId || "");
-    const trackTitle = clampText(String(body.trackTitle || ""), 400) || null;
-    const trackArtist = clampText(String(body.trackArtist || ""), 400) || null;
+    const trackTitle = clampText(String(body.trackTitle || ""), 400);
+    const trackArtist = clampText(String(body.trackArtist || ""), 400);
     const trackDurationSec = Number.isFinite(Number(body.trackDurationSec)) ? Number(body.trackDurationSec) : null;
 
     // f) Dedupe suave (email+track en ±1h)
@@ -118,8 +126,10 @@ export async function POST(req: NextRequest) {
         restrictions: restrictionsArr, // String[]  ← FIX
         notes,
 
-        trackId: trackId || null,
-        trackTitle, trackArtist, trackDurationSec,
+        trackId: trackId || "",
+        trackTitle,
+        trackArtist,
+        trackDurationSec,
 
         pageUrl: req.headers.get("referer") || "",
         rawPayload: {

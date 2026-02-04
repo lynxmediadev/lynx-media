@@ -38,7 +38,7 @@ export function parseAssetUrl(url: string): { key: string | null; filename: stri
   const filenameMatch = clean.match(/[^/]+$/);
   const filename = filenameMatch ? filenameMatch[0] : null;
   const extMatch = filename ? filename.match(/\.([a-z0-9]+)$/i) : null;
-  const ext = extMatch ? extMatch[1].toLowerCase() : null;
+  const ext = extMatch?.[1] ? extMatch[1].toLowerCase() : null;
   return { key, filename, ext };
 }
 

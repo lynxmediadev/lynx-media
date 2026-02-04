@@ -24,6 +24,6 @@ export function isTooFast(startedAtMs?: number | null, minMs = 5000) {
 export function getClientIp(headers: Headers) {
   const direct = headers.get("x-real-ip");
   const fwd = headers.get("x-forwarded-for");
-  return (direct || (fwd ? fwd.split(",")[0].trim() : "") || "").slice(0, 100);
+  const forwarded = fwd ? fwd.split(",")[0]?.trim() : "";
+  return (direct ?? forwarded ?? "").slice(0, 100);
 }
-

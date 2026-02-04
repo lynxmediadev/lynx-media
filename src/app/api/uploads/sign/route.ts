@@ -50,7 +50,7 @@ function ensureExt(mime: string, fileName: string) {
   const byMime = overrides[mime] ?? (extFromMime(mime) || "");
   if (byMime) return `.${byMime}`;
   const m = fileName.match(/\.([a-z0-9]+)$/i);
-  return m ? `.${m[1].toLowerCase()}` : "";
+  return m && m[1] ? `.${m[1].toLowerCase()}` : "";
 }
 
 export async function POST(req: NextRequest) {

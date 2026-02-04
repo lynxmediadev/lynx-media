@@ -147,9 +147,15 @@ function parseDurationToSec(raw: string | null): number | null {
   if (!trimmed) return null;
   const parts = trimmed.split(":").map((p) => Number(p));
   if (parts.some((p) => Number.isNaN(p))) return null;
-  if (parts.length === 1) return Math.round(parts[0]);
-  if (parts.length === 2) return parts[0] * 60 + parts[1];
-  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 1) return Math.round(parts[0] ?? 0);
+  if (parts.length === 2) {
+    const [m, s] = parts as [number, number];
+    return m * 60 + s;
+  }
+  if (parts.length === 3) {
+    const [h, m, s] = parts as [number, number, number];
+    return h * 3600 + m * 60 + s;
+  }
   return null;
 }
 

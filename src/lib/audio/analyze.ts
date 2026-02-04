@@ -40,7 +40,9 @@ async function downloadToTemp(url: string, extGuess = "mp3"): Promise<string> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to download: ${res.status} ${res.statusText}`);
   const buf = Buffer.from(await res.arrayBuffer());
-  const ext = (url.split("?")[0].match(/\.([a-z0-9]+)$/i)?.[1] ?? extGuess).toLowerCase();
+  const base = url.split("?")[0] ?? url;
+  const match = base.match(/\.([a-z0-9]+)$/i);
+  const ext = (match?.[1] ?? extGuess).toLowerCase();
   const tmp = join(tmpdir(), `lynx-${randomUUID()}.${ext}`);
   await fsp.writeFile(tmp, buf);
   return tmp;
@@ -119,16 +121,16 @@ async function computeWaveformBytes(filePath: string, points = 256): Promise<{ b
 
         const window = Math.max(1, Math.floor(samples.length / points));
         const out = new Float32Array(points);
-        for (let i = 0; i < points; i++) {
-          const start = i * window;
-          const end   = (i + 1 === points) ? samples.length : (i + 1) * window;
-          let peak = 0;
-          for (let j = start; j < end; j++) {
-            const v = Math.abs(samples[j]);
-            if (v > peak) peak = v;
-          }
-          out[i] = peak / 32768.0; // normaliza 0..1
+      for (let i = 0; i < points; i++) {
+        const start = i * window;
+        const end   = (i + 1 === points) ? samples.length : (i + 1) * window;
+        let peak = 0;
+        for (let j = start; j < end; j++) {
+          const v = Math.abs(samples[j] ?? 0);
+          if (v > peak) peak = v;
         }
+        out[i] = peak / 32768.0; // normaliza 0..1
+      }
         resolve({ bytes: Buffer.from(out.buffer), pointCount: points });
       } catch (e: any) {
         reject(new Error(`waveform build failed: ${e.message}\n${err.slice(0, 600)}`));

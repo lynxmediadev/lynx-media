@@ -53,3 +53,6 @@ POST /api/tracks/undefined/moods 404 in 90ms
 
 --- 2026-02-03 ---
 `npx tsc --noEmit` (post refactors TagChips/moods/usos + plan 015 avances) → sigue fallando por deuda previa en licensing (enums/export), catalog (where builder/event listeners), audio (sparkline/waveform), middleware, trpc server generics, casing de button/Button, etc. Sin fallos nuevos asociados a los cambios recientes.
+
+--- 2026-02-04 ---
+`npx tsc --noEmit` → limpio (0 errores).

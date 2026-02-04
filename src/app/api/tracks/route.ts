@@ -338,8 +338,8 @@ export async function POST(req: Request) {
       data: {
         title: data.title,
         artist: data.artist,
-        audioUrl: data.audioUrl,
-        coverUrl: data.coverUrl,
+        audioUrl: data.audioUrl ?? "",
+        coverUrl: data.coverUrl ?? "",
         moods: data.moods,
         uses: data.uses,
         durationSec: data.durationSec ?? undefined,

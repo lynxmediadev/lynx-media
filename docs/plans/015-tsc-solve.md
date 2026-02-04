@@ -69,3 +69,25 @@ Objetivo: resolver los errores de tipado reportados por `npx tsc --noEmit`, prio
 ## Notas
 - Prioridad alta: Paso 1, 2, 3 (rompen build/CI). El resto se puede abordar en bloques pequeños.
 - Scope de los cambios actuales (moods/usos) no introdujo errores; foco es deuda previa.
+
+## Pendientes detectados tras último `tsc --noEmit`
+1) Params async en `.next/types` de `/admin/track/[id]/edit/page.ts`: ajustar firma PageProps/params. **[listo]**
+2) Licensing export (`admin/licensing/export/route.ts`): coalescencia de `m` y budget (undefined). **[listo]**
+3) Licensing page: `Row` espera `territories: string[] | null`; normalizar string→[]. **[listo]**
+4) Requests page: filtro usa `company` inexistente en `ContactRequestWhereInput`. **[listo]**
+5) Track edit page: se pasa prop `title` a player que no lo espera. **[listo]**
+6) `update-all.ts`: creativas/sync/rights pueden venir undefined; poner defaults o validar antes. **[listo]**
+7) `contact/route.ts`: cast string→null; usar ternario explícito. **[listo]**
+8) `api/licensing/request/route.ts`: currency/string nullables; ajustar tipos/coalesce. **[listo]**
+9) `api/moods/route.ts`: guardas en parsed.data; number|undefined. **[listo]**
+10) `tracks/route.ts`: string|null → string (fallback). **[listo]**
+11) `uploads/sign/route.ts`: object possibly undefined. **[listo]**
+12) `CatalogClient.tsx`: strings undefined, listeners typing, numbers undefined. **[listo]**
+13) `MixFormClient.tsx`: setState con undefined, props `required` inexistentes. **[listo]**
+14) `TrackCard.tsx` / audio utils: waveform/context null/undefined; props faltantes. **[listo]**
+15) Casing de `Button.tsx` vs `button.tsx` (TS1261). **[listo]**
+16) `AudioPlayerDemo`/`demo-track`: usar tipo exportado (`PlayerTrackDTO`). **[listo]**
+17) `middleware.ts`: headers/cookies posiblemente undefined. **[listo]**
+18) `trpc/server.ts`: generic faltante en `createHydrationHelpers`. **[listo]**
+19) Sparkline/waveform-io/waveform: numbers undefined; agregar fallbacks. **[listo]**
+20) Event listeners en `CatalogClient`: tipar con EventListener. **[listo]**

@@ -9,16 +9,9 @@
 
 import * as React from "react";
 import { Slider } from "@/components/ui/slider";
+import type { PlayerTrackDTO as PlayerTrack } from "@/domain/track";
 
-type PlayerTrack = {
-  id: string;
-  title: string;
-  artist: string;
-  audioUrl: string;
-  coverUrl?: string;
-};
-
-export function AudioPlayer({ track }: { track: PlayerTrack }) {
+export function AudioPlayer({ track, className }: { track: PlayerTrack; className?: string }) {
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = React.useState(false);
   const [current, setCurrent] = React.useState(0);
@@ -79,7 +72,7 @@ export function AudioPlayer({ track }: { track: PlayerTrack }) {
     };
 
   return (
-    <div className="flex gap-4 rounded-xl border bg-card p-4 shadow-sm">
+    <div className={`flex gap-4 rounded-xl border bg-card p-4 shadow-sm ${className ?? ""}`}>
       <img
         src={track.coverUrl ?? "/images/hero/hero-bg-1.png"}
         alt={track.title}

@@ -25,9 +25,11 @@ function csvEscape(s: string) {
 /** "YYYY-MM-DD" → Date al inicio o fin del día (local) */
 function parseDateBoundary(s?: string, end = false): Date | undefined {
   if (!s) return undefined;
-  const [y, m, d] = s.split("-").map((v) => parseInt(v, 10));
+  const parts = s.split("-").map((v) => parseInt(v, 10));
+  if (parts.length < 3) return undefined;
+  const [y, m, d] = parts as [number, number, number];
   if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return undefined;
-  const dt = new Date(y, (m - 1) as number, d, end ? 23 : 0, end ? 59 : 0, end ? 59 : 0, end ? 999 : 0);
+  const dt = new Date(y, m - 1, d, end ? 23 : 0, end ? 59 : 0, end ? 59 : 0, end ? 999 : 0);
   return isNaN(dt.getTime()) ? undefined : dt;
 }
 

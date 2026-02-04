@@ -45,7 +45,6 @@ export default async function Page(props: { searchParams: Promise<SearchDict> })
       OR: [
         { name: { contains: q, mode: "insensitive" } },
         { email: { contains: q, mode: "insensitive" } },
-        { company: { contains: q, mode: "insensitive" } },
         { details: { contains: q, mode: "insensitive" } },
       ],
     });

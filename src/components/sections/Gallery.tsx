@@ -127,9 +127,9 @@ export default function Gallery() {
             <CardDescription>
               Enter your email below to login to your account
             </CardDescription>
-            <CardAction>
+            <div className="ml-auto">
               <Button variant="link">Sign Up</Button>
-            </CardAction>
+            </div>
           </CardHeader>
           <CardContent>
             <form>
@@ -175,9 +175,9 @@ export default function Gallery() {
             <CardDescription>
               Enter your email below to login to your account
             </CardDescription>
-            <CardAction>
+            <div className="ml-auto">
               <Button variant="link">Sign Up</Button>
-            </CardAction>
+            </div>
           </CardHeader>
           <CardContent>
             <form>

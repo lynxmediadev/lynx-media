@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     const maybeCurr = (parts[1] ?? "").toUpperCase();
     if (Number.isFinite(maybeAmount)) budgetAmount = maybeAmount;
     if (["CLP", "USD", "EUR"].includes(maybeCurr)) {
-      budgetCurrency = maybeCurr as typeof budgetCurrency;
+      budgetCurrency = maybeCurr as Currency;
     }
   }
 

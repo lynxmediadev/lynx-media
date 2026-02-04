@@ -724,7 +724,6 @@ export default async function TrackPublicPage({ params, searchParams }: PageProp
               title="Piezas similares"
               subtitle=""
               eyebrow=""
-              className="table-scroll"
             />
           )}
         </section>

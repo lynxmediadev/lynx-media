@@ -34,8 +34,6 @@ import { getAudioCheckStatus } from "@/lib/audio/audio-check";
 
 export const dynamic = "force-dynamic";
 
-type Params = { id: string } | Promise<{ id: string }>;
-
 /** Convierte Buffer/Uint8Array → base64 para el waveform del player técnico */
 function bytesToBase64(buf: Buffer | Uint8Array | null): string | null {
   if (!buf) return null;
@@ -45,15 +43,10 @@ function bytesToBase64(buf: Buffer | Uint8Array | null): string | null {
 export default async function AdminTrackEditPage({
   params,
 }: {
-  params: Params;
+  // Next 15 entrega params como Promise; lo declaramos así para cumplir PageProps
+  params: Promise<{ id: string }>;
 }) {
-  // Soporta params síncrono y Promise (patrón Next 15)
-  const p =
-    "then" in (params as any)
-      ? await (params as Promise<{ id: string }>)
-      : (params as { id: string });
-
-  const { id } = p;
+  const { id } = await params;
 
   const track = await prisma.track.findUnique({
     where: { id },
@@ -335,17 +328,11 @@ export default async function AdminTrackEditPage({
             </div>
 
             {publicSrc ? (
-              <PublicAudioBar
-                src={publicSrc}
-                waveformB64={waveformB64}
-                title={track.title ?? "(sin título)"}
-                artist={track.artist ?? "(sin artista)"}
-                durationSec={track.durationSec ?? undefined}
-                sampleRateHz={track.sampleRateHz ?? undefined}
-                channels={track.channels ?? undefined}
-                bitrateKbps={track.bitrateKbps ?? undefined}
-                dense
-              />
+                  <PublicAudioBar
+                    src={publicSrc}
+                    waveformB64={waveformB64}
+                    durationSec={track.durationSec ?? undefined}
+                  />
             ) : (
               <p className="rounded-md border border-warning/40 bg-warning/10 p-2 text-xs text-warning">
                 No hay audio asociado a este track. Sube un archivo desde la

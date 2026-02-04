@@ -81,7 +81,7 @@ function downsamplePeak(data: Float32Array, target: number): Float32Array {
     const end = i + 1 === target ? data.length : (i + 1) * win;
     let peak = 0;
     for (let j = start; j < end; j++) {
-      const v = Math.abs(data[j]);
+      const v = Math.abs(data[j] ?? 0);
       if (v > peak) peak = v;
     }
     // Los datos están normalizados 0..1
@@ -136,7 +136,7 @@ export default function Sparkline({
     const pts: string[] = [];
     for (let i = 0; i < values.length; i++) {
       const x = i * step;
-      const amp = Math.max(0, Math.min(1, values[i])); // clamp 0..1
+      const amp = Math.max(0, Math.min(1, values[i] ?? 0)); // clamp 0..1
       const y = mid - amp * (h / 2 - 1); // centrado vertical
       pts.push(`${x},${y}`);
     }

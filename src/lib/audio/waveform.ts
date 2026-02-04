@@ -39,20 +39,23 @@ function downsamplePeakAbsExact(int16: Int16Array, target: number): number[] {
   const out = new Array<number>(target);
   let globalMax = 1;
 
-  for (let b = 0; b < target; b++) {
-    const start = Math.floor((b * n) / target);
-    const end   = Math.floor(((b + 1) * n) / target);
-    let localMax = 0;
-    for (let i = start; i < Math.max(end, start + 1); i++) {
-      const v = Math.abs(int16[Math.min(i, n - 1)]);
-      if (v > localMax) localMax = v;
+    for (let b = 0; b < target; b++) {
+      const start = Math.floor((b * n) / target);
+      const end   = Math.floor(((b + 1) * n) / target);
+      let localMax = 0;
+      for (let i = start; i < Math.max(end, start + 1); i++) {
+        const v = Math.abs(int16[Math.min(i, n - 1)] ?? 0);
+        if (v > localMax) localMax = v;
+      }
+      out[b] = localMax;
+      if (localMax > globalMax) globalMax = localMax;
     }
-    out[b] = localMax;
-    if (localMax > globalMax) globalMax = localMax;
-  }
 
   const norm = 1 / globalMax;
-  for (let i = 0; i < out.length; i++) out[i] = Math.min(1, Math.max(0, out[i] * norm));
+  for (let i = 0; i < out.length; i++) {
+    const v = out[i] ?? 0;
+    out[i] = Math.min(1, Math.max(0, v * norm));
+  }
   return out;
 }
 

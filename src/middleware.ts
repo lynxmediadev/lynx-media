@@ -31,7 +31,11 @@ async function hmacRaw(key: string, msg: string) {
 }
 function tse(a: Uint8Array, b: Uint8Array) {
   if (a.length !== b.length) return false; let x = 0;
-  for (let i = 0; i < a.length; i++) x |= a[i] ^ b[i];
+  for (let i = 0; i < a.length; i++) {
+    const ai = a[i] ?? 0;
+    const bi = b[i] ?? 0;
+    x |= ai ^ bi;
+  }
   return x === 0;
 }
 async function sha256hex(s: string) {

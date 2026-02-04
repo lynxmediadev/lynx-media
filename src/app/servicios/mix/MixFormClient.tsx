@@ -76,9 +76,7 @@ export default function MixFormClient() {
     style: "",
     notes: "",
   });
-  const [infoModal, setInfoModal] = useState<{ id: string; title: string; description: string; video: string } | null>(
-    null,
-  );
+  const [infoModal, setInfoModal] = useState<{ title: string; description: string; video: string } | null>(null);
 
   const steps = useMemo(
     () => [
@@ -356,7 +354,7 @@ export default function MixFormClient() {
                         <InfoIconWithTooltip
                           label="Cómo calculamos el precio por track"
                           onClick={() =>
-                            setInfoModal(infoData.tracksBase)
+                            setInfoModal(infoData.tracksBase ?? null)
                           }
                         />
                       </div>
@@ -398,10 +396,10 @@ export default function MixFormClient() {
                         disabled={overMaxTracks}
                       />
                       Cuantización de batería (+${addons.drumQuantize.toLocaleString("es-CL")})
-                      <InfoIconWithTooltip
-                        label="Detalles de cuantización de batería"
-                        onClick={() => setInfoModal(infoData.drumQuantize)}
-                      />
+                        <InfoIconWithTooltip
+                          label="Detalles de cuantización de batería"
+                          onClick={() => setInfoModal(infoData.drumQuantize ?? null)}
+                        />
                     </label>
 
                     <label className="flex flex-col gap-1 text-sm text-foreground">
@@ -409,7 +407,7 @@ export default function MixFormClient() {
                         Edición/afinación manual de voz
                         <InfoIconWithTooltip
                           label="Cómo afinamos la voz"
-                          onClick={() => setInfoModal(infoData.vocal)}
+                          onClick={() => setInfoModal(infoData.vocal ?? null)}
                         />
                       </span>
                       <select
@@ -448,7 +446,7 @@ export default function MixFormClient() {
                           {addonLabel(key)}
                           <InfoIconWithTooltip
                             label="Ver detalles"
-                            onClick={() => setInfoModal(infoData[key])}
+                            onClick={() => setInfoModal(infoData[key] ?? null)}
                           />
                         </label>
                       ))}
@@ -729,12 +727,14 @@ function LabeledInput({
   onChange,
   placeholder,
   type = "text",
+  required = false,
 }: {
   label: string;
   value: string;
   onChange: (val: string) => void;
   placeholder?: string;
   type?: string;
+  required?: boolean;
 }) {
   return (
     <label className="flex flex-col gap-1 text-sm">
@@ -744,6 +744,7 @@ function LabeledInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        required={required}
         className="h-9 rounded-[2px] border border-border bg-background px-3 text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       />
     </label>

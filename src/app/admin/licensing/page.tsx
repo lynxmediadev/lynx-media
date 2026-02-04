@@ -218,6 +218,11 @@ export default async function Page(props: {
       createdAt: r.createdAt?.getTime?.() ?? null,
       updatedAt: r.updatedAt?.getTime?.() ?? null,
       nextFollowUpAt: r.nextFollowUpAt?.getTime?.() ?? null,
+      territories: Array.isArray(r.territories)
+        ? r.territories
+        : typeof r.territories === "string" && r.territories.trim().length
+          ? r.territories.split(",").map((t) => t.trim()).filter(Boolean)
+          : [],
     }));
 
     total = countAll;

@@ -6,12 +6,12 @@
 
 import * as React from "react";
 import { AudioPlayer } from "@/components/ui/AudioPlayer";
-import type { PlayerTrack } from "@/domain/track";
+import type { PlayerTrackDTO } from "@/domain/track";
 import { makeDemoTrack } from "@/data/demo-track";
 
 export type AudioPlayerDemoProps = {
   id?: string;
-  overrides?: Partial<PlayerTrack>;
+  overrides?: Partial<PlayerTrackDTO>;
   className?: string;
 };
 

@@ -5,7 +5,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type MouseEvent,
   type ReactNode,
 } from "react";
 import {
@@ -311,7 +310,7 @@ export default function CatalogClient({
                   isPlaying={isPlaying}
                   rowClass=""
                   progress={progressMap[track.id] ?? 0}
-                  waveformB64={waveformMap[track.id]}
+                  waveformB64={waveformMap[track.id] ?? ""}
                   durationSec={track.durationSec ?? parseDurationSeconds(track.duration) ?? null}
                   onPlayPause={() => handlePlayPause(track)}
                   onSeek={(r) => handleSeek(track, r)}
@@ -490,32 +489,32 @@ function TrackRow({
   buildTrackHref,
   catalogSlug,
 }: TrackRowProps & { catalogSlug?: string }) {
-  const menuAreaRef = useRef<HTMLDivElement | null>(null);
+    const menuAreaRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handleClick = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (menuAreaRef.current && !menuAreaRef.current.contains(target)) {
-        closeMenu();
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        closeMenu();
-        const active = document.activeElement as HTMLElement | null;
-        if (active && menuAreaRef.current?.contains(active)) {
-          active.blur();
+    useEffect(() => {
+      if (!menuOpen) return;
+      const handleClick = (event: globalThis.MouseEvent) => {
+        const target = event.target as Node;
+        if (menuAreaRef.current && !menuAreaRef.current.contains(target)) {
+          closeMenu();
         }
-      }
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("mousedown", handleClick);
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [menuOpen, closeMenu]);
+      };
+      document.addEventListener("mousedown", handleClick);
+      const handleKey = (event: KeyboardEvent) => {
+        if (event.key === "Escape") {
+          closeMenu();
+          const active = document.activeElement as HTMLElement | null;
+          if (active && menuAreaRef.current?.contains(active)) {
+            active.blur();
+          }
+        }
+      };
+      document.addEventListener("keydown", handleKey);
+      return () => {
+        document.removeEventListener("mousedown", handleClick);
+        document.removeEventListener("keydown", handleKey);
+      };
+    }, [menuOpen, closeMenu]);
 
   return (
     <tr
@@ -771,7 +770,7 @@ function float32ToBase64(arr: Float32Array): string {
   const bytes = new Uint8Array(arr.buffer);
   const len = bytes.byteLength;
   for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i]);
+    binary += String.fromCharCode(bytes[i] ?? 0);
   }
   return btoa(binary);
 }
@@ -797,11 +796,11 @@ function parseDurationSeconds(duration?: string): number | null {
   const parts = duration.split(":").map((p) => Number.parseInt(p, 10));
   if (parts.some((n) => Number.isNaN(n))) return null;
   if (parts.length === 2) {
-    const [m, s] = parts;
+    const [m, s] = parts as [number, number];
     return m * 60 + s;
   }
   if (parts.length === 3) {
-    const [h, m, s] = parts;
+    const [h, m, s] = parts as [number, number, number];
     return h * 3600 + m * 60 + s;
   }
   return null;
