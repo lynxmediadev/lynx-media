@@ -246,7 +246,7 @@ export function TagChips({
       </div>
 
       {fetchAll && (
-        <div className="flex">
+        <div className="flex gap-2">
           {renderAboveToggle}
           <Button
             variant="ghost"
