@@ -3,6 +3,7 @@
 import * as React from "react";
 import { TagChips, type TagChip } from "@/components/ui/TagChips";
 import useTagCatalog from "@/hooks/useTagCatalog";
+import { slugify } from "@/lib/slugify";
 
 /**
  * Wrapper para gestionar "Usos" con el mismo flujo de TagChips.
@@ -19,44 +20,61 @@ export type UseChipsProps = {
 const toTitleCase = (txt: string) => {
   const clean = txt.trim();
   if (!clean) return "";
-  if (clean.length <= 3) return clean.toUpperCase(); // TV, UX, etc.
-  return clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase();
+  return clean.toUpperCase(); // Paridad con Moods (todo MAYÚSCULAS)
 };
 
 export function UseChips({ name = "uses", initialUses, error, maxItems = 15, trackId }: UseChipsProps) {
   const [selected, setSelected] = React.useState<TagChip[]>(
     initialUses.map((u) => {
       const label = toTitleCase(u);
-      return { label, value: label };
+      return { label, value: label, meta: { slug: slugify(label) } };
     })
   );
+  const [saving, setSaving] = React.useState(false);
 
   const catalog = useTagCatalog({
     listUrl: "/api/uses",
     searchUrl: "/api/uses",
     createUrl: "/api/uses",
+    normalizeLabel: (raw) => toTitleCase(raw),
+    normalizeSlug: (raw) => slugify(raw),
     mapItem: (i: any) => {
       const name = toTitleCase((i?.name ?? i?.label ?? "").toString());
       if (!name) return null as unknown as TagChip;
-      return { id: i?.id, label: name, value: name };
+      return { id: i?.id, label: name, value: name, meta: { slug: slugify(name) } };
     },
     buildCreateBody: (label) => ({ name: toTitleCase(label) }),
   });
 
   const normalize = React.useCallback((raw: string): TagChip | null => {
-    const title = toTitleCase(raw);
-    if (!title) return null;
-    return { label: title, value: title };
+    const upper = toTitleCase(raw);
+    if (!upper) return null;
+    return { label: upper, value: upper, meta: { slug: slugify(upper) } };
   }, []);
 
   const persist = React.useCallback(
     async (chips: TagChip[]) => {
       const uses = chips.map((c) => toTitleCase(c.value ?? c.label));
-      await fetch(`/api/tracks/${trackId}/uses`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uses }),
-      });
+      setSaving(true);
+      try {
+        const res = await fetch(`/api/tracks/${trackId}/uses`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ uses }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && Array.isArray(data?.items)) {
+          setSelected(
+            data.items.map((item: any) => {
+              const label = toTitleCase(item.name ?? item.slug ?? "");
+              const slug = slugify(label);
+              return { id: item.id, label, value: label, meta: { slug } };
+            })
+          );
+        }
+      } finally {
+        setSaving(false);
+      }
     },
     [trackId],
   );
@@ -64,9 +82,8 @@ export function UseChips({ name = "uses", initialUses, error, maxItems = 15, tra
   const handleChange = React.useCallback(
     (chips: TagChip[]) => {
       setSelected(chips);
-      persist(chips);
     },
-    [persist],
+    [],
   );
 
   return (
@@ -97,6 +114,18 @@ export function UseChips({ name = "uses", initialUses, error, maxItems = 15, tra
           });
           return res.ok;
         }}
+        renderAboveAssigned={
+          <div className="flex gap-2 mb-1">
+            <button
+              type="button"
+              onClick={() => persist(selected)}
+              disabled={saving}
+              className="h-7 px-3 border border-current w-full justify-center items-center text-foreground bg-transparent hover:bg-foreground/10 dark:hover:bg-foreground/15 transition-colors inline-flex text-xs font-semibold rounded-md"
+            >
+              {saving ? "Guardando…" : "Guardar Usos"}
+            </button>
+          </div>
+        }
       />
       <input type="hidden" name={name} value={selected.map((c) => c.label).join("\n")} />
       {error && <p className="text-xs text-destructive">{error}</p>}

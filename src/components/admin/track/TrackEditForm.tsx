@@ -7,7 +7,7 @@ import IdsForm from "./IdsForm";
 import RightsFormClient from "./RightsFormClient";
 import SyncMetaForm from "./SyncMetaForm";
 import DeliverablesForm from "./DeliverablesForm";
-import { CatalogTagsForm } from "./CatalogTagsForm";
+import CategoryChips from "./CategoryChips";
 import { updateTrackAll } from "@/app/admin/track/actions/update-all";
 import { Button } from "@/components/ui/button";
 
@@ -86,6 +86,7 @@ type TrackEditFormProps = {
       sortOrder: number | null;
     }>;
     catalogTags: string[];
+    assignedCategories: Array<{ id: string; slug: string; name: string }>;
   };
   catalogTagOptions: { id: string; slug: string; name: string }[];
 };
@@ -180,11 +181,13 @@ export default function TrackEditForm({
         </div>
 
         <div className="mt-2 p-2 border-t border-border/60">
-          <CatalogTagsForm
+          <CategoryChips
             trackId={track.id}
-            options={catalogTagOptions}
-            selectedSlugs={track.catalogTags}
-            fieldErrors={fieldErrors}
+            name="catalogTags"
+            initialCategories={track.assignedCategories}
+            initialCatalog={catalogTagOptions}
+            error={fieldErrors.catalogTags?.join(", ")}
+            maxItems={10}
           />
         </div>
 

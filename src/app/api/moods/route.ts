@@ -52,7 +52,14 @@ export async function GET(req: Request) {
     take: 20,
   });
 
-  return NextResponse.json({ moods });
+  return NextResponse.json({
+    items: moods.map((m) => ({
+      id: m.id,
+      name: m.name,
+      slug: m.slug,
+      type: "MOOD",
+    })),
+  });
 }
 
 export async function POST(req: Request) {

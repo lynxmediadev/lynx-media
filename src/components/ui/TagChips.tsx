@@ -46,6 +46,11 @@ export type TagChipsProps = {
   allowDeleteCatalog?: boolean;
   onDeleteCatalog?: (chip: TagChip) => Promise<boolean | void> | boolean | void;
   deleteConfirmText?: string;
+  /** Catálogo precargado (SSR) para evitar fetch inicial de sugeridos */
+  initialCatalogItems?: TagChip[];
+  /** Permite sobreescribir el toggle button de sugeridos (para colocar botón Guardar arriba si se desea) */
+  renderAboveAssigned?: React.ReactNode;
+  renderAboveToggle?: React.ReactNode;
 };
 
 const defaultNormalize = (raw: string): TagChip | null => {
@@ -70,10 +75,13 @@ export function TagChips({
   allowDeleteCatalog = false,
   onDeleteCatalog,
   deleteConfirmText,
+  initialCatalogItems = [],
+  renderAboveAssigned,
+  renderAboveToggle,
 }: TagChipsProps) {
   const [query, setQuery] = React.useState("");
   const [suggestions, setSuggestions] = React.useState<TagChip[]>([]);
-  const [allItems, setAllItems] = React.useState<TagChip[]>([]);
+  const [allItems, setAllItems] = React.useState<TagChip[]>(initialCatalogItems);
   const [panelOpen, setPanelOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
@@ -119,6 +127,13 @@ export function TagChips({
       clearTimeout(handle);
     };
   }, [fetchSuggestions, query]);
+
+  // Actualiza catálogo inicial si cambia la prop (SSR → client)
+  React.useEffect(() => {
+    if (initialCatalogItems && initialCatalogItems.length > 0) {
+      setAllItems(initialCatalogItems);
+    }
+  }, [initialCatalogItems]);
 
   const upsertCatalogItem = React.useCallback(
     (chip: TagChip) => {
@@ -189,6 +204,7 @@ export function TagChips({
       )}
 
       <div className="space-y-2 rounded-md border border-border/70 bg-card/60 p-3">
+        {renderAboveAssigned}
         <div className="flex items-center justify-between gap-2">
           <Label className="text-[11px] font-semibold text-muted-foreground">
             {headingAssigned}
@@ -231,6 +247,7 @@ export function TagChips({
 
       {fetchAll && (
         <div className="flex">
+          {renderAboveToggle}
           <Button
             variant="ghost"
             size="sm"

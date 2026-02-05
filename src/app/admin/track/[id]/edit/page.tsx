@@ -17,6 +17,9 @@
  * - Usa un único guardado para campos editables.
  */
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
@@ -31,8 +34,6 @@ import { deleteObjectFromS3 } from "@/lib/storage/delete-object";
 import { formatBytes } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { getAudioCheckStatus } from "@/lib/audio/audio-check";
-
-export const dynamic = "force-dynamic";
 
 /** Convierte Buffer/Uint8Array → base64 para el waveform del player técnico */
 function bytesToBase64(buf: Buffer | Uint8Array | null): string | null {
@@ -159,6 +160,13 @@ export default async function AdminTrackEditPage({
         },
         orderBy: { sortOrder: "asc" },
       },
+      tags: {
+        select: {
+          tag: { select: { id: true, slug: true, name: true, type: true } },
+          assignedAt: true,
+        },
+        orderBy: { assignedAt: "asc" },
+      },
     },
   });
 
@@ -206,6 +214,11 @@ export default async function AdminTrackEditPage({
     select: { id: true, slug: true, name: true },
     orderBy: { name: "asc" },
   });
+
+  const assignedCategories =
+    track.tags
+      ?.filter((t) => t.tag.type === "CATALOG")
+      .map((c) => ({ id: c.tag.id, slug: c.tag.slug, name: c.tag.name })) ?? [];
 
   /**
    * Server Action para eliminar track.
@@ -509,6 +522,8 @@ export default async function AdminTrackEditPage({
             artist: track.artist,
             moods: track.moods,
             uses: track.uses,
+            catalogTags: track.tags.map((t) => t.tag.slug),
+            assignedCategories: assignedCategories,
             isrc: track.isrc,
             iswc: track.iswc,
             upc: track.upc,
@@ -541,7 +556,6 @@ export default async function AdminTrackEditPage({
             publishingShares: track.publishingShares,
             versions: track.versions,
             stems: track.stems,
-            catalogTags: track.tags.map((t) => t.tag.slug),
           }}
           catalogTagOptions={catalogTags}
         />

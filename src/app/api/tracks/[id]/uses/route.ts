@@ -7,11 +7,23 @@ import { slugify } from "@/lib/slugify";
 
 const schema = z.object({ uses: z.array(z.string().min(1)).max(30) });
 
-function toTitleCase(txt: string) {
+const toUpper = (txt: string) => {
   const clean = txt.trim();
   if (!clean) return "";
-  if (clean.length <= 3) return clean.toUpperCase();
-  return clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase();
+  return clean.toUpperCase();
+};
+
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id: trackId } = await params;
+  const track = await db.track.findUnique({
+    where: { id: trackId },
+    select: { uses: true },
+  });
+  if (!track) return NextResponse.json({ error: "Track no encontrado" }, { status: 404 });
+  const uses = (track.uses ?? []).map(toUpper);
+  return NextResponse.json({
+    items: uses.map((u) => ({ name: u, slug: slugify(u), type: "USE" })),
+  });
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -22,7 +34,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "Payload inválido" }, { status: 400 });
   }
 
-  const uses = parsed.data.uses.map(toTitleCase);
+  const uses = Array.from(new Set(parsed.data.uses.map(toUpper)));
 
   const track = await db.track.findUnique({ where: { id: trackId }, select: { id: true } });
   if (!track) {
@@ -45,5 +57,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   });
 
   revalidatePath(`/admin/track/${trackId}/edit`);
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    items: uses.map((u) => ({ name: u, slug: slugify(u), type: "USE" })),
+  });
 }

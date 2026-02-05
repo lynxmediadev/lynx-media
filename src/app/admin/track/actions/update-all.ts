@@ -57,10 +57,29 @@ export async function updateTrackAll(
       new Set(
         formData
           .getAll("catalogTags")
-          .map((v) => (typeof v === "string" ? v.trim() : ""))
+          .flatMap((v) =>
+            typeof v === "string"
+              ? v
+                  .split(/[,\\n]/)
+                  .map((s) => slugify(s))
+              : [],
+          )
           .filter((v) => v.length > 0),
       ),
     );
+
+    // Asegura que los slugs estén creados como CATALOG (si venían como GENERIC, se promueven)
+    if (catalogTagSlugs.length) {
+      await prisma.$transaction(async (tx) => {
+        for (const slug of catalogTagSlugs) {
+          await tx.tag.upsert({
+            where: { slug },
+            update: { type: TagType.CATALOG, name: slug.toUpperCase() },
+            create: { slug, name: slug.toUpperCase(), type: TagType.CATALOG },
+          });
+        }
+      });
+    }
 
     const creativeParsed = creativeFormSchema.safeParse(rawObject);
     const idsParsed = idsFormSchema.safeParse(rawObject);
@@ -216,6 +235,29 @@ export async function updateTrackAll(
     });
     const moodIds = moodRecords.map((m) => m.id);
 
+    // Normaliza usos (Title Case) y upserta catálogo GENERIC para sugeridos
+    const usesNormalized = Array.from(
+      new Set(
+        (creativeData.uses ?? [])
+          .map((u) => u.trim())
+          .filter((u) => u.length > 0)
+          .map((u) =>
+            u.length <= 3
+              ? u.toUpperCase()
+              : u.charAt(0).toUpperCase() + u.slice(1).toLowerCase(),
+          ),
+      ),
+    );
+
+    for (const name of usesNormalized) {
+      const slug = slugify(name);
+      await prisma.tag.upsert({
+        where: { slug },
+        update: { name, type: TagType.GENERIC },
+        create: { name, slug, type: TagType.GENERIC },
+      });
+    }
+
     await prisma.$transaction(async (tx) => {
       await tx.track.update({
         where: { id: trackId },
@@ -223,7 +265,7 @@ export async function updateTrackAll(
           title: creativeData.title,
           artist: creativeData.artist,
           moods: moodNames, // compat con campo string[]
-          uses: creativeData.uses,
+          uses: usesNormalized,
           isrc: idsData.isrc,
           iswc: idsData.iswc,
           upc: idsData.upc,

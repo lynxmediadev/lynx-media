@@ -5,22 +5,47 @@ type UseTagCatalogOptions = {
   listUrl: string;
   searchUrl?: string;
   createUrl?: string;
+  deleteUrl?: string;
+  saveUrl?: string; // opcional para guardar selección por track
   headers?: Record<string, string>;
   mapItem?: (item: any) => TagChip;
   buildCreateBody?: (label: string) => any;
+  normalizeLabel?: (raw: string) => string;
+  normalizeSlug?: (raw: string) => string;
+  onSaved?: (payload: any) => void;
 };
 
-const defaultMapItem = (item: any): TagChip => {
-  const name = (item?.name ?? item?.label ?? "").toString();
-  const upper = name.toUpperCase();
+const slugify = (input: string) =>
+  input
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+
+const defaultNormalizeLabel = (raw: string) => raw.trim();
+const defaultNormalizeSlug = (raw: string) => slugify(raw);
+
+const defaultMapItem = (
+  item: any,
+  normalizeLabel: (raw: string) => string,
+  normalizeSlug: (raw: string) => string,
+): TagChip => {
+  const name = normalizeLabel((item?.name ?? item?.label ?? "").toString());
+  const slug = normalizeSlug(item?.slug ?? name);
   return {
     id: item?.id,
-    label: upper,
-    value: upper,
+    label: name,
+    value: name,
+    meta: { slug },
   };
 };
 
-const defaultCreateBody = (label: string) => ({ name: label });
+const defaultCreateBody = (label: string, normalizeLabel: (raw: string) => string) => ({
+  name: normalizeLabel(label),
+});
 
 /**
  * Hook genérico para catálogos de chips (moods, usos, categorías).
@@ -32,9 +57,14 @@ export function useTagCatalog(options: UseTagCatalogOptions) {
     listUrl,
     searchUrl,
     createUrl,
+    deleteUrl,
+    saveUrl,
     headers,
-    mapItem = defaultMapItem,
-    buildCreateBody = defaultCreateBody,
+    mapItem,
+    buildCreateBody,
+    normalizeLabel = defaultNormalizeLabel,
+    normalizeSlug = defaultNormalizeSlug,
+    onSaved,
   } = options;
 
   const [loading, setLoading] = React.useState(false);
@@ -43,8 +73,10 @@ export function useTagCatalog(options: UseTagCatalogOptions) {
     const res = await fetch(listUrl, { headers });
     const data = await res.json().catch(() => ({}));
     const rawItems = Array.isArray(data) ? data : data.moods ?? data.items ?? [];
-    return (rawItems as any[]).map(mapItem).filter(Boolean);
-  }, [headers, listUrl, mapItem]);
+    return (rawItems as any[])
+      .map((it) => (mapItem ? mapItem(it) : defaultMapItem(it, normalizeLabel, normalizeSlug)))
+      .filter(Boolean);
+  }, [headers, listUrl, mapItem, normalizeLabel, normalizeSlug]);
 
   const fetchSuggestions = React.useCallback(
     async (query: string): Promise<TagChip[]> => {
@@ -55,9 +87,11 @@ export function useTagCatalog(options: UseTagCatalogOptions) {
       const res = await fetch(`${url}${sep}query=${encodeURIComponent(q)}`, { headers });
       const data = await res.json().catch(() => ({}));
       const rawItems = Array.isArray(data) ? data : data.moods ?? data.items ?? [];
-      return (rawItems as any[]).map(mapItem).filter(Boolean);
+      return (rawItems as any[])
+        .map((it) => (mapItem ? mapItem(it) : defaultMapItem(it, normalizeLabel, normalizeSlug)))
+        .filter(Boolean);
     },
-    [headers, listUrl, mapItem, searchUrl]
+    [headers, listUrl, mapItem, normalizeLabel, normalizeSlug, searchUrl]
   );
 
   const create = React.useCallback(
@@ -69,19 +103,21 @@ export function useTagCatalog(options: UseTagCatalogOptions) {
         const res = await fetch(createUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json", ...(headers ?? {}) },
-          body: JSON.stringify(buildCreateBody(clean)),
+          body: JSON.stringify(
+            (buildCreateBody ?? defaultCreateBody)(clean, normalizeLabel),
+          ),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) return null;
         const payload = data.mood ?? data.item ?? data;
-        return mapItem(payload);
+        return (mapItem ? mapItem(payload) : defaultMapItem(payload, normalizeLabel, normalizeSlug));
       } catch (_e) {
         return null;
       } finally {
         setLoading(false);
       }
     },
-    [buildCreateBody, createUrl, headers, mapItem]
+    [buildCreateBody, createUrl, headers, mapItem, normalizeLabel, normalizeSlug]
   );
 
   return {
@@ -89,6 +125,37 @@ export function useTagCatalog(options: UseTagCatalogOptions) {
     fetchAll,
     fetchSuggestions,
     create,
+    remove: deleteUrl
+      ? async (idOrSlug: string | undefined) => {
+          if (!idOrSlug) return { ok: false };
+          try {
+            const res = await fetch(deleteUrl, {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json", ...(headers ?? {}) },
+              body: JSON.stringify({ id: idOrSlug, slug: idOrSlug }),
+            });
+            return { ok: res.ok };
+          } catch {
+            return { ok: false };
+          }
+        }
+      : undefined,
+    saveSelection: saveUrl
+      ? async (trackId: string | undefined, slugs: string[]) => {
+          if (!trackId) return { ok: false };
+          const normalized = Array.from(
+            new Set(slugs.map((s) => normalizeSlug(s)).filter(Boolean)),
+          );
+          const res = await fetch(saveUrl.replace(":id", trackId), {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...(headers ?? {}) },
+            body: JSON.stringify({ slugs: normalized }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && onSaved) onSaved(data);
+          return { ok: res.ok, data };
+        }
+      : undefined,
   };
 }
 

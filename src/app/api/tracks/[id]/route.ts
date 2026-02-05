@@ -120,8 +120,8 @@ function mapDb(row: any) {
           sharePct: share.sharePct ?? undefined,
         }))
       : [],
-    moods: row.moods ?? [],
-    uses: row.uses ?? [],
+  moods: row.moods ?? [],
+  uses: row.uses ?? [],
     identifiers: { isrc: row.isrc ?? undefined, iswc: row.iswc ?? undefined, upc: row.upc ?? undefined },
     rights: {
       master: row.master ?? undefined,

@@ -28,6 +28,7 @@ type Props = {
   fieldErrors: Record<string, string[]>;
 };
 
+/** @deprecated Reemplazado por CategoryChips/TagModule */
 export function CatalogTagsForm({ trackId, options, selectedSlugs, fieldErrors }: Props) {
   const [localOptions, setLocalOptions] = React.useState<Option[]>(options);
   const [selected, setSelected] = React.useState<string[]>(selectedSlugs);

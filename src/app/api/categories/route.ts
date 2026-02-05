@@ -8,12 +8,12 @@ const createSchema = z.object({
 });
 
 const defaultCategories = [
-  "Pop",
-  "Rock",
-  "Electronic",
-  "Hip Hop",
-  "Ambient",
-  "Classical",
+  "POP",
+  "ROCK",
+  "ELECTRONIC",
+  "HIP HOP",
+  "AMBIENT",
+  "CLASSICAL",
 ];
 
 function slugify(input: string) {
@@ -25,6 +25,27 @@ function slugify(input: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 60);
+}
+
+// Levenshtein con límite pequeño para detectar duplicados cercanos (ej. "Tele" vs "Telo")
+function distance(a: string, b: string): number {
+  const m = a.length;
+  const n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i]![0] = i;
+  for (let j = 0; j <= n; j++) dp[0]![j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      const above = dp[i - 1]![j]!;
+      const left = dp[i]![j - 1]!;
+      const diag = dp[i - 1]![j - 1]!;
+      dp[i]![j] = Math.min(above + 1, left + 1, diag + cost);
+    }
+  }
+  return dp[m]![n]!;
 }
 
 async function ensureSeeds() {
@@ -57,7 +78,14 @@ export async function GET(req: Request) {
     take: 20,
   });
 
-  return NextResponse.json({ items });
+  return NextResponse.json({
+    items: items.map((i) => ({
+      id: i.id,
+      name: i.name.toUpperCase(),
+      slug: i.slug,
+      type: i.type,
+    })),
+  });
 }
 
 export async function POST(req: Request) {
@@ -68,8 +96,8 @@ export async function POST(req: Request) {
   }
 
   const name = parsed.data.name.trim();
-  const title = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-  const slug = slugify(title);
+  const upper = name.toUpperCase();
+  const slug = slugify(upper);
   if (!slug) return NextResponse.json({ error: "Nombre inválido" }, { status: 400 });
 
   const existing = await db.tag.findFirst({
@@ -77,7 +105,7 @@ export async function POST(req: Request) {
       type: TagType.CATALOG,
       OR: [
         { slug },
-        { name: { equals: title, mode: "insensitive" } },
+        { name: { equals: upper, mode: "insensitive" } },
       ],
     },
   });
@@ -86,7 +114,55 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Categoría ya existe", suggestions: [existing] }, { status: 409 });
   }
 
-  const item = await db.tag.create({ data: { name: title, slug, type: TagType.CATALOG } });
+  // Buscar similares (distancia <=1)
+  const nearby = await db.tag.findMany({
+    where: {
+      type: TagType.CATALOG,
+      name: { startsWith: upper.slice(0, 3), mode: "insensitive" },
+    },
+    take: 15,
+  });
+  const similar = nearby.filter((c) => distance(c.name.toLowerCase(), upper.toLowerCase()) <= 1);
+  if (similar.length) {
+    return NextResponse.json(
+      { error: "Existe una categoría muy parecida", suggestions: similar },
+      { status: 409 },
+    );
+  }
 
-  return NextResponse.json({ item }, { status: 201 });
+  const item = await db.tag.create({ data: { name: upper, slug, type: TagType.CATALOG } });
+
+  return NextResponse.json({ item: { ...item, name: upper } }, { status: 201 });
+}
+
+export async function DELETE(req: Request) {
+  const body = await req.json().catch(() => ({}));
+  const id = typeof body.id === "string" && body.id.trim().length ? body.id.trim() : null;
+  const slugRaw = typeof body.slug === "string" && body.slug.trim().length ? body.slug.trim() : null;
+  const slug = slugRaw ? slugify(slugRaw) : null;
+
+  if (!id && !slug) {
+    return NextResponse.json({ error: "ID o slug requerido" }, { status: 400 });
+  }
+
+  // Si vienen ambos, aceptamos coincidencia por cualquiera de los dos.
+  const tag = await db.tag.findFirst({
+    where: {
+      type: TagType.CATALOG,
+      OR: [
+        ...(id ? [{ id }] : []),
+        ...(slug ? [{ slug }] : []),
+      ],
+    },
+  });
+
+  if (!tag) {
+    return NextResponse.json({ error: "Categoría no encontrada" }, { status: 404 });
+  }
+
+  // Limpia pivote TrackTag antes de borrar
+  await db.trackTag.deleteMany({ where: { tagId: tag.id } });
+  await db.tag.delete({ where: { id: tag.id } });
+
+  return NextResponse.json({ ok: true });
 }

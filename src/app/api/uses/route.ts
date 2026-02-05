@@ -50,7 +50,14 @@ export async function GET(req: Request) {
     take: 20,
   });
 
-  return NextResponse.json({ items });
+  return NextResponse.json({
+    items: items.map((i) => ({
+      id: i.id,
+      name: i.name,
+      slug: i.slug,
+      type: i.type,
+    })),
+  });
 }
 
 export async function POST(req: Request) {

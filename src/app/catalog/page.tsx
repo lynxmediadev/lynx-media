@@ -17,12 +17,9 @@ function toArray(value: string | string[] | undefined) {
 export default async function CatalogPage({
   searchParams,
 }: {
-  searchParams?: Promise<SearchParams> | SearchParams;
+  searchParams?: Promise<SearchParams>;
 }) {
-  const sp =
-    searchParams && "then" in (searchParams as Promise<SearchParams>)
-      ? await (searchParams as Promise<SearchParams>)
-      : (searchParams as SearchParams | undefined);
+  const sp = searchParams ? await searchParams : undefined;
 
   const moods = toArray(sp?.mood).map((m) => m.trim()).filter(Boolean);
   const uses = toArray(sp?.use).map((u) => u.trim()).filter(Boolean);

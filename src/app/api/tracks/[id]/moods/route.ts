@@ -6,6 +6,17 @@ import { slugify } from "@/lib/slugify";
 
 const schema = z.object({ moods: z.array(z.string().min(1)).max(10) });
 
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id: trackId } = await params;
+  const track = await db.track.findUnique({
+    where: { id: trackId },
+    select: { moods: true },
+  });
+  if (!track) return NextResponse.json({ error: "Track no encontrado" }, { status: 404 });
+  const moods = (track.moods ?? []).map((m) => m.toUpperCase());
+  return NextResponse.json({ items: moods.map((m) => ({ name: m, slug: slugify(m), type: "MOOD" })) });
+}
+
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: trackId } = await params;
   const body = await req.json().catch(() => ({}));
@@ -19,7 +30,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "Track no encontrado" }, { status: 404 });
   }
 
-  const moodNames = parsed.data.moods.map((m) => m.toUpperCase());
+  const moodNames = Array.from(new Set(parsed.data.moods.map((m) => m.toUpperCase())));
 
   // upsert missing moods
   const found = await db.mood.findMany({ where: { name: { in: moodNames, mode: "insensitive" } }, select: { name: true } });
