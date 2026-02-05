@@ -117,6 +117,7 @@ export function CategoryChips({
         onChange={(chips) => setSelected(chips)}
         placeholder="Buscar categoría"
         toggleLabel="Categorías"
+        defaultOpen
         headingAssigned="Categorías asignadas"
         headingSuggestions="Sugerencias del catálogo"
         maxItems={maxItems}
@@ -141,8 +142,8 @@ export function CategoryChips({
           const label = toUpper(c.name);
           return { id: c.id, label, value: label, meta: { slug: c.slug } };
         })}
-        renderAboveAssigned={
-          <div className="flex gap-2 mb-1">
+        renderAboveToggle={
+          <div className="flex gap-2 mb-1 w-full">
             <button
               type="button"
               disabled={saving}

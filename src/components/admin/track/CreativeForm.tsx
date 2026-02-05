@@ -5,7 +5,8 @@ import * as React from "react";
 import FormField from "../ui/FormField";
 import { Input } from "@/components/ui/input";
 import { MoodChips } from "./MoodChips";
-import { UseChips } from "./UseChips";
+import UseChips from "./UseChips";
+import CategoryChips from "./CategoryChips";
 
 type FieldErrors = Record<string, string[]>;
 
@@ -23,11 +24,14 @@ type CreativeFormProps = {
     artist: string | null;
     moods: string[];
     uses: string[];
+    assignedCategories: Array<{ id?: string; slug?: string; name: string }>;
   };
   fieldErrors?: FieldErrors;
+  categoryCatalog: { id: string; slug: string; name: string }[];
+  categoryError?: string | null;
 };
 
-export default function CreativeForm({ track, fieldErrors }: CreativeFormProps) {
+export default function CreativeForm({ track, fieldErrors, categoryCatalog, categoryError }: CreativeFormProps) {
   const moodsDefault = (track.moods ?? []).join("\n");
   const serverErrors: FieldErrors = fieldErrors ?? {};
 
@@ -125,46 +129,70 @@ export default function CreativeForm({ track, fieldErrors }: CreativeFormProps) 
         </FormField>
       </div>
 
-      {/* Sección: Moods */}
-      <div className="grid gap-2 md:grid-cols-2">
-        <div className="md:col-span-1">
+      {/* Sección: Tags (Moods / Usos / Categorías) */}
+      <div className="grid gap-6 md:grid-cols-3 items-start">
+        <div className="md:col-span-1 h-full">
           <FormField
             htmlFor="moods"
             label={"Moods"}
             descriptionPosition="above"
             description={<>Busca y añade moods del catálogo; puedes proponer uno nuevo si no existe.</>}
             error={clientErrors.moods ?? serverErrors.moods?.[0] ?? null}
+            className="h-full"
           >
-            <MoodChips
-              name="moods"
-              initialMoods={track.moods ?? []}
-              trackId={track.id}
-              error={clientErrors.moods ?? serverErrors.moods?.[0] ?? null}
-            />
+            <div className="h-full">
+              <MoodChips
+                name="moods"
+                initialMoods={track.moods ?? []}
+                trackId={track.id}
+                error={clientErrors.moods ?? serverErrors.moods?.[0] ?? null}
+              />
+            </div>
           </FormField>
         </div>
 
-        {/* Sección: Usos */}
-        <div className="md:col-span-1">
+        <div className="md:col-span-1 h-full">
           <FormField
             htmlFor="uses"
             label={"Usos previstos"}
             descriptionPosition="above"
             description={
-              <>
-                Un uso por línea (o separados por comas). Ayudan a filtrar por
-                tipo de proyecto.
-              </>
+              <>Usos separados por comas; ayuda a filtrar por tipo de proyecto.</>
             }
             error={clientErrors.uses ?? serverErrors.uses?.[0] ?? null}
+            className="h-full"
           >
-            <UseChips
-              name="uses"
-              initialUses={track.uses ?? []}
-              trackId={track.id}
-              error={clientErrors.uses ?? serverErrors.uses?.[0] ?? null}
-              maxItems={15}
-            />
+            <div className="h-full">
+              <UseChips
+                name="uses"
+                initialUses={track.uses ?? []}
+                trackId={track.id}
+                error={clientErrors.uses ?? serverErrors.uses?.[0] ?? null}
+                maxItems={15}
+              />
+            </div>
+          </FormField>
+        </div>
+
+        <div className="md:col-span-1 h-full">
+          <FormField
+            htmlFor="catalogTags"
+            label={"Categorías"}
+            descriptionPosition="above"
+            description={<>Asignar/crear categorías del catálogo (CATALOG).</>}
+            error={categoryError ?? null}
+            className="h-full"
+          >
+            <div className="h-full">
+              <CategoryChips
+                trackId={track.id}
+                name="catalogTags"
+                initialCategories={track.assignedCategories}
+                initialCatalog={categoryCatalog}
+                error={categoryError ?? null}
+                maxItems={10}
+              />
+            </div>
           </FormField>
         </div>
       </div>

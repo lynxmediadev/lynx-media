@@ -73,6 +73,8 @@ export function MoodChips({ name = "moods", initialMoods, error, trackId }: Prop
         selected={selected}
         onChange={handleChange}
         placeholder="Buscar mood"
+        toggleLabel="Moods"
+        defaultOpen
         maxItems={10}
         headingAssigned="Moods asignados"
         headingSuggestions="Sugerencias del catálogo"
@@ -95,8 +97,8 @@ export function MoodChips({ name = "moods", initialMoods, error, trackId }: Prop
           return res.ok;
         }}
         maxItems={10}
-        renderAboveAssigned={
-          <div className="flex gap-2 mb-1">
+        renderAboveToggle={
+          <div className="flex gap-2 mb-1 w-full">
             <button
               type="button"
               onClick={() => persist(selected)}

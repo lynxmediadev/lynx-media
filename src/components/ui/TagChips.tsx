@@ -198,7 +198,7 @@ export function TagChips({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 h-full flex flex-col">
       {!canAddMore && (
         <p className="text-xs text-destructive">Máximo {maxItems} elementos.</p>
       )}

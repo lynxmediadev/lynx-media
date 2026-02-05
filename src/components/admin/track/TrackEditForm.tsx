@@ -89,6 +89,7 @@ type TrackEditFormProps = {
     assignedCategories: Array<{ id: string; slug: string; name: string }>;
   };
   catalogTagOptions: { id: string; slug: string; name: string }[];
+  assignedCategories: Array<{ id: string; slug: string; name: string }>;
 };
 
 export default function TrackEditForm({
@@ -175,19 +176,11 @@ export default function TrackEditForm({
               artist: track.artist,
               moods: track.moods,
               uses: track.uses,
+              assignedCategories: track.assignedCategories,
             }}
             fieldErrors={fieldErrors}
-          />
-        </div>
-
-        <div className="mt-2 p-2 border-t border-border/60">
-          <CategoryChips
-            trackId={track.id}
-            name="catalogTags"
-            initialCategories={track.assignedCategories}
-            initialCatalog={catalogTagOptions}
-            error={fieldErrors.catalogTags?.join(", ")}
-            maxItems={10}
+            categoryCatalog={catalogTagOptions}
+            categoryError={fieldErrors.catalogTags?.join(", ")}
           />
         </div>
 

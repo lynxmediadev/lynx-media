@@ -93,6 +93,7 @@ export function UseChips({ name = "uses", initialUses, error, maxItems = 15, tra
         onChange={handleChange}
         placeholder="Buscar uso"
         toggleLabel="Usos"
+        defaultOpen
         maxItems={maxItems}
         headingAssigned="Usos asignados"
         headingSuggestions="Sugerencias del catálogo"
@@ -114,8 +115,8 @@ export function UseChips({ name = "uses", initialUses, error, maxItems = 15, tra
           });
           return res.ok;
         }}
-        renderAboveAssigned={
-          <div className="flex gap-2 mb-1">
+        renderAboveToggle={
+          <div className="flex gap-2 mb-1 w-full">
             <button
               type="button"
               onClick={() => persist(selected)}
