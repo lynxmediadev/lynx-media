@@ -140,7 +140,7 @@ export default function CreativeForm({ track, fieldErrors, categoryCatalog, cate
             error={clientErrors.moods ?? serverErrors.moods?.[0] ?? null}
             className="h-full"
           >
-            <div className="h-full">
+            <div className="h-full rounded-lg border border-border/70 bg-card/60 p-3">
               <MoodChips
                 name="moods"
                 initialMoods={track.moods ?? []}
@@ -162,7 +162,7 @@ export default function CreativeForm({ track, fieldErrors, categoryCatalog, cate
             error={clientErrors.uses ?? serverErrors.uses?.[0] ?? null}
             className="h-full"
           >
-            <div className="h-full">
+            <div className="h-full rounded-lg border border-border/70 bg-card/60 p-3">
               <UseChips
                 name="uses"
                 initialUses={track.uses ?? []}
@@ -183,7 +183,7 @@ export default function CreativeForm({ track, fieldErrors, categoryCatalog, cate
             error={categoryError ?? null}
             className="h-full"
           >
-            <div className="h-full">
+            <div className="h-full rounded-lg border border-border/70 bg-card/60 p-3">
               <CategoryChips
                 trackId={track.id}
                 name="catalogTags"
