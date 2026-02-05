@@ -130,7 +130,7 @@ export default function CreativeForm({ track, fieldErrors, categoryCatalog, cate
       </div>
 
       {/* Sección: Tags (Moods / Usos / Categorías) */}
-      <div className="grid gap-6 md:grid-cols-3 items-start">
+      <div className="grid gap-6 md:grid-cols-3 items-start mb-2">
         <div className="md:col-span-1 h-full">
           <FormField
             htmlFor="moods"
@@ -140,7 +140,7 @@ export default function CreativeForm({ track, fieldErrors, categoryCatalog, cate
             error={clientErrors.moods ?? serverErrors.moods?.[0] ?? null}
             className="h-full"
           >
-            <div className="h-full rounded-lg border border-border/70 bg-card/60 p-3">
+            <div className="h-full rounded-lg border border-border/70 bg-card/60 p-3 overflow-hidden">
               <MoodChips
                 name="moods"
                 initialMoods={track.moods ?? []}
@@ -162,7 +162,7 @@ export default function CreativeForm({ track, fieldErrors, categoryCatalog, cate
             error={clientErrors.uses ?? serverErrors.uses?.[0] ?? null}
             className="h-full"
           >
-            <div className="h-full rounded-lg border border-border/70 bg-card/60 p-3">
+            <div className="h-full rounded-lg border border-border/70 bg-card/60 p-3 overflow-hidden">
               <UseChips
                 name="uses"
                 initialUses={track.uses ?? []}
@@ -183,7 +183,7 @@ export default function CreativeForm({ track, fieldErrors, categoryCatalog, cate
             error={categoryError ?? null}
             className="h-full"
           >
-            <div className="h-full rounded-lg border border-border/70 bg-card/60 p-3">
+            <div className="h-full rounded-lg border border-border/70 bg-card/60 p-3 overflow-hidden">
               <CategoryChips
                 trackId={track.id}
                 name="catalogTags"
