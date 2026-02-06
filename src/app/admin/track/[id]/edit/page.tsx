@@ -35,12 +35,35 @@ import { formatBytes } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { getAudioCheckStatus } from "@/lib/audio/audio-check";
 
-/** Convierte Buffer/Uint8Array → base64 para el waveform del player técnico */
+/**
+ * FUNCION UTILITARIA: bytesToBase64
+ * Que hace:
+ * - Convierte bytes binarios de la forma de onda a texto base64 para el player tecnico.
+ *
+ * Input:
+ * - buf: Buffer | Uint8Array | null
+ *
+ * Output:
+ * - string base64 cuando hay datos
+ * - null cuando no hay datos
+ */
 function bytesToBase64(buf: Buffer | Uint8Array | null): string | null {
   if (!buf) return null;
   return Buffer.from(buf).toString("base64");
 }
 
+/**
+ * FUNCION PRINCIPAL DE PAGINA: AdminTrackEditPage
+ * Que hace:
+ * - Carga todos los datos del track para la ruta /admin/track/[id]/edit.
+ * - Prepara datos por modulo para el formulario de edicion.
+ *
+ * Input:
+ * - params: Promise<{ id: string }>
+ *
+ * Output:
+ * - JSX de la pagina de edicion completa del track.
+ */
 export default async function AdminTrackEditPage({
   params,
 }: {
@@ -61,13 +84,6 @@ export default async function AdminTrackEditPage({
       trackType: true,
       genres: true,
       subgenres: true,
-      tags: {
-        select: {
-          tag: {
-            select: { id: true, slug: true, name: true, type: true },
-          },
-        },
-      },
 
       // Audio / asset
       audioUrl: true,
@@ -114,8 +130,8 @@ export default async function AdminTrackEditPage({
       contentIdWhitelist: true,
       restrictions: true,
 
-      // Publishing (guardado como string o JSON, según schema)
-      // publishingSplit: true,
+      // MODULO DE WRITERS / PUBLISHERS
+      // Lista de WRITERS/PUBLISHERS (publishingShares), ordenada por sortOrder.
       publishingShares: {
         select: {
           id: true,
@@ -129,6 +145,8 @@ export default async function AdminTrackEditPage({
         },
         orderBy: { sortOrder: "asc" },
       },
+      // MODULO DE MASTER
+      // Lista de MASTERS (masterShares), ordenada por sortOrder.
       masterShares: {
         select: {
           id: true,
@@ -158,6 +176,8 @@ export default async function AdminTrackEditPage({
         },
         orderBy: { sortOrder: "asc" },
       },
+      // MODULO DE MOODS / MODULO DE USES / MODULO DE CATEGORIAS
+      // Lista comun por pivote TrackTag + Tag.type para construir chips asignados.
       tags: {
         select: {
           tag: { select: { id: true, slug: true, name: true, type: true } },
@@ -172,23 +192,28 @@ export default async function AdminTrackEditPage({
     notFound();
   }
 
-
+  // BLOQUE DE AUDIO: fuente publica de audio para el modulo de reproduccion.
   const publicSrc = track.assetKey
     ? getS3PublicUrl(track.assetKey)
     : (track.audioUrl ?? null);
 
+  // BLOQUE DE AUDIO: waveform serializado para PublicAudioBar.
   const waveformB64 = track.waveform
     ? bytesToBase64(track.waveform as any)
     : null;
 
+  // BLOQUE DE AUDIO: validacion de estado del archivo para analisis tecnico.
   const audioCheck = await getAudioCheckStatus(track.audioUrl, {
     cacheKey: track.id,
   });
 
+  // MODULO DE WRITERS/PUBLISHERS
+  // Toma el WRITER principal para mostrarlo en resumen tecnico.
   const primaryWriter =
     track.publishingShares.find((s) => s.role === "WRITER") ?? null;
 
-  // Asegura tags base de catálogo (enfoque sync)
+  // MODULO DE CATEGORIAS
+  // Asegura tags base del catalogo para que siempre existan en sugerencias.
   await prisma.$transaction([
     prisma.tag.upsert({
       where: { slug: "sync" },
@@ -202,30 +227,44 @@ export default async function AdminTrackEditPage({
     }),
   ]);
 
+  // MODULO DE CATEGORIAS
+  // Lista de CATEGORIAS disponibles para selector/autocompletar.
   const catalogTags = await prisma.tag.findMany({
     where: { type: "CATALOG" },
     select: { id: true, slug: true, name: true },
     orderBy: { name: "asc" },
   });
 
+  // MODULO DE CATEGORIAS
+  // Lista de CATEGORIAS asignadas al track actual.
   const assignedCategories =
     track.tags
       ?.filter((t) => t.tag.type === "CATALOG")
       .map((c) => ({ id: c.tag.id, slug: c.tag.slug, name: c.tag.name })) ?? [];
+
+  // MODULO DE MOODS
+  // Lista de MOODS asignados al track actual.
   const assignedMoods =
     track.tags?.filter((t) => t.tag.type === "MOOD").map((c) => c.tag.name) ?? [];
+
+  // MODULO DE USES
+  // Lista de USES asignados al track actual.
   const assignedUses =
     track.tags?.filter((t) => t.tag.type === "USE").map((c) => c.tag.name) ?? [];
 
   /**
-   * Server Action para eliminar track.
+   * FUNCION SERVER ACTION: deleteTrackAction
+   * Que hace:
+   * - Elimina un track de BD.
+   * - Intenta eliminar su asset en almacenamiento.
+   * - Revalida y redirige al listado.
    *
-   * Peras y manzanas:
-   * - La invoca el <form action={deleteAction}> del DeleteTrackButton.
-   * - Lee id/assetKey/coverUrl desde el FormData.
-   * - Elimina el registro en BD.
-   * - Intenta borrar el asset en R2 (si hay assetKey).
-   * - Luego revalida y hace redirect a /admin/tracks.
+   * Input:
+   * - formData con: id, assetKey, coverUrl
+   *
+   * Output:
+   * - No retorna datos de negocio (void).
+   * - Efecto final: redirect a /admin/tracks cuando elimina correctamente.
    */
   async function deleteTrackAction(formData: FormData) {
     "use server";
@@ -270,7 +309,8 @@ export default async function AdminTrackEditPage({
     redirect("/admin/tracks");
   }
 
-  // Flag simple: ¿tenemos análisis técnico?
+  // MODULO DE AUDIO / ANALISIS TECNICO
+  // Flag de estado para decidir si se muestra resumen tecnico o mensaje vacio.
   const techHasAnalysis =
     track.loudnessLufs !== null ||
     track.loudnessRangeLu !== null ||
@@ -512,13 +552,17 @@ export default async function AdminTrackEditPage({
           </div>
         </section>
 
+        {/* ORQUESTADOR DE MODULOS DEL FORMULARIO DE EDICION */}
         <TrackEditForm
           track={{
             id: track.id,
             title: track.title,
             artist: track.artist,
+            // MODULO DE MOODS: lista de MOODS asignados.
             assignedMoods: assignedMoods,
+            // MODULO DE USES: lista de USES asignados.
             assignedUses: assignedUses,
+            // MODULO DE CATEGORIAS: slugs asignados en TrackTag.
             catalogTags: track.tags.map((t) => t.tag.slug),
             assignedCategories: assignedCategories,
             isrc: track.isrc,
@@ -548,8 +592,12 @@ export default async function AdminTrackEditPage({
             contentIdEnrolled: !!track.contentIdEnrolled,
             contentIdAdmin: track.contentIdAdmin,
             contentIdWhitelist: track.contentIdWhitelist,
+            // MODULO DE MASTER
+            // Lista de MASTERS (masterShares) para edicion de porcentajes/contacto.
             master: track.master,
             masterShares: track.masterShares,
+            // MODULO DE WRITERS/PUBLISHERS
+            // Lista de WRITERS/PUBLISHERS (publishingShares) para split publishing.
             publishingShares: track.publishingShares,
             versions: track.versions,
             stems: track.stems,

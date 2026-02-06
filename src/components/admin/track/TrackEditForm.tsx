@@ -7,22 +7,39 @@ import IdsForm from "./IdsForm";
 import RightsFormClient from "./RightsFormClient";
 import SyncMetaForm from "./SyncMetaForm";
 import DeliverablesForm from "./DeliverablesForm";
-import CategoryChips from "./CategoryChips";
 import { updateTrackAll } from "@/app/admin/track/actions/update-all";
 import { Button } from "@/components/ui/button";
 
+/**
+ * RESULTADO DE GUARDADO GLOBAL (updateTrackAll)
+ * - ok: estado final
+ * - message: mensaje para barra inferior
+ * - fieldErrors: errores por campo para cada modulo
+ */
 type UpdateAllResult = {
   ok: boolean;
   message: string;
   fieldErrors?: Record<string, string[]>;
 };
 
+/**
+ * INPUT DEL ORQUESTADOR TrackEditForm
+ *
+ * Input:
+ * - track: snapshot completo del track (todos los modulos de edicion)
+ * - catalogTagOptions: catalogo base para Módulo de Categorías
+ *
+ * Output:
+ * - Renderiza el formulario completo con guardado unificado.
+ */
 type TrackEditFormProps = {
   track: {
     id: string;
     title: string | null;
     artist: string | null;
+    // Módulo de Moods: lista de MOODS asignados.
     assignedMoods: string[];
+    // Módulo de Uses: lista de USES asignados.
     assignedUses: string[];
     isrc: string | null;
     iswc: string | null;
@@ -54,6 +71,7 @@ type TrackEditFormProps = {
     contentIdAdmin: string | null;
     contentIdWhitelist: string | null;
     master: string | null;
+    // Módulo de MASTER: Lista de MASTERS.
     masterShares: Array<{
       id?: string;
       name: string;
@@ -62,6 +80,7 @@ type TrackEditFormProps = {
       notes?: string | null;
       sortOrder?: number | null;
     }>;
+    // Módulo de WRITERS/PUBLISHERS: Lista de WRITERS/PUBLISHERS.
     publishingShares: Array<{
       id?: string;
       role: "WRITER" | "PUBLISHER";
@@ -85,13 +104,29 @@ type TrackEditFormProps = {
       durationSec: number | null;
       sortOrder: number | null;
     }>;
+    // Módulo de Categorías: slugs asignados (compat con formulario legacy).
     catalogTags: string[];
+    // Módulo de Categorías: Lista de CATEGORÍAS asignadas.
     assignedCategories: Array<{ id: string; slug: string; name: string }>;
   };
+  // Módulo de Categorías: catálogo disponible para selector/sugerencias.
   catalogTagOptions: { id: string; slug: string; name: string }[];
-  assignedCategories: Array<{ id: string; slug: string; name: string }>;
 };
 
+/**
+ * ORQUESTADOR DE MODULOS DEL EDIT TRACK
+ *
+ * Que hace:
+ * - Junta los subformularios por modulo.
+ * - Ejecuta guardado global con una sola accion.
+ * - Distribuye errores de validacion por campo.
+ *
+ * Input:
+ * - props TrackEditFormProps
+ *
+ * Output:
+ * - JSX del formulario completo.
+ */
 export default function TrackEditForm({
   track,
   catalogTagOptions,
@@ -102,6 +137,20 @@ export default function TrackEditForm({
     Record<string, string[]>
   >({});
 
+  /**
+   * FUNCION DE ENVIO: handleSubmit
+   *
+   * Que hace:
+   * - Intercepta submit nativo.
+   * - Llama server action updateTrackAll.
+   * - Actualiza estado de pending, status y fieldErrors.
+   *
+   * Input:
+   * - event: React.FormEvent<HTMLFormElement>
+   *
+   * Output:
+   * - No retorna datos (void), actualiza estado React.
+   */
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
@@ -126,9 +175,11 @@ export default function TrackEditForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pb-8">
+      {/* CAMPO BASE DEL FORMULARIO */}
       <input type="hidden" name="id" defaultValue={track.id} />
 
-      {/* Barra fija inferior: siempre visible, sin dejar hueco debajo */}
+      {/* MÓDULO DE GUARDADO GLOBAL */}
+      {/* Barra fija inferior: estado + boton Guardar todo */}
       <div
         id="save-bar"
         className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background"
@@ -158,6 +209,7 @@ export default function TrackEditForm({
         </div>
       </div>
 
+      {/* MÓDULO CREATIVO + IDENTIFICADORES + DERECHOS */}
       <section className="rounded-xl border border-border bg-card/80 p-4">
         <h2 className="text-base font-semibold text-foreground">
           Metadata creativa &amp; identificadores
@@ -168,14 +220,18 @@ export default function TrackEditForm({
           derechos de explotacion y publishing, desde un mismo panel.
         </p>
 
+        {/* Módulo de Moods / Módulo de Uses / Módulo de Categorías */}
         <div className="p-2 border-t border-border/60">
           <CreativeForm
             track={{
               id: track.id,
               title: track.title,
               artist: track.artist,
+              // Módulo de Moods
               assignedMoods: track.assignedMoods,
+              // Módulo de Uses
               assignedUses: track.assignedUses,
+              // Módulo de Categorías
               assignedCategories: track.assignedCategories,
             }}
             fieldErrors={fieldErrors}
@@ -184,6 +240,7 @@ export default function TrackEditForm({
           />
         </div>
 
+        {/* MÓDULO DE IDENTIFICADORES (ISRC/ISWC/UPC) */}
         <div className="mt-2 p-2 border-t border-border/60">
           <IdsForm
             track={{
@@ -195,6 +252,7 @@ export default function TrackEditForm({
           />
         </div>
 
+        {/* MÓDULO DE WRITERS/PUBLISHERS/MASTER + derechos */}
         <div className="mt-2 p-2 border-t border-border/60">
           <RightsFormClient
             trackId={track.id}
@@ -214,6 +272,7 @@ export default function TrackEditForm({
         </div>
       </section>
 
+      {/* MÓDULO SYNC + ENTREGABLES */}
       <section className="rounded-xl border border-border bg-card/80 p-4 mt-6">
         <h2 className="text-base font-semibold text-foreground">
           Metadata sync &amp; entregables
@@ -223,6 +282,7 @@ export default function TrackEditForm({
           exclusividad y pricing), junto con versiones y stems disponibles.
         </p>
 
+        {/* MÓDULO DE METADATA SYNC */}
         <div className="p-2 border-t border-border/60">
           <SyncMetaForm
             track={{
@@ -249,6 +309,7 @@ export default function TrackEditForm({
           />
         </div>
 
+        {/* LISTA DE VERSIONES Y LISTA DE STEMS */}
         <div className="mt-2 p-2 border-t border-border/60">
           <DeliverablesForm
             track={{
