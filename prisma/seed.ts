@@ -17,16 +17,13 @@ const slugify = (str: string) =>
     .replace(/^-+|-+$/g, "")
     .slice(0, 50);
 
-const normalizeLabel = (s: string) => s.trim().toUpperCase();
-
 async function main() {
   // Puedes ajustar audioUrl a una URL pública si prefieres.
   const AUDIO = "/audio/demo.mp3";
   const COVER = "/images/hero/hero-bg-1.png";
 
-  // Catálogos base (beats/sync) y tags de catálogo
+  // Catálogo base único: SYNC
   const catalogs = [
-    { slug: "beats", name: "Beats / Instrumentales", description: "Instrumentales para artistas y compositores." },
     { slug: "sync", name: "Sync Licensing", description: "Música lista para proyectos audiovisuales y comerciales." },
   ];
 
@@ -39,9 +36,12 @@ async function main() {
   }
 
   const catalogTags = [
-    { slug: "beats", name: "BEATS", type: "CATALOG" as const },
     { slug: "sync", name: "SYNC", type: "CATALOG" as const },
     { slug: "games", name: "GAMES", type: "CATALOG" as const },
+    { slug: "documental", name: "DOCUMENTAL", type: "CATALOG" as const },
+    { slug: "advertising", name: "ADVERTISING", type: "CATALOG" as const },
+    { slug: "cinematic", name: "CINEMATIC", type: "CATALOG" as const },
+    { slug: "sync-series", name: "SYNC_SERIES", type: "CATALOG" as const },
   ];
 
   for (const t of catalogTags) {
@@ -83,7 +83,7 @@ async function main() {
       audioUrl: AUDIO,
       coverUrl: COVER,
       moods: ["EPIC", "EMOTIONAL", "ELEGANT"],
-      uses: ["TV", "CINE", "PUBLICIDAD"],
+      uses: ["TV", "FILM", "ADVERTISEMENT"],
       // Identificadores / derechos mínimos opcionales
       isrc: null,
       iswc: null,
@@ -114,7 +114,7 @@ async function main() {
       audioUrl: AUDIO,
       coverUrl: COVER,
       moods: ["EPIC"],
-      uses: ["TRAILERS"],
+      uses: ["TRAILER"],
       isrc: null,
       iswc: null,
       upc: null,
@@ -142,7 +142,7 @@ async function main() {
       audioUrl: AUDIO,
       coverUrl: COVER,
       moods: ["ELEGANT"],
-      uses: ["PUBLICIDAD", "VIDEOJUEGOS"],
+      uses: ["ADVERTISEMENT", "VIDEO_GAME"],
       isrc: null,
       iswc: null,
       upc: null,
@@ -169,8 +169,8 @@ async function main() {
       artist: "Lynx Music Collective",
       audioUrl: AUDIO,
       coverUrl: COVER,
-      moods: ["Atmospheric", "Dark"],
-      uses: ["Cine", "Series"],
+      moods: ["ATMOSPHERIC", "DARK"],
+      uses: ["FILM", "SERIES"],
       isrc: null,
       iswc: null,
       upc: null,
@@ -197,8 +197,8 @@ async function main() {
       artist: "Lynx Music Collective",
       audioUrl: AUDIO,
       coverUrl: COVER,
-      moods: ["Uplifting", "Warm"],
-      uses: ["Publicidad", "TV"],
+      moods: ["UPLIFTING", "WARM"],
+      uses: ["ADVERTISEMENT", "TV"],
       isrc: null,
       iswc: null,
       upc: null,

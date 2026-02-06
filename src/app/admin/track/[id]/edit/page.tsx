@@ -188,13 +188,8 @@ export default async function AdminTrackEditPage({
   const primaryWriter =
     track.publishingShares.find((s) => s.role === "WRITER") ?? null;
 
-  // Asegura tags base de catálogo (beats/sync) para que siempre aparezcan
+  // Asegura tags base de catálogo (enfoque sync)
   await prisma.$transaction([
-    prisma.tag.upsert({
-      where: { slug: "beats" },
-      update: { name: "BEATS", type: "CATALOG" },
-      create: { slug: "beats", name: "BEATS", type: "CATALOG" },
-    }),
     prisma.tag.upsert({
       where: { slug: "sync" },
       update: { name: "SYNC", type: "CATALOG" },
