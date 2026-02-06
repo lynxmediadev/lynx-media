@@ -27,11 +27,20 @@ type CreativeFormProps = {
     assignedCategories: Array<{ id?: string; slug?: string; name: string }>;
   };
   fieldErrors?: FieldErrors;
+  moodCatalog: { id: string; slug: string; name: string }[];
+  useCatalog: { id: string; slug: string; name: string }[];
   categoryCatalog: { id: string; slug: string; name: string }[];
   categoryError?: string | null;
 };
 
-export default function CreativeForm({ track, fieldErrors, categoryCatalog, categoryError }: CreativeFormProps) {
+export default function CreativeForm({
+  track,
+  fieldErrors,
+  moodCatalog,
+  useCatalog,
+  categoryCatalog,
+  categoryError,
+}: CreativeFormProps) {
   const serverErrors: FieldErrors = fieldErrors ?? {};
 
   // ⬇⬇⬇ NUEVO: estado de errores en el cliente ⬇⬇⬇
@@ -129,7 +138,7 @@ export default function CreativeForm({ track, fieldErrors, categoryCatalog, cate
       </div>
 
       {/* Sección: Tags (Moods / Usos / Categorías) */}
-      <div className="grid gap-6 md:grid-cols-3 items-stretch mb-6">
+      <div className="grid gap-6 md:grid-cols-3 items-stretch mb-2">
         <div className="md:col-span-1 h-full">
           <FormField
           htmlFor="moods"
@@ -137,11 +146,12 @@ export default function CreativeForm({ track, fieldErrors, categoryCatalog, cate
           descriptionPosition="above"
           description={<>Busca y añade moods del catálogo; puedes proponer uno nuevo si no existe.</>}
           error={clientErrors.moods ?? serverErrors.moods?.[0] ?? null}
-          className="h-full"
+          className="h-full flex flex-col"
         >
           <MoodChips
             name="moods"
             initialMoods={track.assignedMoods ?? []}
+            initialCatalog={moodCatalog}
             trackId={track.id}
             error={clientErrors.moods ?? serverErrors.moods?.[0] ?? null}
           />
@@ -157,11 +167,12 @@ export default function CreativeForm({ track, fieldErrors, categoryCatalog, cate
             <>Usos separados por comas; ayuda a filtrar por tipo de proyecto.</>
           }
           error={clientErrors.uses ?? serverErrors.uses?.[0] ?? null}
-          className="h-full"
+          className="h-full flex flex-col"
         >
           <UseChips
             name="uses"
             initialUses={track.assignedUses ?? []}
+            initialCatalog={useCatalog}
             trackId={track.id}
             error={clientErrors.uses ?? serverErrors.uses?.[0] ?? null}
             maxItems={15}
@@ -176,7 +187,7 @@ export default function CreativeForm({ track, fieldErrors, categoryCatalog, cate
             descriptionPosition="above"
           description={<>Asignar/crear categorías del catálogo (CATALOG).</>}
           error={categoryError ?? null}
-          className="h-full"
+          className="h-full flex flex-col"
         >
           <CategoryChips
             trackId={track.id}

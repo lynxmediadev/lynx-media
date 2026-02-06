@@ -105,6 +105,7 @@ export function CategoryChips({
         placeholder="Buscar categoría"
         toggleLabel="Categorías"
         defaultOpen
+        showToggleButton={false}
         headingAssigned="Categorías asignadas"
         headingSuggestions="Sugerencias del catálogo"
         maxItems={maxItems}

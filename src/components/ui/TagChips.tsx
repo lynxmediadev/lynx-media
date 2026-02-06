@@ -37,6 +37,7 @@ export type TagChipsProps = {
   maxItems?: number;
   toggleLabel?: string;
   defaultOpen?: boolean;
+  showToggleButton?: boolean;
   headingAssigned?: string;
   headingSuggestions?: string;
   fetchSuggestions?: (query: string) => Promise<TagChip[]>;
@@ -67,6 +68,7 @@ export function TagChips({
   maxItems = 20,
   toggleLabel = "Moods",
   defaultOpen = false,
+  showToggleButton = true,
   headingAssigned = "Asignados",
   headingSuggestions = "Sugerencias",
   fetchSuggestions,
@@ -136,6 +138,26 @@ export function TagChips({
       setAllItems(initialCatalogItems);
     }
   }, [initialCatalogItems]);
+
+  // Si el panel está abierto y no hay catálogo cargado, precarga sugerencias.
+  React.useEffect(() => {
+    if (!panelOpen || !fetchAll || allItems.length > 0) return;
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await fetchAll();
+        if (!cancelled) setAllItems(res ?? []);
+      } catch (_e) {
+        if (!cancelled) setAllItems([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [panelOpen, fetchAll, allItems.length]);
 
   const upsertCatalogItem = React.useCallback(
     (chip: TagChip) => {
@@ -247,7 +269,7 @@ export function TagChips({
         </div>
       </div>
 
-      {fetchAll && (
+      {fetchAll && showToggleButton && (
         <div className="flex gap-2">
           {renderAboveToggle}
           <Button
@@ -261,9 +283,12 @@ export function TagChips({
           </Button>
         </div>
       )}
+      {fetchAll && !showToggleButton && renderAboveToggle && (
+        <div className="flex gap-2">{renderAboveToggle}</div>
+      )}
 
       {panelOpen && (
-        <div className="space-y-3 rounded-md border border-border/70 bg-card/70 p-3 w-full overflow-hidden">
+        <div className="space-y-3 rounded-md border border-border/70 bg-card/70 p-3 w-full overflow-hidden md:flex-1 md:flex md:flex-col md:min-h-0">
           <div className="flex items-start gap-2 w-full">
             <div className="relative flex-1 min-w-0">
               <Input
@@ -305,7 +330,7 @@ export function TagChips({
           )}
 
           {fetchAll && (
-            <div className="max-h-[40vh] overflow-auto border-t border-border/60 pt-2">
+            <div className="max-h-[40vh] overflow-auto border-t border-border/60 pt-2 md:max-h-none md:flex-1 md:min-h-0">
               <div className="flex flex-wrap gap-2 max-w-full">
                 {filteredCatalog.length === 0 ? (
                   <p className="text-xs text-muted-foreground">Sin items para mostrar.</p>

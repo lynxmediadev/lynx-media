@@ -111,3 +111,5 @@ export type TrackDeliverablesModuleDTO = {
 };
 
 export type CatalogTagOptionDTO = { id: string; slug: string; name: string };
+export type MoodTagOptionDTO = { id: string; slug: string; name: string };
+export type UseTagOptionDTO = { id: string; slug: string; name: string };

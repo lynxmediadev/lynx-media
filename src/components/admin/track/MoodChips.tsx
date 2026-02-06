@@ -8,11 +8,18 @@ import { slugify } from "@/lib/slugify";
 type Props = {
   name?: string;
   initialMoods: string[];
+  initialCatalog?: { id: string; slug: string; name: string }[];
   error?: string | null;
   trackId: string;
 };
 
-export function MoodChips({ name = "moods", initialMoods, error, trackId }: Props) {
+export function MoodChips({
+  name = "moods",
+  initialMoods,
+  initialCatalog = [],
+  error,
+  trackId,
+}: Props) {
   const [selected, setSelected] = React.useState<TagChip[]>(() =>
     initialMoods.map((m) => {
       const label = m.toUpperCase();
@@ -113,6 +120,8 @@ export function MoodChips({ name = "moods", initialMoods, error, trackId }: Prop
         onChange={handleChange}
         placeholder="Buscar mood"
         toggleLabel="Moods"
+        defaultOpen
+        showToggleButton={false}
         maxItems={10}
         headingAssigned="Moods asignados"
         headingSuggestions="Sugerencias del catálogo"
@@ -134,6 +143,10 @@ export function MoodChips({ name = "moods", initialMoods, error, trackId }: Prop
           });
           return res.ok;
         }}
+        initialCatalogItems={initialCatalog.map((item) => {
+          const label = item.name.toUpperCase();
+          return { id: item.id, label, value: label, meta: { slug: item.slug } };
+        })}
         renderAboveToggle={
           <div className="flex gap-2 mb-1 w-full">
             <button

@@ -1,11 +1,13 @@
 import prisma from "@/lib/prisma";
 import type {
   CatalogTagOptionDTO,
+  MoodTagOptionDTO,
   TrackAudioHeaderDTO,
   TrackAudioModuleDTO,
   TrackDeliverablesModuleDTO,
   TrackEditCoreDTO,
   TrackRightsModuleDTO,
+  UseTagOptionDTO,
 } from "./types";
 
 export async function getTrackEditCore(id: string): Promise<TrackEditCoreDTO | null> {
@@ -154,6 +156,22 @@ export async function getTrackDeliverablesModule(id: string): Promise<TrackDeliv
 export async function getCatalogTagOptions(): Promise<CatalogTagOptionDTO[]> {
   return prisma.tag.findMany({
     where: { type: "CATALOG" },
+    select: { id: true, slug: true, name: true },
+    orderBy: { name: "asc" },
+  });
+}
+
+export async function getMoodTagOptions(): Promise<MoodTagOptionDTO[]> {
+  return prisma.tag.findMany({
+    where: { type: "MOOD" },
+    select: { id: true, slug: true, name: true },
+    orderBy: { name: "asc" },
+  });
+}
+
+export async function getUseTagOptions(): Promise<UseTagOptionDTO[]> {
+  return prisma.tag.findMany({
+    where: { type: "USE" },
     select: { id: true, slug: true, name: true },
     orderBy: { name: "asc" },
   });

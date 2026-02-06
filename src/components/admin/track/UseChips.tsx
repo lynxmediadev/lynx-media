@@ -12,6 +12,7 @@ import { slugify } from "@/lib/slugify";
 export type UseChipsProps = {
   name?: string;
   initialUses: string[];
+  initialCatalog?: { id: string; slug: string; name: string }[];
   error?: string | null;
   maxItems?: number;
   trackId: string;
@@ -23,7 +24,14 @@ const toTitleCase = (txt: string) => {
   return clean.toUpperCase(); // Paridad con Moods (todo MAYÚSCULAS)
 };
 
-export function UseChips({ name = "uses", initialUses, error, maxItems = 15, trackId }: UseChipsProps) {
+export function UseChips({
+  name = "uses",
+  initialUses,
+  initialCatalog = [],
+  error,
+  maxItems = 15,
+  trackId,
+}: UseChipsProps) {
   const [selected, setSelected] = React.useState<TagChip[]>(() =>
     initialUses.map((u) => {
       const label = toTitleCase(u);
@@ -123,6 +131,7 @@ export function UseChips({ name = "uses", initialUses, error, maxItems = 15, tra
         placeholder="Buscar uso"
         toggleLabel="Usos"
         defaultOpen
+        showToggleButton={false}
         maxItems={maxItems}
         headingAssigned="Usos asignados"
         headingSuggestions="Sugerencias del catálogo"
@@ -144,6 +153,10 @@ export function UseChips({ name = "uses", initialUses, error, maxItems = 15, tra
           });
           return res.ok;
         }}
+        initialCatalogItems={initialCatalog.map((item) => {
+          const label = toTitleCase(item.name);
+          return { id: item.id, label, value: label, meta: { slug: item.slug } };
+        })}
         renderAboveToggle={
           <div className="flex gap-2 mb-1 w-full">
             <button

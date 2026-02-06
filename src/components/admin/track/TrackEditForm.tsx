@@ -120,6 +120,10 @@ type TrackEditFormProps = {
   };
   // Módulo de Categorías: catálogo disponible para selector/sugerencias.
   catalogTagOptions: { id: string; slug: string; name: string }[];
+  // Módulo de Moods: catálogo disponible para sugerencias inmediatas.
+  moodTagOptions: { id: string; slug: string; name: string }[];
+  // Módulo de Uses: catálogo disponible para sugerencias inmediatas.
+  useTagOptions: { id: string; slug: string; name: string }[];
 };
 
 /**
@@ -139,6 +143,8 @@ type TrackEditFormProps = {
 export default function TrackEditForm({
   track,
   catalogTagOptions,
+  moodTagOptions,
+  useTagOptions,
 }: TrackEditFormProps) {
   const [pending, setPending] = React.useState(false);
   const [status, setStatus] = React.useState<UpdateAllResult | null>(null);
@@ -244,6 +250,8 @@ export default function TrackEditForm({
               assignedCategories: track.assignedCategories,
             }}
             fieldErrors={fieldErrors}
+            moodCatalog={moodTagOptions}
+            useCatalog={useTagOptions}
             categoryCatalog={catalogTagOptions}
             categoryError={fieldErrors.catalogTags?.join(", ")}
           />

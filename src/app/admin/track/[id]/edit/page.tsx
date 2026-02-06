@@ -34,10 +34,12 @@ import { Button } from "@/components/ui/button";
 import AudioAnalysisSection from "@/components/admin/track/AudioAnalysisSection";
 import {
   getCatalogTagOptions,
+  getMoodTagOptions,
   getTrackAudioHeaderModule,
   getTrackDeliverablesModule,
   getTrackEditCore,
   getTrackRightsModule,
+  getUseTagOptions,
 } from "@/server/track-edit/queries";
 
 /**
@@ -64,11 +66,13 @@ export default async function AdminTrackEditPage({
   if (!trackCore) {
     notFound();
   }
-  const [trackAudioHeader, trackRights, trackDeliverables, catalogTags] = await Promise.all([
+  const [trackAudioHeader, trackRights, trackDeliverables, catalogTags, moodTags, useTags] = await Promise.all([
     getTrackAudioHeaderModule(id),
     getTrackRightsModule(id),
     getTrackDeliverablesModule(id),
     getCatalogTagOptions(),
+    getMoodTagOptions(),
+    getUseTagOptions(),
   ]);
   if (!trackAudioHeader || !trackRights || !trackDeliverables) {
     notFound();
@@ -265,6 +269,8 @@ export default async function AdminTrackEditPage({
             stems: trackDeliverables.stems,
           }}
           catalogTagOptions={catalogTags}
+          moodTagOptions={moodTags}
+          useTagOptions={useTags}
         />
       </div>
     </div>
