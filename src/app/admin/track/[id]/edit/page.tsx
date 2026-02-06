@@ -56,8 +56,6 @@ export default async function AdminTrackEditPage({
       // Creativo
       title: true,
       artist: true,
-      moods: true,
-      uses: true,
       bpm: true,
       key: true,
       trackType: true,
@@ -219,6 +217,10 @@ export default async function AdminTrackEditPage({
     track.tags
       ?.filter((t) => t.tag.type === "CATALOG")
       .map((c) => ({ id: c.tag.id, slug: c.tag.slug, name: c.tag.name })) ?? [];
+  const assignedMoods =
+    track.tags?.filter((t) => t.tag.type === "MOOD").map((c) => c.tag.name) ?? [];
+  const assignedUses =
+    track.tags?.filter((t) => t.tag.type === "USE").map((c) => c.tag.name) ?? [];
 
   /**
    * Server Action para eliminar track.
@@ -520,8 +522,8 @@ export default async function AdminTrackEditPage({
             id: track.id,
             title: track.title,
             artist: track.artist,
-            moods: track.moods,
-            uses: track.uses,
+            assignedMoods: assignedMoods,
+            assignedUses: assignedUses,
             catalogTags: track.tags.map((t) => t.tag.slug),
             assignedCategories: assignedCategories,
             isrc: track.isrc,

@@ -202,61 +202,7 @@ export async function updateTrackAll(
       rightsData.oneStop && (!is100(writerSum) || !is100(publisherSum));
 
     // Moods → IDs (máx 10, sin duplicados; nombre en MAYÚSCULAS)
-    const moodNames = (creativeData.moods ?? []).map((m) => m.toUpperCase());
-    if (moodNames.length > 10) {
-      return {
-        ok: false,
-        message: "Máximo 10 moods por track.",
-        fieldErrors: { moods: ["Máximo 10 moods por track."] },
-      };
-    }
-
-    const foundMoods = await prisma.mood.findMany({
-      where: { name: { in: moodNames, mode: "insensitive" } },
-      select: { id: true, name: true, slug: true },
-    });
-    const foundNames = new Set(foundMoods.map((m) => m.name.toLowerCase()));
-    const missing = moodNames.filter((n) => !foundNames.has(n.toLowerCase()));
-
-    if (missing.length > 0) {
-      for (const name of missing) {
-        const slug = slugify(name);
-        await prisma.mood.upsert({
-          where: { slug },
-          update: { name },
-          create: { name, slug },
-        });
-      }
-    }
-
-    const moodRecords = await prisma.mood.findMany({
-      where: { name: { in: moodNames, mode: "insensitive" } },
-      select: { id: true, name: true },
-    });
-    const moodIds = moodRecords.map((m) => m.id);
-
-    // Normaliza usos (Title Case) y upserta catálogo GENERIC para sugeridos
-    const usesNormalized = Array.from(
-      new Set(
-        (creativeData.uses ?? [])
-          .map((u) => u.trim())
-          .filter((u) => u.length > 0)
-          .map((u) =>
-            u.length <= 3
-              ? u.toUpperCase()
-              : u.charAt(0).toUpperCase() + u.slice(1).toLowerCase(),
-          ),
-      ),
-    );
-
-    for (const name of usesNormalized) {
-      const slug = slugify(name);
-      await prisma.tag.upsert({
-        where: { slug },
-        update: { name, type: TagType.GENERIC },
-        create: { name, slug, type: TagType.GENERIC },
-      });
-    }
+    // Moods/Usos se manejan vía autosave de chips → no tocar aquí para no borrar asignaciones.
 
     await prisma.$transaction(async (tx) => {
       await tx.track.update({
@@ -264,8 +210,6 @@ export async function updateTrackAll(
         data: {
           title: creativeData.title,
           artist: creativeData.artist,
-          moods: moodNames, // compat con campo string[]
-          uses: usesNormalized,
           isrc: idsData.isrc,
           iswc: idsData.iswc,
           upc: idsData.upc,
@@ -338,13 +282,7 @@ export async function updateTrackAll(
         });
       }
 
-      // Sync TrackMood pivote
-      await tx.trackMood.deleteMany({ where: { trackId } });
-      if (moodIds.length > 0) {
-        await tx.trackMood.createMany({
-          data: moodIds.map((moodId) => ({ trackId, moodId })),
-        });
-      }
+      // Moods/Usos se gestionan vía autosave de chips → no tocar TrackTag aquí.
 
       // Reemplazar tags de catálogo
       await tx.trackTag.deleteMany({

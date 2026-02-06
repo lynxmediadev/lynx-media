@@ -47,10 +47,28 @@ export async function fetchCatalogTracks({
   }
 
   if (moods.length) {
-    whereAND.push({ moods: { hasSome: moods } });
+    whereAND.push({
+      tags: {
+        some: {
+          tag: {
+            type: "MOOD",
+            slug: { in: moods },
+          },
+        },
+      },
+    });
   }
   if (uses.length) {
-    whereAND.push({ uses: { hasSome: uses } });
+    whereAND.push({
+      tags: {
+        some: {
+          tag: {
+            type: "USE",
+            slug: { in: uses },
+          },
+        },
+      },
+    });
   }
   if (artist) {
     whereAND.push({
@@ -72,8 +90,13 @@ export async function fetchCatalogTracks({
       id: true,
       title: true,
       artist: true,
-      moods: true,
-      uses: true,
+      tags: {
+        select: {
+          tag: {
+            select: { name: true, slug: true, type: true },
+          },
+        },
+      },
       bpm: true,
       key: true,
       audioUrl: true,
@@ -88,8 +111,14 @@ export async function fetchCatalogTracks({
     id: t.id,
     title: t.title,
     artist: t.artist,
-    moods: t.moods ?? [],
-    uses: t.uses ?? [],
+    moods: t.tags
+      .filter((tt) => tt.tag?.type === "MOOD")
+      .map((tt) => tt.tag?.name || "")
+      .filter(Boolean),
+    uses: t.tags
+      .filter((tt) => tt.tag?.type === "USE")
+      .map((tt) => tt.tag?.name || "")
+      .filter(Boolean),
     bpm: t.bpm ?? undefined,
     duration: formatDurationSec(t.durationSec),
     durationSec: t.durationSec ?? null,

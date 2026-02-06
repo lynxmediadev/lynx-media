@@ -408,13 +408,22 @@ export default async function TrackPublicPage({ params, searchParams }: PageProp
       tags: {
         select: {
           tag: {
-            select: { slug: true, type: true },
+            select: { slug: true, type: true, name: true },
           },
         },
       },
     },
   });
   if (!track) notFound();
+
+  const moods = (track.tags ?? [])
+    .filter((tt) => tt.tag?.type === "MOOD")
+    .map((tt) => ({ name: tt.tag!.name, slug: tt.tag!.slug }))
+    .filter((t) => t.name && t.slug);
+  const uses = (track.tags ?? [])
+    .filter((tt) => tt.tag?.type === "USE")
+    .map((tt) => ({ name: tt.tag!.name, slug: tt.tag!.slug }))
+    .filter((t) => t.name && t.slug);
 
   // 2) Preparar src público + waveform en base64 para el canvas
   const src = publicAudioUrl({
@@ -439,14 +448,21 @@ export default async function TrackPublicPage({ params, searchParams }: PageProp
     key: true,
     audioUrl: true,
     waveform: true,
-    moods: true,
-    uses: true,
+    tags: {
+      select: {
+        tag: { select: { name: true, slug: true, type: true } },
+      },
+    },
   };
 
   const makeWhere = (useMood: boolean) => {
     const clauses: any[] = [{ id: { not: track.id } }];
-    if (useMood && track.moods?.length) {
-      clauses.push({ moods: { hasSome: [track.moods[0]!] } });
+    if (useMood && moods.length) {
+      clauses.push({
+        tags: {
+          some: { tag: { type: "MOOD", slug: moods[0]?.slug } },
+        },
+      });
     }
     if (catalogSlugs.length) {
       clauses.push({
@@ -477,8 +493,8 @@ export default async function TrackPublicPage({ params, searchParams }: PageProp
     id: s.id,
     title: s.title ?? "Sin título",
     artist: s.artist ?? "Artista desconocido",
-    moods: s.moods ?? [],
-    uses: s.uses ?? [],
+    moods: moods.map((m) => m.name),
+    uses: uses.map((u) => u.name),
     bpm: s.bpm ?? undefined,
     key: s.key ?? undefined,
     audioUrl: s.audioUrl,
@@ -710,7 +726,7 @@ export default async function TrackPublicPage({ params, searchParams }: PageProp
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-lg font-medium leading-tight">Piezas similares</h2>
             <span className="text-xs text-muted-foreground">
-              {track.moods?.length ? `Mood · ${track.moods[0]}` : "Recientes"}
+              {moods.length ? `Mood · ${moods[0]?.name}` : "Recientes"}
             </span>
           </div>
           {similarCatalogTracks.length === 0 ? (

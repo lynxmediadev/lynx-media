@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/server/db";
+import { TagType } from "@prisma/client";
 
 const createSchema = z.object({
   name: z.string().min(1, "Nombre requerido"),
@@ -46,8 +47,8 @@ export async function GET(req: Request) {
     ? { name: { contains: query, mode: "insensitive" as const } }
     : {};
 
-  const moods = await db.mood.findMany({
-    where,
+  const moods = await db.tag.findMany({
+    where: { type: TagType.MOOD, ...where },
     orderBy: { name: "asc" },
     take: 20,
   });
@@ -77,8 +78,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Nombre inválido" }, { status: 400 });
   }
 
-  const existing = await db.mood.findFirst({
+  const existing = await db.tag.findFirst({
     where: {
+      type: TagType.MOOD,
       OR: [
         { name: { equals: nameUpper, mode: "insensitive" } },
         { slug: { equals: slug, mode: "insensitive" } },
@@ -94,8 +96,11 @@ export async function POST(req: Request) {
   }
 
   // Buscar similares (edición a distancia <=1)
-  const nearby = await db.mood.findMany({
-    where: { name: { startsWith: nameUpper.slice(0, 3), mode: "insensitive" } },
+  const nearby = await db.tag.findMany({
+    where: {
+      type: TagType.MOOD,
+      name: { startsWith: nameUpper.slice(0, 3), mode: "insensitive" },
+    },
     take: 15,
   });
   const similar = nearby.filter((m) => distance(m.name.toLowerCase(), nameUpper.toLowerCase()) <= 1);
@@ -106,11 +111,11 @@ export async function POST(req: Request) {
     );
   }
 
-  const mood = await db.mood.create({
-    data: { name: nameUpper, slug, category },
+  const mood = await db.tag.create({
+    data: { name: nameUpper, slug, type: TagType.MOOD, description: category ?? null },
   });
 
-  return NextResponse.json({ mood }, { status: 201 });
+  return NextResponse.json({ item: mood }, { status: 201 });
 }
 
 export async function DELETE(req: Request) {
@@ -118,13 +123,17 @@ export async function DELETE(req: Request) {
   const id = body?.id as string | undefined;
   const name = (body?.name as string | undefined)?.trim();
 
-  const where = id ? { id } : name ? { name } : null;
+  const where = id
+    ? { id, type: TagType.MOOD }
+    : name
+      ? { type: TagType.MOOD, name: { equals: name, mode: "insensitive" } }
+      : null;
   if (!where) {
     return NextResponse.json({ error: "ID o name requerido" }, { status: 400 });
   }
 
-  await db.trackMood.deleteMany({ where: { moodId: id ?? undefined } });
-  const deleted = await db.mood.deleteMany({ where });
+  await db.trackTag.deleteMany({ where: { tag: { id: id ?? undefined, type: TagType.MOOD } } });
+  const deleted = await db.tag.deleteMany({ where });
 
   if (deleted.count === 0) {
     return NextResponse.json({ error: "Mood no encontrado" }, { status: 404 });

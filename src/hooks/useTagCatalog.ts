@@ -72,7 +72,7 @@ export function useTagCatalog(options: UseTagCatalogOptions) {
   const fetchAll = React.useCallback(async (): Promise<TagChip[]> => {
     const res = await fetch(listUrl, { headers });
     const data = await res.json().catch(() => ({}));
-    const rawItems = Array.isArray(data) ? data : data.moods ?? data.items ?? [];
+    const rawItems = Array.isArray(data) ? data : data.items ?? data.moods ?? [];
     return (rawItems as any[])
       .map((it) => (mapItem ? mapItem(it) : defaultMapItem(it, normalizeLabel, normalizeSlug)))
       .filter(Boolean);
@@ -86,7 +86,7 @@ export function useTagCatalog(options: UseTagCatalogOptions) {
       const sep = url.includes("?") ? "&" : "?";
       const res = await fetch(`${url}${sep}query=${encodeURIComponent(q)}`, { headers });
       const data = await res.json().catch(() => ({}));
-      const rawItems = Array.isArray(data) ? data : data.moods ?? data.items ?? [];
+      const rawItems = Array.isArray(data) ? data : data.items ?? data.moods ?? [];
       return (rawItems as any[])
         .map((it) => (mapItem ? mapItem(it) : defaultMapItem(it, normalizeLabel, normalizeSlug)))
         .filter(Boolean);

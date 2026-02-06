@@ -4,6 +4,7 @@ import * as React from "react";
 import { TagChips, type TagChip } from "@/components/ui/TagChips";
 import useTagCatalog from "@/hooks/useTagCatalog";
 import { slugify } from "@/lib/slugify";
+import { useRouter } from "next/navigation";
 
 /**
  * Wrapper para gestionar "Usos" con el mismo flujo de TagChips.
@@ -24,7 +25,8 @@ const toTitleCase = (txt: string) => {
 };
 
 export function UseChips({ name = "uses", initialUses, error, maxItems = 15, trackId }: UseChipsProps) {
-  const [selected, setSelected] = React.useState<TagChip[]>(
+  const router = useRouter();
+  const [selected, setSelected] = React.useState<TagChip[]>(() =>
     initialUses.map((u) => {
       const label = toTitleCase(u);
       return { label, value: label, meta: { slug: slugify(label) } };
@@ -71,13 +73,58 @@ export function UseChips({ name = "uses", initialUses, error, maxItems = 15, tra
               return { id: item.id, label, value: label, meta: { slug } };
             })
           );
+          try {
+            const ref = await fetch(`/api/tracks/${trackId}/uses`);
+            const json = await ref.json().catch(() => ({}));
+            if (Array.isArray(json?.items)) {
+              setSelected(
+                json.items.map((item: any) => {
+                  const label = toTitleCase(item.name ?? item.slug ?? "");
+                  const slug = slugify(label);
+                  return { id: item.id, label, value: label, meta: { slug } };
+                })
+              );
+            }
+          } catch (_e) {
+            /* ignore */
+          }
+          router.refresh();
         }
       } finally {
         setSaving(false);
       }
     },
-    [trackId],
+    [trackId, router],
   );
+
+  // Rehidrata al montar SOLO si no vino SSR (evita doble lista/parpadeo)
+  React.useEffect(() => {
+    if (!trackId) return;
+    if ((initialUses?.length ?? 0) > 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/tracks/${trackId}/uses`);
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (Array.isArray(data?.items)) {
+          const next = data.items
+            .map((item: any) => {
+              const label = toTitleCase(item.name ?? item.slug ?? "");
+              const slug = slugify(label);
+              return { id: item.id, label, value: label, meta: { slug } };
+            })
+            .filter((c) => c.label);
+          setSelected(next);
+        }
+      } catch (_e) {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [trackId, initialUses]);
 
   const handleChange = React.useCallback(
     (chips: TagChip[]) => {

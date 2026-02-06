@@ -23,13 +23,13 @@ export default async function CatalogPage({
 
   const moods = toArray(sp?.mood).map((m) => m.trim()).filter(Boolean);
   const uses = toArray(sp?.use).map((u) => u.trim()).filter(Boolean);
+  const categories = toArray(sp?.cat).map((c) => c.trim()).filter(Boolean);
   const artist = pickFirst(sp?.artist)?.trim() ?? "";
   const q = pickFirst(sp?.q)?.trim() ?? "";
-  const cat = pickFirst(sp?.cat)?.trim() ?? null;
 
   return (
     <CatalogView
-      catalogSlug={cat}
+      catalogSlug={categories[0] ?? null}
       filters={{ moods, uses, artist: artist || undefined, q: q || undefined }}
       eyebrow="Catálogo general"
       title="Catálogo público"

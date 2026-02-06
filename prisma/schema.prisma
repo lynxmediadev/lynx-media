@@ -35,8 +35,6 @@ model Track {
   artist   String
   audioUrl String
   coverUrl String?
-  moods    String[] // requiere Postgres
-  uses     String[]
 
   // Metadata musical / creativa
   bpm       Float? // BPM promedio (permite decimales)
@@ -120,8 +118,6 @@ model Track {
   @@index([artist])
   @@index([title])
   @@index([createdAt, id]) // ← nuevo
-  @@index([moods], type: Gin) // ← nuevo
-  @@index([uses], type: Gin) // ← nuevo
 }
 
 enum TrackType {
@@ -371,6 +367,8 @@ model Catalog {
 enum TagType {
   CATALOG
   GENERIC
+  MOOD
+  USE
 }
 
 model Tag {

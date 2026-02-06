@@ -17,6 +17,8 @@ const slugify = (str: string) =>
     .replace(/^-+|-+$/g, "")
     .slice(0, 50);
 
+const normalizeLabel = (s: string) => s.trim().toUpperCase();
+
 async function main() {
   // Puedes ajustar audioUrl a una URL pública si prefieres.
   const AUDIO = "/audio/demo.mp3";
@@ -52,29 +54,26 @@ async function main() {
 
   // Mood catálogo controlado
   const moodSeeds = [
-    { name: "Happy" },
-    { name: "Dark" },
-    { name: "Epic" },
-    { name: "Chill" },
-    { name: "Dramatic" },
-    { name: "Romantic" },
-    { name: "Aggressive" },
-    { name: "Uplifting" },
-    { name: "Tension" },
-    { name: "Minimal" },
+    "HAPPY",
+    "DARK",
+    "EPIC",
+    "CHILL",
+    "DRAMATIC",
+    "ROMANTIC",
+    "AGGRESSIVE",
+    "UPLIFTING",
+    "TENSION",
+    "MINIMAL",
   ];
 
-  const moodRecords = [];
-  for (const mood of moodSeeds) {
-    const slug = slugify(mood.name);
-    const record = await db.mood.upsert({
+  for (const name of moodSeeds) {
+    const slug = slugify(name);
+    await db.tag.upsert({
       where: { slug },
-      update: { name: mood.name },
-      create: { name: mood.name, slug },
+      update: { name, type: "MOOD" },
+      create: { slug, name, type: "MOOD" },
     });
-    moodRecords.push(record);
   }
-  const moodMap = new Map(moodRecords.map((m) => [m.name.toLowerCase(), m.id]));
 
   const seedTracks = [
     {
@@ -83,8 +82,8 @@ async function main() {
       artist: "Lynx Music Collective",
       audioUrl: AUDIO,
       coverUrl: COVER,
-      moods: ["Epic", "Emotional", "Elegant"],
-      uses: ["TV", "Cine", "Publicidad"],
+      moods: ["EPIC", "EMOTIONAL", "ELEGANT"],
+      uses: ["TV", "CINE", "PUBLICIDAD"],
       // Identificadores / derechos mínimos opcionales
       isrc: null,
       iswc: null,
@@ -114,8 +113,8 @@ async function main() {
       artist: "Lynx Music Collective",
       audioUrl: AUDIO,
       coverUrl: COVER,
-      moods: ["Epic"],
-      uses: ["Trailers"],
+      moods: ["EPIC"],
+      uses: ["TRAILERS"],
       isrc: null,
       iswc: null,
       upc: null,
@@ -142,8 +141,8 @@ async function main() {
       artist: "Lynx Music Collective",
       audioUrl: AUDIO,
       coverUrl: COVER,
-      moods: ["Elegant"],
-      uses: ["Publicidad", "Videojuegos"],
+      moods: ["ELEGANT"],
+      uses: ["PUBLICIDAD", "VIDEOJUEGOS"],
       isrc: null,
       iswc: null,
       upc: null,
@@ -223,51 +222,28 @@ async function main() {
   ];
 
   // Idempotente: upsert por id (si está, actualiza; si falta, crea)
+  // Carga base en Track (sin arrays) y luego vincula pivote TrackTag
   for (const t of seedTracks) {
+    const { moods, uses, ...rest } = t as any;
+
     await db.track.upsert({
       where: { id: t.id },
-      update: {
-        title: t.title,
-        artist: t.artist,
-        audioUrl: t.audioUrl,
-        coverUrl: t.coverUrl,
-        moods: t.moods,
-        uses: t.uses,
-        isrc: t.isrc,
-        iswc: t.iswc,
-        upc: t.upc,
-        master: t.master,
-        publishingSplit: t.publishingSplit,
-        licenseType: t.licenseType,
-        exclusiveTerritories: t.exclusiveTerritories,
-        exclusiveTermMonths: t.exclusiveTermMonths,
-        mediaBuy: t.mediaBuy,
-        mfn: t.mfn,
-        restrictions: t.restrictions,
-        contentIdEnrolled: t.contentIdEnrolled,
-        contentIdAdmin: t.contentIdAdmin,
-        contentIdWhitelist: t.contentIdWhitelist,
-        assetKey: t.assetKey,
-        assetMime: t.assetMime,
-        assetSize: t.assetSize,
-        durationSec: t.durationSec,
-        loudnessLufs: t.loudnessLufs,
-      },
-      create: t,
+      update: rest,
+      create: rest,
     });
 
-    // Mantener relación TrackMood alineada con moods string[]
-    const moodIds =
-      t.moods
-        ?.map((name: string) => moodMap.get(name.toLowerCase()))
-        .filter((id): id is string => Boolean(id)) ?? [];
+    // Reasignar tags (moods/uses) en pivote TrackTag
+    await db.trackTag.deleteMany({
+      where: { trackId: t.id, tag: { type: { in: ["MOOD", "USE"] } } },
+    });
 
-    if (moodIds.length > 0) {
-      await db.trackMood.deleteMany({ where: { trackId: t.id } });
-      await db.trackMood.createMany({
-        data: moodIds.map((moodId: string) => ({ trackId: t.id, moodId })),
-        skipDuplicates: true,
-      });
+    for (const m of moods) {
+      const tag = await db.tag.findUnique({ where: { slug: slugify(m) } });
+      if (tag?.id) await db.trackTag.create({ data: { trackId: t.id, tagId: tag.id } });
+    }
+    for (const u of uses) {
+      const tag = await db.tag.findUnique({ where: { slug: slugify(u) } });
+      if (tag?.id) await db.trackTag.create({ data: { trackId: t.id, tagId: tag.id } });
     }
   }
 }

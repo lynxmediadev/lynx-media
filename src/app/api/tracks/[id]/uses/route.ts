@@ -15,15 +15,13 @@ const toUpper = (txt: string) => {
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: trackId } = await params;
-  const track = await db.track.findUnique({
-    where: { id: trackId },
-    select: { uses: true },
+  const tags = await db.trackTag.findMany({
+    where: { trackId, tag: { type: TagType.USE } },
+    select: { tag: { select: { name: true, slug: true } } },
+    orderBy: { assignedAt: "asc" },
   });
-  if (!track) return NextResponse.json({ error: "Track no encontrado" }, { status: 404 });
-  const uses = (track.uses ?? []).map(toUpper);
-  return NextResponse.json({
-    items: uses.map((u) => ({ name: u, slug: slugify(u), type: "USE" })),
-  });
+  const items = tags.map((t) => ({ name: t.tag.name, slug: t.tag.slug, type: "USE" }));
+  return NextResponse.json({ items });
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -41,24 +39,39 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "Track no encontrado" }, { status: 404 });
   }
 
-  // Upsert catálogo de usos para que los recién creados persistan y aparezcan en sugeridos
   for (const name of uses) {
     const slug = slugify(name);
     await db.tag.upsert({
       where: { slug },
-      update: { name, type: TagType.GENERIC },
-      create: { name, slug, type: TagType.GENERIC },
+      update: { name, type: TagType.USE },
+      create: { name, slug, type: TagType.USE },
     });
   }
 
-  await db.track.update({
-    where: { id: trackId },
-    data: { uses },
+  const tags = await db.tag.findMany({
+    where: { slug: { in: uses.map(slugify) }, type: TagType.USE },
+    select: { id: true },
+  });
+
+  await db.$transaction(async (tx) => {
+    await tx.trackTag.deleteMany({ where: { trackId, tag: { type: TagType.USE } } });
+    if (tags.length) {
+      await tx.trackTag.createMany({
+        data: tags.map((t) => ({ trackId, tagId: t.id })),
+        skipDuplicates: true,
+      });
+    }
+  });
+
+  const saved = await db.tag.findMany({
+    where: { id: { in: tags.map((t) => t.id) } },
+    select: { id: true, name: true, slug: true },
+    orderBy: { name: "asc" },
   });
 
   revalidatePath(`/admin/track/${trackId}/edit`);
   return NextResponse.json({
     ok: true,
-    items: uses.map((u) => ({ name: u, slug: slugify(u), type: "USE" })),
+    items: saved.map((t) => ({ id: t.id, name: t.name, slug: t.slug, type: "USE" })),
   });
 }

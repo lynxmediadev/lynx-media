@@ -22,8 +22,8 @@ type TrackEditFormProps = {
     id: string;
     title: string | null;
     artist: string | null;
-    moods: string[];
-    uses: string[];
+    assignedMoods: string[];
+    assignedUses: string[];
     isrc: string | null;
     iswc: string | null;
     upc: string | null;
@@ -174,8 +174,8 @@ export default function TrackEditForm({
               id: track.id,
               title: track.title,
               artist: track.artist,
-              moods: track.moods,
-              uses: track.uses,
+              assignedMoods: track.assignedMoods,
+              assignedUses: track.assignedUses,
               assignedCategories: track.assignedCategories,
             }}
             fieldErrors={fieldErrors}

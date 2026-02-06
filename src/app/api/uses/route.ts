@@ -7,7 +7,7 @@ const createSchema = z.object({
   name: z.string().min(1, "Nombre requerido"),
 });
 
-const defaultUses = ["Trailer", "Serie", "Documental", "Publicidad", "Video Game"];
+const defaultUses = ["TRAILER", "SERIE", "DOCUMENTAL", "PUBLICIDAD", "VIDEO GAME"];
 
 function slugify(input: string) {
   return input
@@ -21,10 +21,10 @@ function slugify(input: string) {
 }
 
 async function ensureSeeds() {
-  const count = await db.tag.count({ where: { type: TagType.GENERIC } });
+  const count = await db.tag.count({ where: { type: TagType.USE } });
   if (count > 0) return;
   await db.tag.createMany({
-    data: defaultUses.map((name) => ({ name, slug: slugify(name), type: TagType.GENERIC })),
+    data: defaultUses.map((name) => ({ name, slug: slugify(name), type: TagType.USE })),
     skipDuplicates: true,
   });
 }
@@ -36,7 +36,7 @@ export async function GET(req: Request) {
   await ensureSeeds();
 
   const where = {
-    type: TagType.GENERIC,
+    type: TagType.USE,
     ...(query
       ? {
           name: { contains: query, mode: "insensitive" as const },
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
 
   const existing = await db.tag.findFirst({
     where: {
-      type: TagType.GENERIC,
+      type: TagType.USE,
       OR: [
         { slug },
         { name: { equals: title, mode: "insensitive" } },
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Uso ya existe", suggestions: [existing] }, { status: 409 });
   }
 
-  const item = await db.tag.create({ data: { name: title, slug, type: TagType.GENERIC } });
+  const item = await db.tag.create({ data: { name: title, slug, type: TagType.USE } });
 
   return NextResponse.json({ item }, { status: 201 });
 }

@@ -4,6 +4,7 @@ import * as React from "react";
 import { TagChips, type TagChip } from "@/components/ui/TagChips";
 import useTagCatalog from "@/hooks/useTagCatalog";
 import { slugify } from "@/lib/slugify";
+import { useRouter } from "next/navigation";
 
 type Props = {
   name?: string;
@@ -13,7 +14,8 @@ type Props = {
 };
 
 export function MoodChips({ name = "moods", initialMoods, error, trackId }: Props) {
-  const [selected, setSelected] = React.useState<TagChip[]>(
+  const router = useRouter();
+  const [selected, setSelected] = React.useState<TagChip[]>(() =>
     initialMoods.map((m) => {
       const label = m.toUpperCase();
       return { label, value: label, meta: { slug: slugify(label) } };
@@ -48,17 +50,72 @@ export function MoodChips({ name = "moods", initialMoods, error, trackId }: Prop
       const moods = chips.map((c) => (c.value ?? c.label).toUpperCase());
       setSaving(true);
       try {
-        await fetch(`/api/tracks/${trackId}/moods`, {
+        const res = await fetch(`/api/tracks/${trackId}/moods`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ moods }),
         });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && Array.isArray(data?.items)) {
+          setSelected(
+            data.items.map((item: any) => {
+              const label = (item.name ?? item.slug ?? "").toString().toUpperCase();
+              const slug = slugify(label);
+              return { id: item.id, label, value: label, meta: { slug } };
+            }),
+          );
+          try {
+            const ref = await fetch(`/api/tracks/${trackId}/moods`);
+            const json = await ref.json().catch(() => ({}));
+            if (Array.isArray(json?.items)) {
+              setSelected(
+                json.items.map((item: any) => {
+                  const label = (item.name ?? item.slug ?? "").toString().toUpperCase();
+                  const slug = slugify(label);
+                  return { id: item.id, label, value: label, meta: { slug } };
+                }),
+              );
+            }
+          } catch (_e) {
+            /* ignore */
+          }
+          router.refresh();
+        }
       } finally {
         setSaving(false);
       }
     },
-    [trackId],
+    [trackId, router],
   );
+
+  // Rehidrata al montar SOLO si no vino SSR (para evitar parpadeo/doble lista)
+  React.useEffect(() => {
+    if (!trackId) return;
+    if ((initialMoods?.length ?? 0) > 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/tracks/${trackId}/moods`);
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (Array.isArray(data?.items)) {
+          const next = data.items
+            .map((item: any) => {
+              const label = (item.name ?? item.slug ?? "").toString().toUpperCase();
+              const slug = slugify(label);
+              return { id: item.id, label, value: label, meta: { slug } };
+            })
+            .filter((c) => c.label);
+          setSelected(next);
+        }
+      } catch (_e) {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [trackId, initialMoods]);
 
   const handleChange = React.useCallback(
     (chips: TagChip[]) => {
@@ -74,7 +131,6 @@ export function MoodChips({ name = "moods", initialMoods, error, trackId }: Prop
         onChange={handleChange}
         placeholder="Buscar mood"
         toggleLabel="Moods"
-        defaultOpen
         maxItems={10}
         headingAssigned="Moods asignados"
         headingSuggestions="Sugerencias del catálogo"
@@ -96,7 +152,6 @@ export function MoodChips({ name = "moods", initialMoods, error, trackId }: Prop
           });
           return res.ok;
         }}
-        maxItems={10}
         renderAboveToggle={
           <div className="flex gap-2 mb-1 w-full">
             <button
