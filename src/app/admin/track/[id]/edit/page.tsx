@@ -23,34 +23,22 @@ export const revalidate = 0;
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import prisma from "@/lib/prisma";
-import PublicAudioBar from "@/components/public/PublicAudioBar";
 import TrackEditForm from "@/components/admin/track/TrackEditForm";
-import { getS3PublicUrl } from "@/lib/storage/s3";
 import { TrackAnalyzeHeaderButtons } from "@/components/admin/AnalyzeActions";
 import { DeleteTrackButton } from "@/components/admin/track/DeleteTrackButton.client";
 import { deleteObjectFromS3 } from "@/lib/storage/delete-object";
-import { formatBytes } from "@/lib/format";
 import { Button } from "@/components/ui/button";
-import { getAudioCheckStatus } from "@/lib/audio/audio-check";
-
-/**
- * FUNCION UTILITARIA: bytesToBase64
- * Que hace:
- * - Convierte bytes binarios de la forma de onda a texto base64 para el player tecnico.
- *
- * Input:
- * - buf: Buffer | Uint8Array | null
- *
- * Output:
- * - string base64 cuando hay datos
- * - null cuando no hay datos
- */
-function bytesToBase64(buf: Buffer | Uint8Array | null): string | null {
-  if (!buf) return null;
-  return Buffer.from(buf).toString("base64");
-}
+import AudioAnalysisSection from "@/components/admin/track/AudioAnalysisSection";
+import {
+  getCatalogTagOptions,
+  getTrackAudioHeaderModule,
+  getTrackDeliverablesModule,
+  getTrackEditCore,
+  getTrackRightsModule,
+} from "@/server/track-edit/queries";
 
 /**
  * FUNCION PRINCIPAL DE PAGINA: AdminTrackEditPage
@@ -72,185 +60,41 @@ export default async function AdminTrackEditPage({
 }) {
   const { id } = await params;
 
-  const track = await prisma.track.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      // Creativo
-      title: true,
-      artist: true,
-      bpm: true,
-      key: true,
-      trackType: true,
-      genres: true,
-      subgenres: true,
-
-      // Audio / asset
-      audioUrl: true,
-      coverUrl: true,
-      assetKey: true,
-      assetMime: true,
-      assetSize: true,
-      durationSec: true,
-      sampleRateHz: true,
-      channels: true,
-      bitrateKbps: true,
-      loudnessLufs: true,
-      loudnessRangeLu: true,
-      lraLowLufs: true,
-      lraHighLufs: true,
-      truePeakDbfs: true,
-      waveform: true,
-      analysisAt: true,
-
-      // Identificadores
-      isrc: true,
-      iswc: true,
-      upc: true,
-
-      // Derechos
-      master: true,
-      licenseType: true,
-      mediaBuy: true,
-      mfn: true,
-      oneStop: true,
-      clearedForSync: true,
-      exclusiveTerritories: true,
-      exclusiveTermMonths: true,
-      restrictedTerritories: true,
-      restrictedIndustries: true,
-      restrictedPlatforms: true,
-      restrictedBrands: true,
-      pricingTier: true,
-      budgetMin: true,
-      budgetMax: true,
-      budgetCurrency: true,
-      contentIdEnrolled: true,
-      contentIdAdmin: true,
-      contentIdWhitelist: true,
-      restrictions: true,
-
-      // MODULO DE WRITERS / PUBLISHERS
-      // Lista de WRITERS/PUBLISHERS (publishingShares), ordenada por sortOrder.
-      publishingShares: {
-        select: {
-          id: true,
-          role: true,
-          name: true,
-          ipiNumber: true,
-          pro: true,
-          caeNumber: true,
-          sharePct: true,
-          sortOrder: true,
-        },
-        orderBy: { sortOrder: "asc" },
-      },
-      // MODULO DE MASTER
-      // Lista de MASTERS (masterShares), ordenada por sortOrder.
-      masterShares: {
-        select: {
-          id: true,
-          name: true,
-          sharePct: true,
-          contact: true,
-          notes: true,
-          sortOrder: true,
-        },
-        orderBy: { sortOrder: "asc" },
-      },
-      versions: {
-        select: {
-          label: true,
-          durationSec: true,
-          kind: true,
-          sortOrder: true,
-        },
-        orderBy: { sortOrder: "asc" },
-      },
-      stems: {
-        select: {
-          name: true,
-          group: true,
-          durationSec: true,
-          sortOrder: true,
-        },
-        orderBy: { sortOrder: "asc" },
-      },
-      // MODULO DE MOODS / MODULO DE USES / MODULO DE CATEGORIAS
-      // Lista comun por pivote TrackTag + Tag.type para construir chips asignados.
-      tags: {
-        select: {
-          tag: { select: { id: true, slug: true, name: true, type: true } },
-          assignedAt: true,
-        },
-        orderBy: { assignedAt: "asc" },
-      },
-    },
-  });
-
-  if (!track) {
+  const trackCore = await getTrackEditCore(id);
+  if (!trackCore) {
     notFound();
   }
-
-  // BLOQUE DE AUDIO: fuente publica de audio para el modulo de reproduccion.
-  const publicSrc = track.assetKey
-    ? getS3PublicUrl(track.assetKey)
-    : (track.audioUrl ?? null);
-
-  // BLOQUE DE AUDIO: waveform serializado para PublicAudioBar.
-  const waveformB64 = track.waveform
-    ? bytesToBase64(track.waveform as any)
-    : null;
-
-  // BLOQUE DE AUDIO: validacion de estado del archivo para analisis tecnico.
-  const audioCheck = await getAudioCheckStatus(track.audioUrl, {
-    cacheKey: track.id,
-  });
+  const [trackAudioHeader, trackRights, trackDeliverables, catalogTags] = await Promise.all([
+    getTrackAudioHeaderModule(id),
+    getTrackRightsModule(id),
+    getTrackDeliverablesModule(id),
+    getCatalogTagOptions(),
+  ]);
+  if (!trackAudioHeader || !trackRights || !trackDeliverables) {
+    notFound();
+  }
 
   // MODULO DE WRITERS/PUBLISHERS
   // Toma el WRITER principal para mostrarlo en resumen tecnico.
   const primaryWriter =
-    track.publishingShares.find((s) => s.role === "WRITER") ?? null;
-
-  // MODULO DE CATEGORIAS
-  // Asegura tags base del catalogo para que siempre existan en sugerencias.
-  await prisma.$transaction([
-    prisma.tag.upsert({
-      where: { slug: "sync" },
-      update: { name: "SYNC", type: "CATALOG" },
-      create: { slug: "sync", name: "SYNC", type: "CATALOG" },
-    }),
-    prisma.tag.upsert({
-      where: { slug: "games" },
-      update: { name: "GAMES", type: "CATALOG" },
-      create: { slug: "games", name: "GAMES", type: "CATALOG" },
-    }),
-  ]);
-
-  // MODULO DE CATEGORIAS
-  // Lista de CATEGORIAS disponibles para selector/autocompletar.
-  const catalogTags = await prisma.tag.findMany({
-    where: { type: "CATALOG" },
-    select: { id: true, slug: true, name: true },
-    orderBy: { name: "asc" },
-  });
+    trackRights.publishingShares.find((s) => s.role === "WRITER") ?? null;
 
   // MODULO DE CATEGORIAS
   // Lista de CATEGORIAS asignadas al track actual.
   const assignedCategories =
-    track.tags
+    trackCore.tags
       ?.filter((t) => t.tag.type === "CATALOG")
       .map((c) => ({ id: c.tag.id, slug: c.tag.slug, name: c.tag.name })) ?? [];
 
   // MODULO DE MOODS
   // Lista de MOODS asignados al track actual.
   const assignedMoods =
-    track.tags?.filter((t) => t.tag.type === "MOOD").map((c) => c.tag.name) ?? [];
+    trackCore.tags?.filter((t) => t.tag.type === "MOOD").map((c) => c.tag.name) ?? [];
 
   // MODULO DE USES
   // Lista de USES asignados al track actual.
   const assignedUses =
-    track.tags?.filter((t) => t.tag.type === "USE").map((c) => c.tag.name) ?? [];
+    trackCore.tags?.filter((t) => t.tag.type === "USE").map((c) => c.tag.name) ?? [];
 
   /**
    * FUNCION SERVER ACTION: deleteTrackAction
@@ -309,14 +153,6 @@ export default async function AdminTrackEditPage({
     redirect("/admin/tracks");
   }
 
-  // MODULO DE AUDIO / ANALISIS TECNICO
-  // Flag de estado para decidir si se muestra resumen tecnico o mensaje vacio.
-  const techHasAnalysis =
-    track.loudnessLufs !== null ||
-    track.loudnessRangeLu !== null ||
-    track.truePeakDbfs !== null ||
-    track.analysisAt !== null;
-
   return (
     <div className="space-y-4 min-h-screen pb-12">
       {/* HEADER PRINCIPAL */}
@@ -324,29 +160,27 @@ export default async function AdminTrackEditPage({
         <div>
           <h1 className="text-xl font-semibold text-foreground">Editar track</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {track.title ?? "(sin título)"} —{" "}
+            {trackCore.title ?? "(sin título)"} —{" "}
             <span className="text-muted-foreground">
-              {track.artist ?? "(sin artista)"}
+              {trackCore.artist ?? "(sin artista)"}
             </span>
           </p>
           <p className="mt-1 text-[11px] text-muted-foreground">
-            ID: <span className="font-mono">{track.id}</span>
+            ID: <span className="font-mono">{trackCore.id}</span>
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <DeleteTrackButton
-            trackId={track.id}
-            trackTitle={track.title}
+            trackId={trackCore.id}
+            trackTitle={trackCore.title}
             deleteAction={deleteTrackAction}
-            assetKey={track.assetKey}
-            coverUrl={track.coverUrl}
+            assetKey={trackAudioHeader.assetKey}
+            coverUrl={trackAudioHeader.coverUrl}
           />
           <TrackAnalyzeHeaderButtons
-            id={track.id}
-            audioUrl={track.audioUrl}
-            initialAudioStatus={audioCheck.status}
-            initialAudioMessage={audioCheck.message}
+            id={trackCore.id}
+            audioUrl={trackAudioHeader.audioUrl}
           />
           <Button
             asChild
@@ -361,246 +195,74 @@ export default async function AdminTrackEditPage({
 
       {/* SECCIONES PRINCIPALES */}
       <div className="space-y-4">
-        {/* 1. Audio / análisis técnico — layout en filas */}
-        <section className="space-y-4">
-          {/* Izquierda: Player + ficha básica */}
-          <div className="space-y-3 rounded-xl border border-border bg-card/80 p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-base font-semibold text-foreground">
-                  Audio &amp; análisis técnico
-                </h2>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Player con waveform y datos técnicos base del archivo
-                  (duración, sample rate, canales, bitrate).
-                </p>
-              </div>
-            </div>
-
-            {publicSrc ? (
-                  <PublicAudioBar
-                    src={publicSrc}
-                    waveformB64={waveformB64}
-                    durationSec={track.durationSec ?? undefined}
-                  />
-            ) : (
-              <p className="rounded-md border border-warning/40 bg-warning/10 p-2 text-xs text-warning">
-                No hay audio asociado a este track. Sube un archivo desde la
-                sección de creación o análisis.
-              </p>
-            )}
-
-            {/* Ficha técnica básica del archivo */}
-            <div className="grid gap-2 rounded-lg border border-border bg-card/90 p-3 text-xs text-foreground md:grid-cols-4">
-              <div className="rounded-md border border-border bg-muted/60 p-2">
-                <div className="text-[10px] tracking-wide text-muted-foreground uppercase">
-                  ISRC
-                </div>
-                <div className="">
-                  {(track.isrc ?? "—").trim().toUpperCase()}
-                </div>
-              </div>
-
-              <div className="rounded-md border border-border bg-muted/60 p-2">
-                <div className="text-[10px] tracking-wide text-muted-foreground uppercase">
-                  ISWC
-                </div>
-                <div className="">
-                  {(track.iswc ?? "—").trim().toUpperCase()}
-                </div>
-              </div>
-              <div className="rounded-md border border-border bg-muted/60 p-2">
-                <div className="text-[10px] tracking-wide text-muted-foreground uppercase">
-                  TIPO DE LICENCIA
-                </div>
-                <div className="">
-                  {(track.licenseType ?? "—").trim().toUpperCase()}
-                </div>
-              </div>
-              <div className="rounded-md border border-border bg-muted/60 p-2">
-                <div className="text-[10px] tracking-wide text-muted-foreground uppercase">
-                  COMPOSITOR
-                </div>
-                <div className="">
-                  {(primaryWriter?.name ?? "—").trim().toUpperCase()}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Derecha: Resumen técnico (LUFS, LRA, True Peak) */}
-          <div className="space-y-3 rounded-xl border border-border bg-card/80 p-4 text-xs text-foreground/80">
-            <h2 className="text-sm font-semibold text-foreground">
-              Resumen técnico
-            </h2>
-
-            {techHasAnalysis ? (
-              <dl className="grid grid-cols-2 gap-2 md:grid-cols-3">
-                <div>
-                  <dt className="text-[11px] font-black text-muted-foreground">
-                    Loudness (I)
-                  </dt>
-                  <dd className="font-mono text-xs">
-                    {typeof track.loudnessLufs === "number"
-                      ? `${track.loudnessLufs.toFixed(2)} LUFS`
-                      : "–"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[11px] font-black text-muted-foreground">
-                    Loudness Range
-                  </dt>
-                  <dd className="font-mono text-xs">
-                    {typeof track.loudnessRangeLu === "number"
-                      ? `${track.loudnessRangeLu.toFixed(2)} LU`
-                      : "–"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[11px] font-black text-muted-foreground">
-                    True Peak
-                  </dt>
-                  <dd className="font-mono text-xs">
-                    {typeof track.truePeakDbfs === "number"
-                      ? `${track.truePeakDbfs.toFixed(2)} dBFS`
-                      : "–"}
-                  </dd>
-                </div>
-
-                <div>
-                  <dt className="text-[11px] font-black text-muted-foreground">
-                    Duración
-                  </dt>
-                  <dd className="font-mono text-xs">
-                    {typeof track.durationSec === "number"
-                      ? `${track.durationSec.toFixed(2)} s`
-                      : "–"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[11px] font-black text-muted-foreground">
-                    Sample Rate
-                  </dt>
-                  <dd className="font-mono text-xs">
-                    {typeof track.sampleRateHz === "number"
-                      ? `${track.sampleRateHz.toFixed(2)} Hz`
-                      : "–"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[11px] font-black text-muted-foreground">
-                    Bitrate
-                  </dt>
-                  <dd className="font-mono text-xs">
-                    {typeof track.bitrateKbps === "number"
-                      ? `${track.bitrateKbps.toFixed(2)} kbps`
-                      : "–"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[11px] font-black text-muted-foreground">
-                    Último análisis
-                  </dt>
-                  <dd className="font-mono text-[11px]">
-                    {track.analysisAt
-                      ? new Date(track.analysisAt).toLocaleString()
-                      : "–"}
-                  </dd>
-                </div>
-              </dl>
-            ) : (
-              <p className="text-[11px] text-muted-foreground">
-                Aún no se ha realizado análisis técnico para este track. Usa el
-                botón{" "}
-                <span className="font-semibold text-foreground">“Analizar”</span>{" "}
-                en el header superior para generar métricas de loudness (LUFS),
-                rango (LRA) y True Peak.
-              </p>
-            )}
-
-            <div className="pt-1 text-[11px]">
-              <div className="text-[11px] font-black text-muted-foreground">
-                Asset
-              </div>
-              {track.assetKey || track.audioUrl ? (
-                <div className="flex flex-col gap-1">
-                  <a
-                    href={publicSrc ?? "#"}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="font-mono text-[11px] text-success underline underline-offset-2"
-                  >
-                    Abrir audio
-                  </a>
-                  <span className="text-muted-foreground">
-                    {track.assetKey ? "R2" : "URL externa"} ·{" "}
-                    {track.assetMime ?? "mime —"} ·{" "}
-                    {track.assetSize != null
-                      ? formatBytes(track.assetSize)
-                      : "size —"}
-                  </span>
-                </div>
-              ) : (
-                <span className="text-muted-foreground">Sin audio</span>
-              )}
-            </div>
-
-            <p className="text-[11px] text-muted-foreground">
-              El detalle completo del análisis se muestra en este panel tras
-              ejecutar “Analizar”.
-            </p>
-          </div>
-        </section>
+        {/* 1. Audio / analisis tecnico (carga diferida) */}
+        <Suspense
+          fallback={
+            <section className="space-y-3 rounded-xl border border-border bg-card/80 p-4">
+              <div className="h-5 w-56 animate-pulse rounded bg-muted/40" />
+              <div className="h-24 animate-pulse rounded bg-muted/30" />
+              <div className="h-24 animate-pulse rounded bg-muted/30" />
+            </section>
+          }
+        >
+          <AudioAnalysisSection
+            trackId={trackCore.id}
+            isrc={trackCore.isrc}
+            iswc={trackCore.iswc}
+            licenseType={trackCore.licenseType}
+            composerName={primaryWriter?.name ?? null}
+          />
+        </Suspense>
 
         {/* ORQUESTADOR DE MODULOS DEL FORMULARIO DE EDICION */}
         <TrackEditForm
           track={{
-            id: track.id,
-            title: track.title,
-            artist: track.artist,
+            id: trackCore.id,
+            title: trackCore.title,
+            artist: trackCore.artist,
             // MODULO DE MOODS: lista de MOODS asignados.
             assignedMoods: assignedMoods,
             // MODULO DE USES: lista de USES asignados.
             assignedUses: assignedUses,
             // MODULO DE CATEGORIAS: slugs asignados en TrackTag.
-            catalogTags: track.tags.map((t) => t.tag.slug),
+            catalogTags: trackCore.tags.map((t) => t.tag.slug),
             assignedCategories: assignedCategories,
-            isrc: track.isrc,
-            iswc: track.iswc,
-            upc: track.upc,
-            licenseType: track.licenseType,
-            mediaBuy: track.mediaBuy,
-            bpm: track.bpm,
-            key: track.key,
-            trackType: track.trackType,
-            genres: track.genres,
-            subgenres: track.subgenres,
-            exclusiveTerritories: track.exclusiveTerritories,
-            exclusiveTermMonths: track.exclusiveTermMonths,
-            restrictedTerritories: track.restrictedTerritories,
-            restrictedIndustries: track.restrictedIndustries,
-            restrictedPlatforms: track.restrictedPlatforms,
-            restrictedBrands: track.restrictedBrands,
-            restrictions: track.restrictions ?? [],
-            pricingTier: track.pricingTier,
-            budgetMin: track.budgetMin,
-            budgetMax: track.budgetMax,
-            budgetCurrency: track.budgetCurrency,
-            mfn: !!track.mfn,
-            oneStop: !!track.oneStop,
-            clearedForSync: !!track.clearedForSync,
-            contentIdEnrolled: !!track.contentIdEnrolled,
-            contentIdAdmin: track.contentIdAdmin,
-            contentIdWhitelist: track.contentIdWhitelist,
+            isrc: trackCore.isrc,
+            iswc: trackCore.iswc,
+            upc: trackCore.upc,
+            licenseType: trackCore.licenseType,
+            mediaBuy: trackCore.mediaBuy,
+            bpm: trackCore.bpm,
+            key: trackCore.key,
+            trackType: trackCore.trackType,
+            genres: trackCore.genres,
+            subgenres: trackCore.subgenres,
+            exclusiveTerritories: trackCore.exclusiveTerritories,
+            exclusiveTermMonths: trackCore.exclusiveTermMonths,
+            restrictedTerritories: trackCore.restrictedTerritories,
+            restrictedIndustries: trackCore.restrictedIndustries,
+            restrictedPlatforms: trackCore.restrictedPlatforms,
+            restrictedBrands: trackCore.restrictedBrands,
+            restrictions: trackCore.restrictions ?? [],
+            pricingTier: trackCore.pricingTier,
+            budgetMin: trackCore.budgetMin,
+            budgetMax: trackCore.budgetMax,
+            budgetCurrency: trackCore.budgetCurrency,
+            mfn: !!trackCore.mfn,
+            oneStop: !!trackCore.oneStop,
+            clearedForSync: !!trackCore.clearedForSync,
+            contentIdEnrolled: !!trackCore.contentIdEnrolled,
+            contentIdAdmin: trackCore.contentIdAdmin,
+            contentIdWhitelist: trackCore.contentIdWhitelist,
             // MODULO DE MASTER
             // Lista de MASTERS (masterShares) para edicion de porcentajes/contacto.
-            master: track.master,
-            masterShares: track.masterShares,
+            master: trackRights.master,
+            masterShares: trackRights.masterShares,
             // MODULO DE WRITERS/PUBLISHERS
             // Lista de WRITERS/PUBLISHERS (publishingShares) para split publishing.
-            publishingShares: track.publishingShares,
-            versions: track.versions,
-            stems: track.stems,
+            publishingShares: trackRights.publishingShares,
+            versions: trackDeliverables.versions,
+            stems: trackDeliverables.stems,
           }}
           catalogTagOptions={catalogTags}
         />

@@ -1,14 +1,23 @@
 "use client";
 
 import * as React from "react";
+import dynamic from "next/dynamic";
 
 import CreativeForm from "./CreativeForm";
 import IdsForm from "./IdsForm";
 import RightsFormClient from "./RightsFormClient";
 import SyncMetaForm from "./SyncMetaForm";
-import DeliverablesForm from "./DeliverablesForm";
 import { updateTrackAll } from "@/app/admin/track/actions/update-all";
 import { Button } from "@/components/ui/button";
+
+const DeliverablesForm = dynamic(() => import("./DeliverablesForm"), {
+  loading: () => (
+    <div className="space-y-2">
+      <div className="h-10 animate-pulse rounded-md bg-muted/30" />
+      <div className="h-10 animate-pulse rounded-md bg-muted/30" />
+    </div>
+  ),
+});
 
 /**
  * RESULTADO DE GUARDADO GLOBAL (updateTrackAll)

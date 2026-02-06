@@ -36,6 +36,7 @@ export type TagChipsProps = {
   placeholder?: string;
   maxItems?: number;
   toggleLabel?: string;
+  defaultOpen?: boolean;
   headingAssigned?: string;
   headingSuggestions?: string;
   fetchSuggestions?: (query: string) => Promise<TagChip[]>;
@@ -65,6 +66,7 @@ export function TagChips({
   placeholder = "Buscar mood",
   maxItems = 20,
   toggleLabel = "Moods",
+  defaultOpen = false,
   headingAssigned = "Asignados",
   headingSuggestions = "Sugerencias",
   fetchSuggestions,
@@ -82,7 +84,7 @@ export function TagChips({
   const [query, setQuery] = React.useState("");
   const [suggestions, setSuggestions] = React.useState<TagChip[]>([]);
   const [allItems, setAllItems] = React.useState<TagChip[]>(initialCatalogItems);
-  const [panelOpen, setPanelOpen] = React.useState(false);
+  const [panelOpen, setPanelOpen] = React.useState(defaultOpen);
   const [loading, setLoading] = React.useState(false);
   const [notice, setNotice] = React.useState<string | null>(null);
   const [hovered, setHovered] = React.useState<string | null>(null);

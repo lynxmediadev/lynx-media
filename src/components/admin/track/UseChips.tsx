@@ -4,7 +4,6 @@ import * as React from "react";
 import { TagChips, type TagChip } from "@/components/ui/TagChips";
 import useTagCatalog from "@/hooks/useTagCatalog";
 import { slugify } from "@/lib/slugify";
-import { useRouter } from "next/navigation";
 
 /**
  * Wrapper para gestionar "Usos" con el mismo flujo de TagChips.
@@ -25,7 +24,6 @@ const toTitleCase = (txt: string) => {
 };
 
 export function UseChips({ name = "uses", initialUses, error, maxItems = 15, trackId }: UseChipsProps) {
-  const router = useRouter();
   const [selected, setSelected] = React.useState<TagChip[]>(() =>
     initialUses.map((u) => {
       const label = toTitleCase(u);
@@ -38,6 +36,7 @@ export function UseChips({ name = "uses", initialUses, error, maxItems = 15, tra
     listUrl: "/api/uses",
     searchUrl: "/api/uses",
     createUrl: "/api/uses",
+    saveUrl: "/api/tracks/:id/uses",
     normalizeLabel: (raw) => toTitleCase(raw),
     normalizeSlug: (raw) => slugify(raw),
     mapItem: (i: any) => {
@@ -46,6 +45,9 @@ export function UseChips({ name = "uses", initialUses, error, maxItems = 15, tra
       return { id: i?.id, label: name, value: name, meta: { slug: slugify(name) } };
     },
     buildCreateBody: (label) => ({ name: toTitleCase(label) }),
+    buildSaveBody: (values, normalizeLabel) => ({
+      uses: values.map((v) => normalizeLabel(v)).filter(Boolean),
+    }),
   });
 
   const normalize = React.useCallback((raw: string): TagChip | null => {
@@ -59,13 +61,9 @@ export function UseChips({ name = "uses", initialUses, error, maxItems = 15, tra
       const uses = chips.map((c) => toTitleCase(c.value ?? c.label));
       setSaving(true);
       try {
-        const res = await fetch(`/api/tracks/${trackId}/uses`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ uses }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok && Array.isArray(data?.items)) {
+        const res = await catalog.saveSelection?.(trackId, uses);
+        const data = res?.data;
+        if (res?.ok && Array.isArray(data?.items)) {
           setSelected(
             data.items.map((item: any) => {
               const label = toTitleCase(item.name ?? item.slug ?? "");
@@ -73,28 +71,12 @@ export function UseChips({ name = "uses", initialUses, error, maxItems = 15, tra
               return { id: item.id, label, value: label, meta: { slug } };
             })
           );
-          try {
-            const ref = await fetch(`/api/tracks/${trackId}/uses`);
-            const json = await ref.json().catch(() => ({}));
-            if (Array.isArray(json?.items)) {
-              setSelected(
-                json.items.map((item: any) => {
-                  const label = toTitleCase(item.name ?? item.slug ?? "");
-                  const slug = slugify(label);
-                  return { id: item.id, label, value: label, meta: { slug } };
-                })
-              );
-            }
-          } catch (_e) {
-            /* ignore */
-          }
-          router.refresh();
         }
       } finally {
         setSaving(false);
       }
     },
-    [trackId, router],
+    [catalog, trackId],
   );
 
   // Rehidrata al montar SOLO si no vino SSR (evita doble lista/parpadeo)
@@ -108,13 +90,13 @@ export function UseChips({ name = "uses", initialUses, error, maxItems = 15, tra
         const data = await res.json().catch(() => ({}));
         if (cancelled) return;
         if (Array.isArray(data?.items)) {
-          const next = data.items
-            .map((item: any) => {
+          const next: TagChip[] = data.items
+            .map((item: any): TagChip => {
               const label = toTitleCase(item.name ?? item.slug ?? "");
               const slug = slugify(label);
               return { id: item.id, label, value: label, meta: { slug } };
             })
-            .filter((c) => c.label);
+            .filter((c: TagChip) => Boolean(c.label));
           setSelected(next);
         }
       } catch (_e) {

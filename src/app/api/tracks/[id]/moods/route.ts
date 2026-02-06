@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/server/db";
-import { revalidatePath } from "next/cache";
 import { slugify } from "@/lib/slugify";
 import { TagType } from "@prisma/client";
 
@@ -67,7 +66,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     orderBy: { name: "asc" },
   });
 
-  revalidatePath(`/admin/track/${trackId}/edit`);
   return NextResponse.json({
     ok: true,
     items: saved.map((t) => ({ id: t.id, name: t.name, slug: t.slug, type: "MOOD" })),

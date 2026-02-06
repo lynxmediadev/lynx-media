@@ -7,6 +7,7 @@ type UseTagCatalogOptions = {
   createUrl?: string;
   deleteUrl?: string;
   saveUrl?: string; // opcional para guardar selección por track
+  buildSaveBody?: (values: string[], normalizeLabel: (raw: string) => string) => any;
   headers?: Record<string, string>;
   mapItem?: (item: any) => TagChip;
   buildCreateBody?: (label: string) => any;
@@ -62,6 +63,7 @@ export function useTagCatalog(options: UseTagCatalogOptions) {
     headers,
     mapItem,
     buildCreateBody,
+    buildSaveBody,
     normalizeLabel = defaultNormalizeLabel,
     normalizeSlug = defaultNormalizeSlug,
     onSaved,
@@ -141,15 +143,22 @@ export function useTagCatalog(options: UseTagCatalogOptions) {
         }
       : undefined,
     saveSelection: saveUrl
-      ? async (trackId: string | undefined, slugs: string[]) => {
+      ? async (trackId: string | undefined, values: string[]) => {
           if (!trackId) return { ok: false };
-          const normalized = Array.from(
-            new Set(slugs.map((s) => normalizeSlug(s)).filter(Boolean)),
+          const cleaned = Array.from(
+            new Set(values.map((v) => v.toString().trim()).filter(Boolean)),
           );
+          const body = buildSaveBody
+            ? buildSaveBody(cleaned, normalizeLabel)
+            : {
+                slugs: Array.from(
+                  new Set(cleaned.map((s) => normalizeSlug(s)).filter(Boolean)),
+                ),
+              };
           const res = await fetch(saveUrl.replace(":id", trackId), {
             method: "POST",
             headers: { "Content-Type": "application/json", ...(headers ?? {}) },
-            body: JSON.stringify({ slugs: normalized }),
+            body: JSON.stringify(body),
           });
           const data = await res.json().catch(() => ({}));
           if (res.ok && onSaved) onSaved(data);

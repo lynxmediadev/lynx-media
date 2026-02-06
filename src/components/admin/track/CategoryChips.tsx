@@ -3,7 +3,6 @@
 import * as React from "react";
 import { TagChips, type TagChip } from "@/components/ui/TagChips";
 import useTagCatalog from "@/hooks/useTagCatalog";
-import { useRouter } from "next/navigation";
 
 /**
  * Wrapper para Categorías. Normaliza en Title Case y expone slug vía meta.
@@ -41,7 +40,6 @@ export function CategoryChips({
   trackId,
   initialCatalog = [],
 }: CategoryChipsProps) {
-  const router = useRouter();
   const [saving, setSaving] = React.useState(false);
   const [selected, setSelected] = React.useState<TagChip[]>(
     initialCategories.map((c) => {
@@ -74,13 +72,6 @@ export function CategoryChips({
     return { label: name, value: name, meta: { slug } };
   }, []);
 
-  const lastSavedRef = React.useRef<string>(
-    selected
-      .map((c) => ((c.meta as any)?.slug ?? c.label).toLowerCase())
-      .sort()
-      .join("|")
-  );
-
   // Rehidrata desde la API al montar sólo si venimos sin datos SSR (evita parpadeo cuando ya hay asignados)
   React.useEffect(() => {
     if (!trackId || initialCategories.length > 0) return;
@@ -97,10 +88,6 @@ export function CategoryChips({
           return { id: c.id, label, value: label, meta: { slug } };
         });
         setSelected(normalized);
-        lastSavedRef.current = normalized
-          .map((c) => ((c.meta as any)?.slug ?? c.label).toLowerCase())
-          .sort()
-          .join("|");
       } catch (e) {
         console.error("[CategoryChips] initial fetch failed", e);
       }
@@ -158,33 +145,20 @@ export function CategoryChips({
                 try {
                   const res = await catalog.saveSelection?.(trackId, slugs);
                   if (res?.ok) {
-                  let payload = Array.isArray(res.data?.items) ? res.data.items : [];
-                  // Refresco extra a la API para asegurar consistencia, igualando comportamiento a Moods (estado fuente de verdad)
-                  try {
-                    const ref = await fetch(`/api/tracks/${trackId}/categories`);
-                    const json = await ref.json().catch(() => null);
-                    if (Array.isArray(json?.items)) {
-                      payload = json.items;
-                    }
-                  } catch (_e) {
-                    /* ignore */
+                    const payload = Array.isArray(res.data?.items) ? res.data.items : [];
+                    const nextSelected =
+                      payload.length > 0
+                        ? payload.map((c: any) => {
+                            const label = toUpper(c.name ?? c.slug ?? "");
+                            const slug = c.slug ?? label;
+                            return { id: c.id, label, value: label, meta: { slug } };
+                          })
+                        : selected; // fallback optimista si API no devuelve items
+                    setSelected(nextSelected);
+                  } else {
+                    console.error("[CategoryChips] save failed", res);
                   }
-                  const nextSelected =
-                    payload.length > 0
-                      ? payload.map((c: any) => {
-                          const label = toUpper(c.name ?? c.slug ?? "");
-                          const slug = c.slug ?? label;
-                          return { id: c.id, label, value: label, meta: { slug } };
-                        })
-                      : selected; // fallback optimista si API no devuelve items
-                  setSelected(nextSelected);
-                  lastSavedRef.current = slugs.join("|");
-                  // Refresca data SSR para próxima recarga
-                  router.refresh();
-                } else {
-                  console.error("[CategoryChips] save failed", res);
-                }
-              } finally {
+                } finally {
                   setSaving(false);
                 }
               }}

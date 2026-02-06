@@ -4,7 +4,6 @@ import * as React from "react";
 import { TagChips, type TagChip } from "@/components/ui/TagChips";
 import useTagCatalog from "@/hooks/useTagCatalog";
 import { slugify } from "@/lib/slugify";
-import { useRouter } from "next/navigation";
 
 type Props = {
   name?: string;
@@ -14,7 +13,6 @@ type Props = {
 };
 
 export function MoodChips({ name = "moods", initialMoods, error, trackId }: Props) {
-  const router = useRouter();
   const [selected, setSelected] = React.useState<TagChip[]>(() =>
     initialMoods.map((m) => {
       const label = m.toUpperCase();
@@ -27,6 +25,7 @@ export function MoodChips({ name = "moods", initialMoods, error, trackId }: Prop
     listUrl: "/api/moods",
     searchUrl: "/api/moods",
     createUrl: "/api/moods",
+    saveUrl: "/api/tracks/:id/moods",
     normalizeLabel: (raw) => raw.trim().toUpperCase(),
     normalizeSlug: (raw) => slugify(raw),
     mapItem: (m: any) => {
@@ -36,6 +35,9 @@ export function MoodChips({ name = "moods", initialMoods, error, trackId }: Prop
       return { id: m?.id, label: upper, value: upper, meta: { slug: slugify(upper) } };
     },
     buildCreateBody: (label) => ({ name: label.toUpperCase().trim() }),
+    buildSaveBody: (values, normalizeLabel) => ({
+      moods: values.map((v) => normalizeLabel(v)).filter(Boolean),
+    }),
   });
 
   const normalize = React.useCallback((raw: string): TagChip | null => {
@@ -50,13 +52,9 @@ export function MoodChips({ name = "moods", initialMoods, error, trackId }: Prop
       const moods = chips.map((c) => (c.value ?? c.label).toUpperCase());
       setSaving(true);
       try {
-        const res = await fetch(`/api/tracks/${trackId}/moods`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ moods }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok && Array.isArray(data?.items)) {
+        const res = await catalog.saveSelection?.(trackId, moods);
+        const data = res?.data;
+        if (res?.ok && Array.isArray(data?.items)) {
           setSelected(
             data.items.map((item: any) => {
               const label = (item.name ?? item.slug ?? "").toString().toUpperCase();
@@ -64,28 +62,12 @@ export function MoodChips({ name = "moods", initialMoods, error, trackId }: Prop
               return { id: item.id, label, value: label, meta: { slug } };
             }),
           );
-          try {
-            const ref = await fetch(`/api/tracks/${trackId}/moods`);
-            const json = await ref.json().catch(() => ({}));
-            if (Array.isArray(json?.items)) {
-              setSelected(
-                json.items.map((item: any) => {
-                  const label = (item.name ?? item.slug ?? "").toString().toUpperCase();
-                  const slug = slugify(label);
-                  return { id: item.id, label, value: label, meta: { slug } };
-                }),
-              );
-            }
-          } catch (_e) {
-            /* ignore */
-          }
-          router.refresh();
         }
       } finally {
         setSaving(false);
       }
     },
-    [trackId, router],
+    [catalog, trackId],
   );
 
   // Rehidrata al montar SOLO si no vino SSR (para evitar parpadeo/doble lista)
@@ -99,13 +81,13 @@ export function MoodChips({ name = "moods", initialMoods, error, trackId }: Prop
         const data = await res.json().catch(() => ({}));
         if (cancelled) return;
         if (Array.isArray(data?.items)) {
-          const next = data.items
-            .map((item: any) => {
+          const next: TagChip[] = data.items
+            .map((item: any): TagChip => {
               const label = (item.name ?? item.slug ?? "").toString().toUpperCase();
               const slug = slugify(label);
               return { id: item.id, label, value: label, meta: { slug } };
             })
-            .filter((c) => c.label);
+            .filter((c: TagChip) => Boolean(c.label));
           setSelected(next);
         }
       } catch (_e) {

@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/server/db";
 import { TagType } from "@prisma/client";
-import { revalidatePath } from "next/cache";
 
 const bodySchema = z.object({
   slugs: z.array(z.string()).default([]),
@@ -80,7 +79,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       trackId: id,
       assigned: assigned.map((r) => r.tag.slug),
     });
-    revalidatePath(`/admin/track/${id}/edit`);
 
     return NextResponse.json({
       ok: true,

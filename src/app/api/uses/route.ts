@@ -68,8 +68,8 @@ export async function POST(req: Request) {
   }
 
   const name = parsed.data.name.trim();
-  const title = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-  const slug = slugify(title);
+  const normalized = name.toUpperCase();
+  const slug = slugify(normalized);
   if (!slug) return NextResponse.json({ error: "Nombre inválido" }, { status: 400 });
 
   const existing = await db.tag.findFirst({
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
       type: TagType.USE,
       OR: [
         { slug },
-        { name: { equals: title, mode: "insensitive" } },
+        { name: { equals: normalized, mode: "insensitive" } },
       ],
     },
   });
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Uso ya existe", suggestions: [existing] }, { status: 409 });
   }
 
-  const item = await db.tag.create({ data: { name: title, slug, type: TagType.USE } });
+  const item = await db.tag.create({ data: { name: normalized, slug, type: TagType.USE } });
 
   return NextResponse.json({ item }, { status: 201 });
 }
@@ -95,7 +95,11 @@ export async function DELETE(req: Request) {
   const body = await req.json().catch(() => ({}));
   const id = body?.id as string | undefined;
   const name = (body?.name as string | undefined)?.trim();
-  const where = id ? { id } : name ? { name: { equals: name, mode: "insensitive" as const }, type: TagType.GENERIC } : null;
+  const where = id
+    ? { id, type: TagType.USE }
+    : name
+      ? { name: { equals: name, mode: "insensitive" as const }, type: TagType.USE }
+      : null;
   if (!where) {
     return NextResponse.json({ error: "ID o name requerido" }, { status: 400 });
   }
