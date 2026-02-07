@@ -23,9 +23,11 @@ type Props = {
 };
 
 export function MasterNewForm({ newMaster, setNewMaster, savingMaster, addMaster }: Props) {
+  const canSubmit = newMaster.name.trim().length > 0;
   const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
+      if (!canSubmit) return;
       addMaster();
     }
   };
@@ -88,7 +90,7 @@ export function MasterNewForm({ newMaster, setNewMaster, savingMaster, addMaster
           <button
             type="button"
             onClick={addMaster}
-            disabled={savingMaster}
+            disabled={savingMaster || !canSubmit}
             className="inline-flex h-8 items-center justify-center rounded border border-border bg-card px-3 text-xs font-semibold text-foreground hover:border-foreground/70 disabled:opacity-60"
           >
             Añadir master

@@ -2,6 +2,7 @@ import * as React from "react";
 import { ArrowDown, ArrowUp, SquareX } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import EditableIconInput from "@/components/admin/ui/EditableIconInput";
 import type { MasterShare } from "./types";
 
 type LongPressState =
@@ -249,23 +250,21 @@ export function MasterTable({
                     />
                   </td>
                   <td className="px-2 py-2">
-                    <Input
+                    <EditableIconInput
                       value={ms.contact ?? ""}
-                      onChange={(e) => onChange(idx, "contact", e.target.value)}
-                      className="h-8 text-xs"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") e.preventDefault();
-                      }}
+                      onChange={(value) => onChange(idx, "contact", value)}
+                      disabled={masterBusy}
+                      placeholder="-"
+                      iconAriaLabel="Editar contacto"
                     />
                   </td>
                   <td className="px-2 py-2">
-                    <Input
+                    <EditableIconInput
                       value={ms.notes ?? ""}
-                      onChange={(e) => onChange(idx, "notes", e.target.value)}
-                      className="h-8 text-xs"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") e.preventDefault();
-                      }}
+                      onChange={(value) => onChange(idx, "notes", value)}
+                      disabled={masterBusy}
+                      placeholder="-"
+                      iconAriaLabel="Editar notas"
                     />
                   </td>
                   <td className="px-2 py-2 text-right">

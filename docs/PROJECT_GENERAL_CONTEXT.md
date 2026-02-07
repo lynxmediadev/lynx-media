@@ -18,6 +18,201 @@ Ahora unas consideraciones para la implementación y planificación:
 - Tampoco necesito esos botones en /catalog con las Categorías.
 - Ya que quitaremos la lógica de pivote, seguramente quedará lógica en código perdido, archivos innecesarios y que pueden llevar a confusiones, bugs, etc. Hay que dejar limpia esta implementación.
 
+
+
+## Checklist operativo por ruta (estado funcional)
+
+Regla de validación:
+- Solo el usuario puede marcar un item como `listo` (`[x]`) de forma explícita.
+- Si no hay confirmación explícita del usuario, el estado se mantiene en `pendiente` (`[ ]`).
+
+### Ruta: `/admin/track/[id]/edit`
+Fecha de confirmación: `pendiente`
+
+Checklist completo de secciones / módulos / inputs:
+
+- [ ] Barra global de guardado (`TrackEditForm`)
+- [ ] Input hidden: `id`
+- [ ] Estado visual global de submit (`status.message`)
+- [ ] Botón: `Guardar todo`
+
+- [ ] Sección: `Metadata creativa & identificadores`
+
+- [ ] Módulo: `Creativo` (`CreativeForm`)
+- [ ] Input: `title` (Título)
+- [ ] Input: `artist` (Artista)
+
+- [ ] Módulo: `Moods` (`MoodChips` + `TagChips`)
+- [ ] Estado módulo: `Guardando / Guardado / Error` (header)
+- [ ] Lista: `Moods asignados` (chips seleccionados)
+- [ ] Input búsqueda: `Buscar mood`
+- [ ] Botón: `Guardar Moods`
+- [ ] Botón: `Añadir` (chip desde input)
+- [ ] Lista: `Sugerencias del catálogo` (chips disponibles)
+- [ ] Acción chip sugerido: `Agregar a asignados`
+- [ ] Acción chip sugerido: `Eliminar de catálogo` (X + confirmación)
+- [ ] Acción chip asignado: `Quitar de asignados` (X)
+- [ ] Input hidden: `moods` (serializado de asignados)
+
+- [ ] Módulo: `Usos previstos` (`UseChips` + `TagChips`)
+- [ ] Estado módulo: `Guardando / Guardado / Error` (header)
+- [ ] Lista: `Usos asignados`
+- [ ] Input búsqueda: `Buscar uso`
+- [ ] Botón: `Guardar Usos`
+- [ ] Botón: `Añadir` (chip desde input)
+- [ ] Lista: `Sugerencias del catálogo`
+- [ ] Acción chip sugerido: `Agregar a asignados`
+- [ ] Acción chip sugerido: `Eliminar de catálogo` (X + confirmación)
+- [ ] Acción chip asignado: `Quitar de asignados` (X)
+- [ ] Input hidden: `uses` (serializado de asignados)
+
+- [ ] Módulo: `Categorías` (`CategoryChips` + `TagChips`)
+- [ ] Estado módulo: `Guardando / Guardado / Error` (header)
+- [ ] Lista: `Categorías asignadas`
+- [ ] Input búsqueda: `Buscar categoría`
+- [ ] Botón: `Guardar Categorías`
+- [ ] Botón: `Añadir` (chip desde input)
+- [ ] Lista: `Sugerencias del catálogo`
+- [ ] Acción chip sugerido: `Agregar a asignadas`
+- [ ] Acción chip sugerido: `Eliminar de catálogo` (X + confirmación, bloquea si está asignada)
+- [ ] Acción chip asignado: `Quitar de asignadas` (X)
+- [ ] Input hidden: `catalogTags` (slugs serializados)
+
+- [ ] Módulo: `Identificadores` (`IdsForm`)
+- [ ] Input: `isrc`
+- [ ] Input: `iswc`
+- [ ] Input: `upc`
+
+- [ ] Módulo: `Derechos & explotación` (`RightsFormClient`)
+- [ ] Input hidden: `publishingShares` (JSON)
+- [ ] Input hidden: `masterShares` (JSON)
+
+- [ ] Submódulo: `WRITER` (`PublishingTable` / `PublishingCards`)
+- [ ] Lista de WRITER: edición por fila/item
+- [ ] Input por item WRITER: `name`
+- [ ] Input por item WRITER: `sortOrder` (posición manual)
+- [ ] Botones por item WRITER: mover arriba/abajo (click)
+- [ ] Atajos por item WRITER: `Shift+Arrow` (salto 3)
+- [ ] Long press por item WRITER: `Ir al inicio / Ir al final`
+- [ ] Input por item WRITER: `sharePct`
+- [ ] Input por item WRITER: `ipiNumber`
+- [ ] Input por item WRITER: `pro`
+- [ ] Input por item WRITER: `caeNumber`
+- [ ] Acción por item WRITER: `Eliminar`
+- [ ] Form alta WRITER: `newWriter.name`
+- [ ] Form alta WRITER: `newWriter.sharePct`
+- [ ] Form alta WRITER: `newWriter.ipiNumber`
+- [ ] Form alta WRITER: `newWriter.pro`
+- [ ] Form alta WRITER: `newWriter.caeNumber`
+- [ ] Botón alta WRITER: `Añadir writer`
+
+- [ ] Submódulo: `PUBLISHER` (`PublishingTable` / `PublishingCards`)
+- [ ] Lista de PUBLISHER: edición por fila/item
+- [ ] Input por item PUBLISHER: `name`
+- [ ] Input por item PUBLISHER: `sortOrder` (posición manual)
+- [ ] Botones por item PUBLISHER: mover arriba/abajo (click)
+- [ ] Atajos por item PUBLISHER: `Shift+Arrow` (salto 3)
+- [ ] Long press por item PUBLISHER: `Ir al inicio / Ir al final`
+- [ ] Input por item PUBLISHER: `sharePct`
+- [ ] Input por item PUBLISHER: `ipiNumber`
+- [ ] Input por item PUBLISHER: `pro`
+- [ ] Input por item PUBLISHER: `caeNumber`
+- [ ] Acción por item PUBLISHER: `Eliminar`
+- [ ] Form alta PUBLISHER: `newPublisher.name`
+- [ ] Form alta PUBLISHER: `newPublisher.sharePct`
+- [ ] Form alta PUBLISHER: `newPublisher.ipiNumber`
+- [ ] Form alta PUBLISHER: `newPublisher.pro`
+- [ ] Form alta PUBLISHER: `newPublisher.caeNumber`
+- [ ] Botón alta PUBLISHER: `Añadir publisher`
+
+- [ ] Submódulo: `MASTER` (`MasterTable` / `MasterCards`)
+- [ ] Lista de MASTER: edición por fila/item
+- [ ] Input por item MASTER: `name`
+- [ ] Input por item MASTER: `sortOrder` (posición manual)
+- [ ] Botones por item MASTER: mover arriba/abajo (click)
+- [ ] Atajos por item MASTER: `Shift+Arrow` (salto 3)
+- [ ] Long press por item MASTER: `Ir al inicio / Ir al final`
+- [ ] Input por item MASTER: `sharePct`
+- [ ] Input por item MASTER: `contact`
+- [ ] Input por item MASTER: `notes`
+- [ ] Acción por item MASTER: `Eliminar`
+- [ ] Form alta MASTER: `newMaster.name`
+- [ ] Form alta MASTER: `newMaster.sharePct`
+- [ ] Form alta MASTER: `newMaster.contact`
+- [ ] Form alta MASTER: `newMaster.notes`
+- [ ] Botón alta MASTER: `Añadir master`
+
+- [ ] Submódulo: `Toggles y metadatos de derechos` (`RightsToggles`)
+- [ ] Toggle: `mfn`
+- [ ] Toggle: `oneStop`
+- [ ] Toggle: `clearedForSync`
+- [ ] Toggle: `contentIdEnrolled`
+- [ ] Input: `contentIdAdmin`
+- [ ] Textarea: `contentIdWhitelist`
+- [ ] Input: `master` (titular único)
+- [ ] Textarea: `restrictions`
+
+- [ ] Modal de confirmación (eliminación share/master)
+- [ ] Botón modal: `Cancelar`
+- [ ] Botón modal: `Eliminar`
+
+- [ ] Sección: `Metadata sync & entregables`
+
+- [ ] Módulo: `Metadata sync` (`SyncMetaForm`)
+- [ ] Input: `bpm`
+- [ ] Input: `key` (con datalist)
+- [ ] Select: `trackType` (con hidden input `trackType`)
+- [ ] Textarea: `genres`
+- [ ] Textarea: `subgenres`
+- [ ] Select: `licenseType` (con hidden input `licenseType`)
+- [ ] Input: `exclusiveTermMonths`
+- [ ] Input: `mediaBuy`
+- [ ] Textarea: `exclusiveTerritories`
+- [ ] Textarea: `restrictedTerritories`
+- [ ] Textarea: `restrictedIndustries`
+- [ ] Textarea: `restrictedPlatforms`
+- [ ] Textarea: `restrictedBrands`
+- [ ] Textarea: `restrictions` (adicionales)
+- [ ] Select: `pricingTier` (con hidden input `pricingTier`)
+- [ ] Input: `budgetMin`
+- [ ] Input: `budgetMax`
+- [ ] Select: `budgetCurrency` (con hidden input `budgetCurrency`)
+
+- [ ] Módulo: `Entregables` (`DeliverablesForm`)
+- [ ] Textarea: `versions` (formato `Label | Duration | Kind`)
+- [ ] Textarea: `stems` (formato `Name | Group`)
+
+### Plantilla para nuevas rutas
+Copiar y completar en cada iteración de trabajo:
+
+```
+### Ruta: `/ruta/a/trabajar`
+Fecha de confirmación: `YYYY-MM-DD` (solo cuando el usuario confirme)
+
+Módulos / secciones:
+- [ ] Módulo A
+- [ ] Módulo B
+- [ ] Módulo C
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+___________________________________________________________
+
+/* MANTENER SIEMPRE EL INVENTARIO DE COMPONENTES REUTILIZABLES AL FINAL DE ESTE DOCUMENTO */ 
+
 ## Inventario de componentes reutilizables (proyecto)
 
 ### 1) UI base global (`src/components/ui`)
@@ -53,6 +248,7 @@ Ahora unas consideraciones para la implementación y planificación:
 | FormField | `src/components/admin/ui/FormField.tsx` | Envoltura estándar de campos admin | Activo |
 | FormField2 | `src/components/admin/ui/FormField2.tsx` | Variante antigua de FormField | Legacy |
 | SaveStateBadge | `src/components/admin/ui/SaveStateBadge.tsx` | Estado corto de guardado/error | Activo |
+| EditableIconInput | `src/components/admin/ui/EditableIconInput.tsx` | Input bloqueado con ícono editar y foco automático | Activo |
 
 ### 3) Módulos reutilizables del editor de track (`src/components/admin/track`)
 | Componente | Ruta | Uso principal | Estado |

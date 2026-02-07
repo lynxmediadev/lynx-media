@@ -3,6 +3,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Share } from "./types";
 
+const PRO_OPTIONS = ["ASCAP", "BMI", "SCD"] as const;
+const normalizeProValue = (value?: string | null) =>
+  PRO_OPTIONS.includes((value ?? "").toUpperCase() as (typeof PRO_OPTIONS)[number])
+    ? (value ?? "").toUpperCase()
+    : "";
+
 type Props = {
   newWriter: Share & { ipiNumber: string; pro: string; caeNumber: string };
   newPublisher: Share & { ipiNumber: string; pro: string; caeNumber: string };
@@ -33,11 +39,13 @@ export function PublishingNewForms({
     const state = isWriter ? newWriter : newPublisher;
     const setState = isWriter ? setNewWriter : setNewPublisher;
     const saving = isWriter ? savingWriter : savingPublisher;
+    const canSubmit = state.name.trim().length > 0;
     const label = isWriter ? "Añadir writer" : "Añadir publisher";
 
     const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Enter") {
         e.preventDefault();
+        if (!canSubmit) return;
         addShare(role);
       }
     };
@@ -48,7 +56,7 @@ export function PublishingNewForms({
             <h4 className="text-xs font-semibold text-foreground">{label}</h4>
             {saving && <span className="text-[11px] text-muted-foreground">Guardando…</span>}
           </div>
-        <div className="flex flex-col gap-2 w-full md:grid md:grid-cols-[minmax(220px,1fr)_72px_150px_96px_150px_auto] md:items-end md:gap-2">
+        <div className="flex flex-col gap-2 w-full md:grid md:grid-cols-[minmax(180px,1fr)_72px_170px_96px_170px_auto] md:items-end md:gap-2">
           <div className="flex min-w-0 flex-col gap-1">
             <Label className="text-[11px] text-muted-foreground">Nombre</Label>
             <Input
@@ -90,13 +98,19 @@ export function PublishingNewForms({
           </div>
           <div className="flex min-w-0 flex-col gap-1">
             <Label className="text-[11px] text-muted-foreground">PRO</Label>
-            <Input
-              value={state.pro}
+            <select
+              value={normalizeProValue(state.pro)}
               onChange={(e) => setState((prev) => ({ ...prev, pro: e.target.value }))}
-              onKeyDown={handleEnter}
-              className="h-8 text-xs"
+              className="h-8 w-full rounded-md border border-border bg-background px-2 text-xs"
               disabled={saving}
-            />
+            >
+              <option value="">—</option>
+              {PRO_OPTIONS.map((pro) => (
+                <option key={pro} value={pro}>
+                  {pro}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="flex min-w-0 flex-col gap-1">
             <Label className="text-[11px] text-muted-foreground">CAE</Label>
@@ -112,7 +126,7 @@ export function PublishingNewForms({
             <button
               type="button"
               onClick={() => addShare(role)}
-              disabled={saving}
+              disabled={saving || !canSubmit}
               className="inline-flex h-8 items-center justify-center rounded border border-border bg-card px-3 text-xs font-semibold text-foreground hover:border-foreground/70 disabled:opacity-60"
             >
               {label}

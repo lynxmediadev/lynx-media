@@ -2,13 +2,19 @@ import * as React from "react";
 import { ArrowDown, ArrowUp, SquareX } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import EditableIconInput from "@/components/admin/ui/EditableIconInput";
 import type { Share } from "./types";
 
 type Role = "WRITER" | "PUBLISHER";
 type LongPressState =
   | { type: "share" | "master"; index: number; direction: "up" | "down" }
   | null;
+
+const PRO_OPTIONS = ["ASCAP", "BMI", "SCD"] as const;
+const normalizeProValue = (value?: string | null) =>
+  PRO_OPTIONS.includes((value ?? "").toUpperCase() as (typeof PRO_OPTIONS)[number])
+    ? (value ?? "").toUpperCase()
+    : "";
 
 type Props = {
   role: Role;
@@ -92,23 +98,24 @@ export function PublishingTable({
                 <th className="w-16 px-1 py-2 text-center">Pos.</th>
                 <th className="w-16 px-1 py-2 text-center">Mover</th>
                 <th className="w-20 px-2 py-2 text-left">%/</th>
-                <th className="px-2 py-2 text-left">IPI</th>
                 <th className="px-2 py-2 text-left">PRO</th>
-                <th className="px-2 py-2 text-left">CAE</th>
+                <th className="px-2 py-2 text-left">IPI / CAE</th>
                 <th className="px-2 py-2 text-center">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {roleShares.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-2 py-3 text-center text-muted-foreground">
+                  <td colSpan={8} className="px-2 py-3 text-center text-muted-foreground">
                     Sin {isWriter ? "writers" : "publishers"}.
                   </td>
                 </tr>
               ) : (
-                roleShares.map((share, roleIdx) => (
+                roleShares.map((share, roleIdx) => {
+                  const rowId = `${share.id ?? `${role}-${roleIdx}`}-${share.sortOrder ?? roleIdx}`;
+                  return (
                   <tr
-                    key={`${share.id ?? `${role}-${roleIdx}`}-${share.sortOrder ?? roleIdx}`}
+                    key={rowId}
                     className="border-t border-border/60"
                   >
                     <td className="w-10 px-2 py-2 text-center text-muted-foreground">:::</td>
@@ -245,25 +252,36 @@ export function PublishingTable({
                       />
                     </td>
                     <td className="px-2 py-2">
-                      <Input
-                        value={share.ipiNumber ?? ""}
-                        onChange={(e) => onChange(roleIdx, "ipiNumber", e.target.value)}
-                        className="h-8 text-xs"
-                      />
-                    </td>
-                    <td className="px-2 py-2">
-                      <Input
-                        value={share.pro ?? ""}
+                      <select
+                        value={normalizeProValue(share.pro)}
                         onChange={(e) => onChange(roleIdx, "pro", e.target.value)}
-                        className="h-8 text-xs"
-                      />
+                        className="h-8 w-full rounded-md border border-border bg-background px-2 text-xs"
+                      >
+                        <option value="">—</option>
+                        {PRO_OPTIONS.map((pro) => (
+                          <option key={pro} value={pro}>
+                            {pro}
+                          </option>
+                        ))}
+                      </select>
                     </td>
                     <td className="px-2 py-2">
-                      <Input
-                        value={share.caeNumber ?? ""}
-                        onChange={(e) => onChange(roleIdx, "caeNumber", e.target.value)}
-                        className="h-8 text-xs"
-                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <EditableIconInput
+                          value={share.ipiNumber ?? ""}
+                          onChange={(value) => onChange(roleIdx, "ipiNumber", value)}
+                          disabled={shareBusy}
+                          placeholder="-"
+                          iconAriaLabel="Editar IPI"
+                        />
+                        <EditableIconInput
+                          value={share.caeNumber ?? ""}
+                          onChange={(value) => onChange(roleIdx, "caeNumber", value)}
+                          disabled={shareBusy}
+                          placeholder="-"
+                          iconAriaLabel="Editar CAE"
+                        />
+                      </div>
                     </td>
                     <td className="px-2 py-2 text-right">
                       <button
@@ -277,7 +295,8 @@ export function PublishingTable({
                       </button>
                     </td>
                   </tr>
-                ))
+                );
+                })
               )}
             </tbody>
           </table>

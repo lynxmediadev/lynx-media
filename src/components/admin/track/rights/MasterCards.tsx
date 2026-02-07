@@ -2,6 +2,7 @@ import * as React from "react";
 import { ArrowDown, ArrowUp, Eye, SquareX } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import EditableIconInput from "@/components/admin/ui/EditableIconInput";
 import type { MasterShare } from "./types";
 
 type LongPressState =
@@ -195,18 +196,22 @@ export function MasterCards({
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[11px] text-muted-foreground">Contacto</Label>
-                    <Input
+                    <EditableIconInput
                       value={ms.contact ?? ""}
-                      onChange={(e) => onChange(idx, "contact", e.target.value)}
-                      className="h-8 text-xs"
+                      onChange={(value) => onChange(idx, "contact", value)}
+                      disabled={masterBusy}
+                      placeholder="-"
+                      iconAriaLabel="Editar contacto"
                     />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[11px] text-muted-foreground">Notas</Label>
-                    <Input
+                    <EditableIconInput
                       value={ms.notes ?? ""}
-                      onChange={(e) => onChange(idx, "notes", e.target.value)}
-                      className="h-8 text-xs"
+                      onChange={(value) => onChange(idx, "notes", value)}
+                      disabled={masterBusy}
+                      placeholder="-"
+                      iconAriaLabel="Editar notas"
                     />
                   </div>
                   <div>

@@ -2,12 +2,19 @@ import * as React from "react";
 import { ArrowDown, ArrowUp, Eye, SquareX } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import EditableIconInput from "@/components/admin/ui/EditableIconInput";
 import type { Share } from "./types";
 
 type Role = "WRITER" | "PUBLISHER";
 type LongPressState =
   | { type: "share" | "master"; index: number; direction: "up" | "down" }
   | null;
+
+const PRO_OPTIONS = ["ASCAP", "BMI", "SCD"] as const;
+const normalizeProValue = (value?: string | null) =>
+  PRO_OPTIONS.includes((value ?? "").toUpperCase() as (typeof PRO_OPTIONS)[number])
+    ? (value ?? "").toUpperCase()
+    : "";
 
 type Props = {
   role: Role;
@@ -194,28 +201,41 @@ export function PublishingCards({
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[11px] text-muted-foreground">IPI</Label>
-                      <Input
-                        value={share.ipiNumber ?? ""}
-                        onChange={(e) => onChange(idx, "ipiNumber", e.target.value)}
-                        className="h-8 text-xs"
-                      />
-                    </div>
-                    <div className="space-y-1">
                       <Label className="text-[11px] text-muted-foreground">PRO</Label>
-                      <Input
-                        value={share.pro ?? ""}
+                      <select
+                        value={normalizeProValue(share.pro)}
                         onChange={(e) => onChange(idx, "pro", e.target.value)}
-                        className="h-8 text-xs"
-                      />
+                        className="h-8 w-full rounded-md border border-border bg-background px-2 text-xs"
+                      >
+                        <option value="">—</option>
+                        {PRO_OPTIONS.map((pro) => (
+                          <option key={pro} value={pro}>
+                            {pro}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-[11px] text-muted-foreground">CAE</Label>
-                      <Input
-                        value={share.caeNumber ?? ""}
-                        onChange={(e) => onChange(idx, "caeNumber", e.target.value)}
-                        className="h-8 text-xs"
-                      />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground">IPI</Label>
+                        <EditableIconInput
+                          value={share.ipiNumber ?? ""}
+                          onChange={(value) => onChange(idx, "ipiNumber", value)}
+                          disabled={shareBusy}
+                          placeholder="-"
+                          iconAriaLabel="Editar IPI"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground">CAE</Label>
+                        <EditableIconInput
+                          value={share.caeNumber ?? ""}
+                          onChange={(value) => onChange(idx, "caeNumber", value)}
+                          disabled={shareBusy}
+                          placeholder="-"
+                          iconAriaLabel="Editar CAE"
+                        />
+                      </div>
                     </div>
                   </div>
                   <div>
