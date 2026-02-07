@@ -335,3 +335,281 @@ ___________________________________________________________
 | SaveButton | `src/components/forms/SaveButton.tsx` | Botón reutilizable de guardado | Activo |
 | copyable | `src/components/copyable.tsx` | Wrapper para copiar contenido | Activo |
 | whitelist-dialog | `src/components/whitelist-dialog.tsx` | Dialog de whitelist | Activo |
+
+## Inventario operativo actualizado (vigente)
+
+Nota:
+- Esta sección es la referencia vigente para trabajo de mantenimiento fino.
+- Si hay diferencias con listas anteriores del documento, usar esta sección.
+- Regla de estado: solo el usuario marca `[x]`; por defecto todo queda en `[ ]`.
+
+### 1) Inventario de componentes reutilizables (con internos identificables)
+
+#### `EditableIconInput` (`src/components/admin/ui/EditableIconInput.tsx`)
+- [ ] Interno: campo base (`Input`) de texto editable/bloqueable
+- [ ] Interno: botón ícono editar (`SquarePen`)
+- [ ] Prop clave: `value`
+- [ ] Prop clave: `onChange(value)`
+- [ ] Prop clave: `onCommit(value)` (async/sync)
+- [ ] Prop clave: `placeholder`
+- [ ] Prop clave: `lockOnInit`
+- [ ] Prop clave: `commitOnEnter`
+- [ ] Prop clave: `commitOnBlur`
+- [ ] Prop clave: `relockOnCommit`
+- [ ] Prop clave: `commitIfChanged`
+- [ ] Comportamiento: click en ícono desbloquea + focus + select-all
+- [ ] Comportamiento: click en input desbloquea sin select-all
+
+#### `NumericSelectInput` (`src/components/admin/ui/NumericSelectInput.tsx`)
+- [ ] Interno: input numérico sin spinners nativos
+- [ ] Interno: select-all en focus/click
+- [ ] Prop clave: `value`
+- [ ] Prop clave: `onChange(value)`
+- [ ] Prop clave: `onCommit(value)` (async/sync)
+- [ ] Prop clave: `min` / `max` / `step`
+- [ ] Prop clave: `commitOnEnter`
+- [ ] Prop clave: `commitOnBlur`
+- [ ] Prop clave: `commitIfChanged`
+- [ ] Comportamiento: Enter dispara commit y evita submit global
+- [ ] Comportamiento: blur dispara commit (si corresponde)
+
+#### `SaveStateBadge` (`src/components/admin/ui/SaveStateBadge.tsx`)
+- [ ] Estado: `idle`
+- [ ] Estado: `saving`
+- [ ] Estado: `saved`
+- [ ] Estado: `error`
+- [ ] Labels configurables por prop
+
+#### `TagChips` (`src/components/ui/TagChips.tsx`)
+- [ ] Interno: lista de asignados (chips seleccionados)
+- [ ] Interno: botón quitar chip asignado (`X`)
+- [ ] Interno: botón toggle panel (si `showToggleButton=true`)
+- [ ] Interno: panel sugerencias (inline)
+- [ ] Interno: input búsqueda
+- [ ] Interno: botón limpiar búsqueda (`X`)
+- [ ] Interno: botón `Añadir` desde input
+- [ ] Interno: CTA `Crear y añadir` (si `allowCreate`)
+- [ ] Interno: lista chips sugeridos
+- [ ] Interno: botón eliminar sugerido (`X`, si `allowDeleteCatalog`)
+- [ ] Interno: diálogo confirmación eliminar sugerido
+- [ ] Prop clave: `selected`
+- [ ] Prop clave: `onChange(chips)`
+- [ ] Prop clave: `fetchAll`
+- [ ] Prop clave: `fetchSuggestions`
+- [ ] Prop clave: `normalize`
+- [ ] Prop clave: `onCreate`
+- [ ] Prop clave: `onDeleteCatalog`
+- [ ] Prop clave: `renderAboveAssigned`
+- [ ] Prop clave: `renderAboveToggle`
+- [ ] Prop clave: `defaultOpen` / `showToggleButton`
+
+#### `MoodChips` (`src/components/admin/track/MoodChips.tsx`)
+- [ ] Wrapper reusable sobre `TagChips` + `useTagCatalog`
+- [ ] Endpoint catálogo: `GET/POST /api/moods`
+- [ ] Endpoint asignación: `GET/POST /api/tracks/:id/moods`
+- [ ] Normalización: UPPERCASE
+- [ ] Interno: botón `Guardar Moods`
+- [ ] Interno: hidden input serializado (`name="moods"`)
+- [ ] Interno: `onSaveState` para badge de módulo
+
+#### `UseChips` (`src/components/admin/track/UseChips.tsx`)
+- [ ] Wrapper reusable sobre `TagChips` + `useTagCatalog`
+- [ ] Endpoint catálogo: `GET/POST /api/uses`
+- [ ] Endpoint asignación: `GET/POST /api/tracks/:id/uses`
+- [ ] Normalización: UPPERCASE (actual)
+- [ ] Interno: botón `Guardar Usos`
+- [ ] Interno: hidden input serializado (`name="uses"`)
+- [ ] Interno: `onSaveState` para badge de módulo
+
+#### `CategoryChips` (`src/components/admin/track/CategoryChips.tsx`)
+- [ ] Wrapper reusable sobre `TagChips` + `useTagCatalog`
+- [ ] Endpoint catálogo: `GET/POST/DELETE /api/categories`
+- [ ] Endpoint asignación: `GET/POST /api/tracks/:id/categories`
+- [ ] Normalización: UPPERCASE + `slugify`
+- [ ] Interno: botón `Guardar Categorías`
+- [ ] Interno: hidden input serializado (`name="catalogTags"` por default en `/edit`)
+- [ ] Interno: rehidratación inicial desde API solo si SSR llega vacío
+- [ ] Interno: bloqueo delete de categoría si está asignada
+
+#### Subcomponentes Rights reutilizables (`src/components/admin/track/rights/*`)
+- [ ] `PublishingTable` (desktop WRITER/PUBLISHER)
+- [ ] `PublishingCards` (mobile WRITER/PUBLISHER)
+- [ ] `PublishingNewForms` (alta WRITER/PUBLISHER)
+- [ ] `MasterTable` (desktop MASTER)
+- [ ] `MasterCards` (mobile MASTER)
+- [ ] `MasterNewForm` (alta MASTER)
+- [ ] `RightsToggles` (toggles/flags derechos)
+
+### 2) Inventario completo de `/admin/track/[id]/edit` (módulos + campos internos)
+
+Estado de ruta:
+- [ ] Ruta revisada/validada por usuario
+
+#### A. Formulario orquestador (`TrackEditForm`)
+- [ ] Hidden input: `id`
+- [ ] Barra global: mensaje de estado (`status.message`)
+- [ ] Botón global: `Guardar todo`
+
+#### B. Sección `Metadata creativa & identificadores`
+
+##### B1. Módulo `Creativo` (`CreativeForm`)
+- [ ] Input: `title`
+- [ ] Input: `artist`
+
+##### B2. Módulo `Moods` (`MoodChips` + `TagChips`)
+- [ ] Badge estado módulo (`SaveStateBadge`)
+- [ ] Lista: `Moods asignados`
+- [ ] Campo búsqueda: `Buscar mood`
+- [ ] Botón: `Añadir`
+- [ ] Lista: sugerencias catálogo
+- [ ] Acción sugerido: agregar a asignados
+- [ ] Acción sugerido: eliminar de catálogo (`X` + confirmación)
+- [ ] Acción asignado: quitar de asignados (`X`)
+- [ ] Botón: `Guardar Moods`
+- [ ] Hidden input: `moods`
+
+##### B3. Módulo `Usos previstos` (`UseChips` + `TagChips`)
+- [ ] Badge estado módulo (`SaveStateBadge`)
+- [ ] Lista: `Usos asignados`
+- [ ] Campo búsqueda: `Buscar uso`
+- [ ] Botón: `Añadir`
+- [ ] Lista: sugerencias catálogo
+- [ ] Acción sugerido: agregar a asignados
+- [ ] Acción sugerido: eliminar de catálogo (`X` + confirmación)
+- [ ] Acción asignado: quitar de asignados (`X`)
+- [ ] Botón: `Guardar Usos`
+- [ ] Hidden input: `uses`
+
+##### B4. Módulo `Categorías` (`CategoryChips` + `TagChips`)
+- [ ] Badge estado módulo (`SaveStateBadge`)
+- [ ] Lista: `Categorías asignadas`
+- [ ] Campo búsqueda: `Buscar categoría`
+- [ ] Botón: `Añadir`
+- [ ] Lista: sugerencias catálogo
+- [ ] Acción sugerido: agregar a asignadas
+- [ ] Acción sugerido: eliminar de catálogo (`X` + confirmación)
+- [ ] Acción asignado: quitar de asignadas (`X`)
+- [ ] Botón: `Guardar Categorías`
+- [ ] Hidden input: `catalogTags`
+
+##### B5. Módulo `Identificadores` (`IdsForm`)
+- [ ] Input: `isrc`
+- [ ] Input: `iswc`
+- [ ] Input: `upc`
+
+##### B6. Módulo `Derechos & explotación` (`RightsFormClient`)
+- [ ] Hidden input: `publishingShares`
+- [ ] Hidden input: `masterShares`
+
+###### B6.1 Lista de `WRITER` (`PublishingTable` / `PublishingCards`)
+- [ ] Campo por item: `name` (`EditableIconInput`)
+- [ ] Campo por item: `sortOrder` (`NumericSelectInput`, mover por posición)
+- [ ] Acción por item: flecha arriba/abajo (click)
+- [ ] Acción por item: `Shift + Arrow` (salto 3)
+- [ ] Acción por item: long-press (`Ir al inicio / Ir al final`)
+- [ ] Campo por item: `sharePct` (`NumericSelectInput`, autosave blur/enter)
+- [ ] Campo por item: `pro` (`select ASCAP/BMI/SCD`, autosave al cambiar)
+- [ ] Campo por item: `ipiNumber` (`EditableIconInput`)
+- [ ] Campo por item: `caeNumber` (`EditableIconInput`)
+- [ ] Acción por item: eliminar
+
+###### B6.2 Form alta `WRITER` (`PublishingNewForms`)
+- [ ] Campo: `newWriter.name` (requerido)
+- [ ] Campo: `newWriter.sharePct`
+- [ ] Campo: `newWriter.ipiNumber`
+- [ ] Campo: `newWriter.pro` (select)
+- [ ] Campo: `newWriter.caeNumber`
+- [ ] Acción: botón `Añadir writer`
+
+###### B6.3 Lista de `PUBLISHER` (`PublishingTable` / `PublishingCards`)
+- [ ] Campo por item: `name` (`EditableIconInput`)
+- [ ] Campo por item: `sortOrder` (`NumericSelectInput`, mover por posición)
+- [ ] Acción por item: flecha arriba/abajo (click)
+- [ ] Acción por item: `Shift + Arrow` (salto 3)
+- [ ] Acción por item: long-press (`Ir al inicio / Ir al final`)
+- [ ] Campo por item: `sharePct` (`NumericSelectInput`, autosave blur/enter)
+- [ ] Campo por item: `pro` (`select ASCAP/BMI/SCD`, autosave al cambiar)
+- [ ] Campo por item: `ipiNumber` (`EditableIconInput`)
+- [ ] Campo por item: `caeNumber` (`EditableIconInput`)
+- [ ] Acción por item: eliminar
+
+###### B6.4 Form alta `PUBLISHER` (`PublishingNewForms`)
+- [ ] Campo: `newPublisher.name` (requerido)
+- [ ] Campo: `newPublisher.sharePct`
+- [ ] Campo: `newPublisher.ipiNumber`
+- [ ] Campo: `newPublisher.pro` (select)
+- [ ] Campo: `newPublisher.caeNumber`
+- [ ] Acción: botón `Añadir publisher`
+
+###### B6.5 Lista de `MASTER` (`MasterTable` / `MasterCards`)
+- [ ] Campo por item: `name` (`EditableIconInput`)
+- [ ] Campo por item: `sortOrder` (`NumericSelectInput`, mover por posición)
+- [ ] Acción por item: flecha arriba/abajo (click)
+- [ ] Acción por item: `Shift + Arrow` (salto 3)
+- [ ] Acción por item: long-press (`Ir al inicio / Ir al final`)
+- [ ] Campo por item: `sharePct` (`NumericSelectInput`, autosave blur/enter)
+- [ ] Campo por item: `contact` (`EditableIconInput`)
+- [ ] Campo por item: `notes` (`EditableIconInput`)
+- [ ] Acción por item: eliminar
+
+###### B6.6 Form alta `MASTER` (`MasterNewForm`)
+- [ ] Campo: `newMaster.name` (requerido)
+- [ ] Campo: `newMaster.sharePct`
+- [ ] Campo: `newMaster.contact`
+- [ ] Campo: `newMaster.notes`
+- [ ] Acción: botón `Añadir master`
+
+###### B6.7 Submódulo `RightsToggles`
+- [ ] Toggle: `mfn`
+- [ ] Toggle: `oneStop`
+- [ ] Toggle: `clearedForSync`
+- [ ] Toggle: `contentIdEnrolled`
+- [ ] Input: `contentIdAdmin`
+- [ ] Textarea: `contentIdWhitelist`
+- [ ] Input: `master` (titular único)
+- [ ] Textarea: `restrictions`
+
+###### B6.8 Modal de confirmación eliminación (`RightsFormClient`)
+- [ ] Botón: `Cancelar`
+- [ ] Botón: `Eliminar`
+
+#### C. Sección `Metadata sync & entregables`
+
+##### C1. Módulo `Metadata sync` (`SyncMetaForm`)
+- [ ] Input: `bpm`
+- [ ] Input: `key` (con datalist)
+- [ ] Select + hidden: `trackType`
+- [ ] Textarea: `genres`
+- [ ] Textarea: `subgenres`
+- [ ] Select + hidden: `licenseType`
+- [ ] Input: `exclusiveTermMonths`
+- [ ] Input: `mediaBuy`
+- [ ] Textarea: `exclusiveTerritories`
+- [ ] Textarea: `restrictedTerritories`
+- [ ] Textarea: `restrictedIndustries`
+- [ ] Textarea: `restrictedPlatforms`
+- [ ] Textarea: `restrictedBrands`
+- [ ] Textarea: `restrictions`
+- [ ] Select + hidden: `pricingTier`
+- [ ] Input: `budgetMin`
+- [ ] Input: `budgetMax`
+- [ ] Select + hidden: `budgetCurrency`
+
+##### C2. Módulo `Entregables` (`DeliverablesForm`)
+- [ ] Textarea: `versions`
+- [ ] Textarea: `stems`
+
+### 3) Plantilla de checklist para nuevas rutas
+
+```md
+### Ruta: `/ruta/a/trabajar`
+Fecha de confirmación: `pendiente`
+
+Módulos:
+- [ ] Módulo A
+- [ ] Módulo B
+
+Campos internos:
+- [ ] Campo 1
+- [ ] Campo 2
+```

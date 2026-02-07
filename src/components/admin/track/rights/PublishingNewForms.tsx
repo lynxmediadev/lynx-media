@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import NumericSelectInput from "@/components/admin/ui/NumericSelectInput";
@@ -35,6 +36,18 @@ export function PublishingNewForms({
   addShare,
   mode = "BOTH",
 }: Props) {
+  const [mobileOpenByRole, setMobileOpenByRole] = React.useState<{
+    WRITER: boolean;
+    PUBLISHER: boolean;
+  }>({
+    WRITER: false,
+    PUBLISHER: false,
+  });
+
+  const toggleMobileForm = (role: "WRITER" | "PUBLISHER") => {
+    setMobileOpenByRole((prev) => ({ ...prev, [role]: !prev[role] }));
+  };
+
   const renderForm = (role: "WRITER" | "PUBLISHER") => {
     const isWriter = role === "WRITER";
     const state = isWriter ? newWriter : newPublisher;
@@ -42,6 +55,8 @@ export function PublishingNewForms({
     const saving = isWriter ? savingWriter : savingPublisher;
     const canSubmit = state.name.trim().length > 0;
     const label = isWriter ? "Añadir writer" : "Añadir publisher";
+    const mobileToggleLabel = isWriter ? "Añadir WRITER" : "Añadir PUBLISHER";
+    const mobileOpen = mobileOpenByRole[role];
 
     const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Enter") {
@@ -53,6 +68,16 @@ export function PublishingNewForms({
 
     return (
       <div className="space-y-2 w-full">
+        <button
+          type="button"
+          onClick={() => toggleMobileForm(role)}
+          className="inline-flex h-8 w-full items-center justify-center rounded border border-border bg-card px-3 text-xs font-semibold text-foreground hover:border-foreground/70 md:hidden"
+          aria-expanded={mobileOpen}
+        >
+          <Plus className="mr-1 h-3.5 w-3.5" />
+          {mobileToggleLabel}
+        </button>
+        <div className={`${mobileOpen ? "block" : "hidden"} md:block space-y-2`}>
           <div className="flex items-center justify-between">
             <h4 className="text-xs font-semibold text-foreground">{label}</h4>
             {saving && <span className="text-[11px] text-muted-foreground">Guardando…</span>}
@@ -132,6 +157,7 @@ export function PublishingNewForms({
               {label}
             </button>
           </div>
+        </div>
         </div>
       </div>
     );

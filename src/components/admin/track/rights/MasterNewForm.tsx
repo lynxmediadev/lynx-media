@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import NumericSelectInput from "@/components/admin/ui/NumericSelectInput";
@@ -25,6 +26,7 @@ type Props = {
 
 export function MasterNewForm({ newMaster, setNewMaster, savingMaster, addMaster }: Props) {
   const canSubmit = newMaster.name.trim().length > 0;
+  const [mobileOpen, setMobileOpen] = React.useState(false);
   const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -35,7 +37,19 @@ export function MasterNewForm({ newMaster, setNewMaster, savingMaster, addMaster
 
   return (
     <div className="rounded-md border border-border/70 bg-card/60 p-3">
-      <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-end">
+      <button
+        type="button"
+        onClick={() => setMobileOpen((prev) => !prev)}
+        className="inline-flex h-8 w-full items-center justify-center rounded border border-border bg-card px-3 text-xs font-semibold text-foreground hover:border-foreground/70 md:hidden"
+        aria-expanded={mobileOpen}
+      >
+        <Plus className="mr-1 h-3.5 w-3.5" />
+        Añadir MASTER
+      </button>
+      <div
+        className={`${mobileOpen ? "block" : "hidden"} md:block mt-2 md:mt-0`}
+      >
+        <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-end">
         <div className="flex min-w-[160px] flex-1 flex-col gap-1">
           <Label className="text-[11px] text-muted-foreground">Nombre</Label>
           <Input
@@ -96,6 +110,7 @@ export function MasterNewForm({ newMaster, setNewMaster, savingMaster, addMaster
             Añadir master
           </button>
         </div>
+      </div>
       </div>
     </div>
   );
