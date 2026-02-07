@@ -40,7 +40,7 @@ type Props = {
   onChange: (idx: number, field: keyof Share, value: string) => void;
   onCommitChange: (
     idx: number,
-    field: "name" | "sharePct" | "ipiNumber" | "caeNumber",
+    field: "name" | "sharePct" | "pro" | "ipiNumber" | "caeNumber",
     value: string,
   ) => void | Promise<void>;
   onDelete: (idx: number) => void;
@@ -292,7 +292,12 @@ export function PublishingTable({
                     <td className="px-2 py-2">
                       <select
                         value={normalizeProValue(share.pro)}
-                        onChange={(e) => onChange(roleIdx, "pro", e.target.value)}
+                        onChange={(e) => {
+                          const nextValue = e.target.value;
+                          onChange(roleIdx, "pro", nextValue);
+                          void onCommitChange(roleIdx, "pro", nextValue);
+                        }}
+                        disabled={shareBusy}
                         className="h-8 w-full rounded-md border border-border bg-background px-2 text-xs"
                       >
                         <option value="">—</option>

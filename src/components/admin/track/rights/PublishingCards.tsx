@@ -34,7 +34,7 @@ type Props = {
   onChange: (idx: number, field: keyof Share, value: string) => void;
   onCommitChange: (
     idx: number,
-    field: "name" | "sharePct" | "ipiNumber" | "caeNumber",
+    field: "name" | "sharePct" | "pro" | "ipiNumber" | "caeNumber",
     value: string,
   ) => void | Promise<void>;
   onDelete: (idx: number) => void;
@@ -213,7 +213,12 @@ export function PublishingCards({
                       <Label className="text-[11px] text-muted-foreground">PRO</Label>
                       <select
                         value={normalizeProValue(share.pro)}
-                        onChange={(e) => onChange(idx, "pro", e.target.value)}
+                        onChange={(e) => {
+                          const nextValue = e.target.value;
+                          onChange(idx, "pro", nextValue);
+                          void onCommitChange(idx, "pro", nextValue);
+                        }}
+                        disabled={shareBusy}
                         className="h-8 w-full rounded-md border border-border bg-background px-2 text-xs"
                       >
                         <option value="">—</option>
