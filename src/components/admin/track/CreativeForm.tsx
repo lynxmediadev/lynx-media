@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import FormField from "../ui/FormField";
+import SaveStateBadge, { type SaveState } from "../ui/SaveStateBadge";
 import { Input } from "@/components/ui/input";
 import { MoodChips } from "./MoodChips";
 import UseChips from "./UseChips";
@@ -45,6 +46,34 @@ export default function CreativeForm({
 
   // ⬇⬇⬇ NUEVO: estado de errores en el cliente ⬇⬇⬇
   const [clientErrors, setClientErrors] = React.useState<ClientErrors>({});
+  type ModuleKey = "moods" | "uses" | "categories";
+  const [savedByModule, setSavedByModule] = React.useState<Record<ModuleKey, SaveState>>({
+    moods: "idle",
+    uses: "idle",
+    categories: "idle",
+  });
+  const saveTimersRef = React.useRef<Partial<Record<ModuleKey, ReturnType<typeof setTimeout>>>>({});
+
+  const setModuleSaveState = React.useCallback((key: ModuleKey, state: SaveState) => {
+    setSavedByModule((prev) => ({ ...prev, [key]: state }));
+    const timer = saveTimersRef.current[key];
+    if (timer) clearTimeout(timer);
+    if (state === "saved" || state === "error") {
+      saveTimersRef.current[key] = setTimeout(() => {
+        setSavedByModule((prev) => ({ ...prev, [key]: "idle" }));
+        delete saveTimersRef.current[key];
+      }, 2200);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    const timers = saveTimersRef.current;
+    return () => {
+      Object.values(timers).forEach((timer) => {
+        if (timer) clearTimeout(timer);
+      });
+    };
+  }, []);
 
   // Validación simple lado cliente (mismas reglas que Zod, pero en front)
   function validateField(
@@ -142,7 +171,24 @@ export default function CreativeForm({
         <div className="md:col-span-1 h-full">
           <FormField
           htmlFor="moods"
-          label={"Moods"}
+          label={
+              <span className="flex w-full items-center justify-between gap-2">
+                <span>Moods</span>
+              <SaveStateBadge
+                state={savedByModule.moods}
+                className={
+                  savedByModule.moods === "saved"
+                    ? "text-emerald-500"
+                    : savedByModule.moods === "error"
+                      ? "text-destructive"
+                      : "text-muted-foreground"
+                }
+                savingLabel="Guardando"
+                savedLabel="Guardado"
+                errorLabel="Error"
+              />
+            </span>
+          }
           descriptionPosition="above"
           description={<>Busca y añade moods del catálogo; puedes proponer uno nuevo si no existe.</>}
           error={clientErrors.moods ?? serverErrors.moods?.[0] ?? null}
@@ -153,6 +199,7 @@ export default function CreativeForm({
             initialMoods={track.assignedMoods ?? []}
             initialCatalog={moodCatalog}
             trackId={track.id}
+            onSaveState={(state) => setModuleSaveState("moods", state)}
             error={clientErrors.moods ?? serverErrors.moods?.[0] ?? null}
           />
         </FormField>
@@ -161,7 +208,24 @@ export default function CreativeForm({
         <div className="md:col-span-1 h-full">
           <FormField
             htmlFor="uses"
-            label={"Usos previstos"}
+            label={
+              <span className="flex w-full items-center justify-between gap-2">
+                <span>Usos previstos</span>
+                <SaveStateBadge
+                  state={savedByModule.uses}
+                  className={
+                    savedByModule.uses === "saved"
+                      ? "text-emerald-500"
+                      : savedByModule.uses === "error"
+                        ? "text-destructive"
+                        : "text-muted-foreground"
+                  }
+                  savingLabel="Guardando"
+                  savedLabel="Guardado"
+                  errorLabel="Error"
+                />
+              </span>
+            }
             descriptionPosition="above"
           description={
             <>Usos separados por comas; ayuda a filtrar por tipo de proyecto.</>
@@ -174,6 +238,7 @@ export default function CreativeForm({
             initialUses={track.assignedUses ?? []}
             initialCatalog={useCatalog}
             trackId={track.id}
+            onSaveState={(state) => setModuleSaveState("uses", state)}
             error={clientErrors.uses ?? serverErrors.uses?.[0] ?? null}
             maxItems={15}
           />
@@ -183,7 +248,24 @@ export default function CreativeForm({
         <div className="md:col-span-1 h-full">
           <FormField
             htmlFor="catalogTags"
-            label={"Categorías"}
+            label={
+              <span className="flex w-full items-center justify-between gap-2">
+                <span>Categorías</span>
+                <SaveStateBadge
+                  state={savedByModule.categories}
+                  className={
+                    savedByModule.categories === "saved"
+                      ? "text-emerald-500"
+                      : savedByModule.categories === "error"
+                        ? "text-destructive"
+                        : "text-muted-foreground"
+                  }
+                  savingLabel="Guardando"
+                  savedLabel="Guardado"
+                  errorLabel="Error"
+                />
+              </span>
+            }
             descriptionPosition="above"
           description={<>Asignar/crear categorías del catálogo (CATALOG).</>}
           error={categoryError ?? null}
@@ -194,6 +276,7 @@ export default function CreativeForm({
             name="catalogTags"
             initialCategories={track.assignedCategories}
             initialCatalog={categoryCatalog}
+            onSaveState={(state) => setModuleSaveState("categories", state)}
             error={categoryError ?? null}
             maxItems={10}
           />

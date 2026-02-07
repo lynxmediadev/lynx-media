@@ -11,6 +11,7 @@
  * └─────────────────────────────────────────────────────────────────────────────┘
  */
 import * as React from "react";
+import SaveStateBadge from "@/components/admin/ui/SaveStateBadge";
 
 type Props = {
   requestId: string;
@@ -46,7 +47,7 @@ export default function InternalNotesEditor({ requestId, initialValue }: Props) 
       });
       if (!res.ok) throw new Error(String(res.status));
       setStatus("saved");
-      setTimeout(() => setStatus("idle"), 800);
+      setTimeout(() => setStatus("idle"), 2200);
     } catch {
       setStatus("error");
     }
@@ -91,10 +92,19 @@ export default function InternalNotesEditor({ requestId, initialValue }: Props) 
         </button>
 
         <span className="ml-auto">
-          {status === "saving" && "Guardando…"}
-          {status === "saved" && "Guardado"}
-          {status === "error" && "Error al guardar"}
-          {status === "idle" && " "}
+          <SaveStateBadge
+            state={status}
+            className={
+              status === "saved"
+                ? "text-emerald-500"
+                : status === "error"
+                  ? "text-destructive"
+                  : "text-muted-foreground"
+            }
+            savingLabel="Guardando"
+            savedLabel="Guardado"
+            errorLabel="Error"
+          />
         </span>
       </div>
     </div>

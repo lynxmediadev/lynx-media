@@ -14,6 +14,8 @@ export type CategoryChipsProps = {
   maxItems?: number;
   trackId?: string;
   initialCatalog?: { id?: string; name: string; slug: string }[];
+  onSaved?: () => void;
+  onSaveState?: (state: "saving" | "saved" | "error") => void;
 };
 
 const toUpper = (txt: string) => {
@@ -39,6 +41,8 @@ export function CategoryChips({
   maxItems = 15,
   trackId,
   initialCatalog = [],
+  onSaved,
+  onSaveState,
 }: CategoryChipsProps) {
   const [saving, setSaving] = React.useState(false);
   const [selected, setSelected] = React.useState<TagChip[]>(
@@ -143,6 +147,7 @@ export function CategoryChips({
                   .filter(Boolean)
                   .sort();
                 setSaving(true);
+                onSaveState?.("saving");
                 try {
                   const res = await catalog.saveSelection?.(trackId, slugs);
                   if (res?.ok) {
@@ -156,9 +161,14 @@ export function CategoryChips({
                           })
                         : selected; // fallback optimista si API no devuelve items
                     setSelected(nextSelected);
+                    onSaveState?.("saved");
+                    onSaved?.();
                   } else {
+                    onSaveState?.("error");
                     console.error("[CategoryChips] save failed", res);
                   }
+                } catch (_e) {
+                  onSaveState?.("error");
                 } finally {
                   setSaving(false);
                 }

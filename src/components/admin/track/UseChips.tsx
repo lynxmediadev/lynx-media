@@ -16,6 +16,8 @@ export type UseChipsProps = {
   error?: string | null;
   maxItems?: number;
   trackId: string;
+  onSaved?: () => void;
+  onSaveState?: (state: "saving" | "saved" | "error") => void;
 };
 
 const toTitleCase = (txt: string) => {
@@ -31,6 +33,8 @@ export function UseChips({
   error,
   maxItems = 15,
   trackId,
+  onSaved,
+  onSaveState,
 }: UseChipsProps) {
   const [selected, setSelected] = React.useState<TagChip[]>(() =>
     initialUses.map((u) => {
@@ -68,23 +72,32 @@ export function UseChips({
     async (chips: TagChip[]) => {
       const uses = chips.map((c) => toTitleCase(c.value ?? c.label));
       setSaving(true);
+      onSaveState?.("saving");
       try {
         const res = await catalog.saveSelection?.(trackId, uses);
         const data = res?.data;
-        if (res?.ok && Array.isArray(data?.items)) {
-          setSelected(
-            data.items.map((item: any) => {
-              const label = toTitleCase(item.name ?? item.slug ?? "");
-              const slug = slugify(label);
-              return { id: item.id, label, value: label, meta: { slug } };
-            })
-          );
+        if (res?.ok) {
+          if (Array.isArray(data?.items)) {
+            setSelected(
+              data.items.map((item: any) => {
+                const label = toTitleCase(item.name ?? item.slug ?? "");
+                const slug = slugify(label);
+                return { id: item.id, label, value: label, meta: { slug } };
+              })
+            );
+          }
+          onSaveState?.("saved");
+          onSaved?.();
+        } else {
+          onSaveState?.("error");
         }
+      } catch (_e) {
+        onSaveState?.("error");
       } finally {
         setSaving(false);
       }
     },
-    [catalog, trackId],
+    [catalog, onSaved, onSaveState, trackId],
   );
 
   // Rehidrata al montar SOLO si no vino SSR (evita doble lista/parpadeo)

@@ -11,6 +11,8 @@ type Props = {
   initialCatalog?: { id: string; slug: string; name: string }[];
   error?: string | null;
   trackId: string;
+  onSaved?: () => void;
+  onSaveState?: (state: "saving" | "saved" | "error") => void;
 };
 
 export function MoodChips({
@@ -19,6 +21,8 @@ export function MoodChips({
   initialCatalog = [],
   error,
   trackId,
+  onSaved,
+  onSaveState,
 }: Props) {
   const [selected, setSelected] = React.useState<TagChip[]>(() =>
     initialMoods.map((m) => {
@@ -58,23 +62,32 @@ export function MoodChips({
     async (chips: TagChip[]) => {
       const moods = chips.map((c) => (c.value ?? c.label).toUpperCase());
       setSaving(true);
+      onSaveState?.("saving");
       try {
         const res = await catalog.saveSelection?.(trackId, moods);
         const data = res?.data;
-        if (res?.ok && Array.isArray(data?.items)) {
-          setSelected(
-            data.items.map((item: any) => {
-              const label = (item.name ?? item.slug ?? "").toString().toUpperCase();
-              const slug = slugify(label);
-              return { id: item.id, label, value: label, meta: { slug } };
-            }),
-          );
+        if (res?.ok) {
+          if (Array.isArray(data?.items)) {
+            setSelected(
+              data.items.map((item: any) => {
+                const label = (item.name ?? item.slug ?? "").toString().toUpperCase();
+                const slug = slugify(label);
+                return { id: item.id, label, value: label, meta: { slug } };
+              }),
+            );
+          }
+          onSaveState?.("saved");
+          onSaved?.();
+        } else {
+          onSaveState?.("error");
         }
+      } catch (_e) {
+        onSaveState?.("error");
       } finally {
         setSaving(false);
       }
     },
-    [catalog, trackId],
+    [catalog, onSaved, onSaveState, trackId],
   );
 
   // Rehidrata al montar SOLO si no vino SSR (para evitar parpadeo/doble lista)
