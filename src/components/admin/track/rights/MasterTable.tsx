@@ -14,6 +14,7 @@ type Props = {
   masterError: string | null;
   sumMaster: () => number;
   masterBusy: boolean;
+  saveFeedback: { status: "saving" | "ok" | "error"; code?: string } | null;
   pendingMaster: boolean;
   longPress: LongPressState;
   onLongPressStart: (
@@ -32,6 +33,11 @@ type Props = {
     field: "name" | "sharePct" | "contact" | "notes",
     value: string,
   ) => void;
+  onCommitChange: (
+    idx: number,
+    field: "name" | "contact" | "notes",
+    value: string,
+  ) => void | Promise<void>;
   onDelete: (idx: number) => void;
 };
 
@@ -40,6 +46,7 @@ export function MasterTable({
   masterError,
   sumMaster,
   masterBusy,
+  saveFeedback,
   pendingMaster,
   longPress,
   onLongPressStart,
@@ -49,6 +56,7 @@ export function MasterTable({
   moveMasterTop,
   moveMasterBottom,
   onChange,
+  onCommitChange,
   onDelete,
 }: Props) {
   const [posValues, setPosValues] = React.useState<Record<string, string>>({});
@@ -67,7 +75,7 @@ export function MasterTable({
       <p className="mb-2 text-[11px] text-muted-foreground">
         Lista de titulares del master y porcentajes. Si no se indica %, se considera parcial/pendiente.
       </p>
-      <div className="flex flex-wrap items-center gap-2 rounded-md border border-border/50 bg-muted/60 px-3 py-2 text-[11px] uppercase tracking-[0.08em] font-semibold text-foreground">
+      <div className="flex items-center justify-between gap-2 rounded-md border border-border/50 bg-muted/60 px-3 py-2 text-[11px] uppercase tracking-[0.08em] font-semibold text-foreground">
         <span className="flex items-center gap-2">
           <span>MASTER · TOTAL: {sumMaster()}%</span>
           {masterError ? (
@@ -76,12 +84,28 @@ export function MasterTable({
               <span className="text-destructive">{masterError}</span>
             </>
           ) : sumMaster() < 100 ? (
-            <span className="text-amber-400">INCOMPLETO</span>
-          ) : (
-            <span className="text-emerald-500">OK</span>
-          )}
+            <>
+              <span>·</span>
+              <span className="text-amber-400">INCOMPLETO</span>
+            </>
+          ) : !saveFeedback ? (
+            <>
+              <span>·</span>
+              <span className="text-emerald-500">OK</span>
+            </>
+          ) : null}
         </span>
-        {masterBusy && <span className="text-[11px] text-muted-foreground">Moviendo…</span>}
+        {saveFeedback?.status === "saving" && (
+          <span className="text-[10px] text-amber-400">Saving...</span>
+        )}
+        {saveFeedback?.status === "ok" && (
+          <span className="text-[10px] text-emerald-500">OK</span>
+        )}
+        {saveFeedback?.status === "error" && (
+          <span className="text-[10px] text-destructive">
+            ERROR {saveFeedback.code ? `(${saveFeedback.code})` : ""}
+          </span>
+        )}
       </div>
 
       <div className="hidden w-full overflow-x-auto rounded-md bg-transparent p-1.5 table-scroll md:block">
@@ -113,13 +137,13 @@ export function MasterTable({
                 >
                   <td className="w-10 px-2 py-2 text-center text-muted-foreground">:::</td>
                   <td className="px-2 py-2">
-                    <Input
+                    <EditableIconInput
                       value={ms.name}
-                      onChange={(e) => onChange(idx, "name", e.target.value)}
-                      className="h-8 text-xs"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") e.preventDefault();
-                      }}
+                      onChange={(value) => onChange(idx, "name", value)}
+                      onCommit={(value) => onCommitChange(idx, "name", value)}
+                      disabled={masterBusy}
+                      placeholder="-"
+                      iconAriaLabel="Editar nombre"
                     />
                   </td>
                   <td className="w-16 px-1 py-2 text-center">
@@ -253,6 +277,7 @@ export function MasterTable({
                     <EditableIconInput
                       value={ms.contact ?? ""}
                       onChange={(value) => onChange(idx, "contact", value)}
+                      onCommit={(value) => onCommitChange(idx, "contact", value)}
                       disabled={masterBusy}
                       placeholder="-"
                       iconAriaLabel="Editar contacto"
@@ -262,6 +287,7 @@ export function MasterTable({
                     <EditableIconInput
                       value={ms.notes ?? ""}
                       onChange={(value) => onChange(idx, "notes", value)}
+                      onCommit={(value) => onCommitChange(idx, "notes", value)}
                       disabled={masterBusy}
                       placeholder="-"
                       iconAriaLabel="Editar notas"

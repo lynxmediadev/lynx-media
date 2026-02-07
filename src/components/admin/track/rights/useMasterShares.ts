@@ -8,6 +8,8 @@ type UseMasterSharesArgs = {
   initialMasterShares: MasterShare[];
 };
 
+type SaveFeedback = { status: "saving" | "ok" | "error"; code?: string } | null;
+
 export function useMasterShares({ trackId, initialMasterShares }: UseMasterSharesArgs) {
   const [masterShares, setMasterShares] = React.useState<MasterShare[]>(
     (initialMasterShares ?? []).slice().sort(sortByOrder),
@@ -15,6 +17,8 @@ export function useMasterShares({ trackId, initialMasterShares }: UseMasterShare
   const [masterError, setMasterError] = React.useState<string | null>(null);
   const [savingMaster, setSavingMaster] = React.useState(false);
   const [reorderMasterPending, setReorderMasterPending] = React.useState(false);
+  const [saveFeedback, setSaveFeedback] = React.useState<SaveFeedback>(null);
+  const saveFeedbackTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [newMaster, setNewMaster] = React.useState<{
     name: string;
     sharePct: number | null;
@@ -44,8 +48,27 @@ export function useMasterShares({ trackId, initialMasterShares }: UseMasterShare
     return true;
   };
 
+  React.useEffect(
+    () => () => {
+      if (saveFeedbackTimerRef.current) clearTimeout(saveFeedbackTimerRef.current);
+    },
+    [],
+  );
+
+  const showSaveFeedback = (next: SaveFeedback, durationMs?: number) => {
+    if (saveFeedbackTimerRef.current) clearTimeout(saveFeedbackTimerRef.current);
+    setSaveFeedback(next);
+    if (durationMs && durationMs > 0) {
+      saveFeedbackTimerRef.current = setTimeout(() => {
+        setSaveFeedback(null);
+        saveFeedbackTimerRef.current = null;
+      }, durationMs);
+    }
+  };
+
   const persistMaster = async (ordered: MasterShare[]) => {
     setReorderMasterPending(true);
+    showSaveFeedback({ status: "saving" });
     const result = await updateMasterShares({
       trackId,
       shares: ordered.map((s) => ({
@@ -61,9 +84,14 @@ export function useMasterShares({ trackId, initialMasterShares }: UseMasterShare
     if (!result.ok) {
       const msg = "message" in result ? result.message : null;
       setMasterError(msg ?? "Error al guardar titular de master.");
+      const code = msg?.toLowerCase().includes("validación")
+        ? "MASTER_VALIDATION"
+        : "MASTER_SAVE_FAILED";
+      showSaveFeedback({ status: "error", code }, 5000);
       return false;
     }
     setMasterError(null);
+    showSaveFeedback({ status: "ok" }, 500);
     return true;
   };
 
@@ -149,6 +177,30 @@ export function useMasterShares({ trackId, initialMasterShares }: UseMasterShare
     validateMasterTotal(ordered);
   };
 
+  const commitMasterField = async (
+    idx: number,
+    field: "name" | "sharePct" | "contact" | "notes",
+    value: string,
+  ) => {
+    const next = masterShares.map((s, i) =>
+      i === idx
+        ? {
+            ...s,
+            [field]:
+              field === "sharePct"
+                ? value === ""
+                  ? null
+                  : Number(value)
+                : value,
+          }
+        : s,
+    );
+    const ordered = applyMasterOrders(next);
+    setMasterShares(ordered);
+    validateMasterTotal(ordered);
+    await persistMaster(ordered);
+  };
+
   return {
     masterShares,
     masterError,
@@ -156,6 +208,7 @@ export function useMasterShares({ trackId, initialMasterShares }: UseMasterShare
     setNewMaster,
     savingMaster,
     reorderMasterPending,
+    saveFeedback,
     moveMaster,
     moveMasterTo,
     moveMasterTop,
@@ -163,6 +216,7 @@ export function useMasterShares({ trackId, initialMasterShares }: UseMasterShare
     addMaster,
     deleteMaster,
     handleMasterChange,
+    commitMasterField,
     validateMasterTotal,
     sumMaster,
   };

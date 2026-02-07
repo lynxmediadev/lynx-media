@@ -28,6 +28,11 @@ type Props = {
     field: "name" | "sharePct" | "contact" | "notes",
     value: string,
   ) => void;
+  onCommitChange: (
+    idx: number,
+    field: "name" | "contact" | "notes",
+    value: string,
+  ) => void | Promise<void>;
   onDelete: (idx: number) => void;
 };
 
@@ -41,6 +46,7 @@ export function MasterCards({
   moveMaster,
   moveMasterTo,
   onChange,
+  onCommitChange,
   onDelete,
 }: Props) {
   const [expanded, setExpanded] = React.useState<Record<string, boolean>>({});
@@ -177,10 +183,13 @@ export function MasterCards({
                 <div className="space-y-3">
                   <div className="space-y-1">
                     <Label className="text-[11px] text-muted-foreground">Nombre</Label>
-                    <Input
+                    <EditableIconInput
                       value={ms.name}
-                      onChange={(e) => onChange(idx, "name", e.target.value)}
-                      className="h-8 text-xs"
+                      onChange={(value) => onChange(idx, "name", value)}
+                      onCommit={(value) => onCommitChange(idx, "name", value)}
+                      disabled={masterBusy}
+                      placeholder="-"
+                      iconAriaLabel="Editar nombre"
                     />
                   </div>
                   <div className="space-y-1">
@@ -199,6 +208,7 @@ export function MasterCards({
                     <EditableIconInput
                       value={ms.contact ?? ""}
                       onChange={(value) => onChange(idx, "contact", value)}
+                      onCommit={(value) => onCommitChange(idx, "contact", value)}
                       disabled={masterBusy}
                       placeholder="-"
                       iconAriaLabel="Editar contacto"
@@ -209,6 +219,7 @@ export function MasterCards({
                     <EditableIconInput
                       value={ms.notes ?? ""}
                       onChange={(value) => onChange(idx, "notes", value)}
+                      onCommit={(value) => onCommitChange(idx, "notes", value)}
                       disabled={masterBusy}
                       placeholder="-"
                       iconAriaLabel="Editar notas"

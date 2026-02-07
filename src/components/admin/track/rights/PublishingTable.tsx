@@ -23,6 +23,7 @@ type Props = {
   roleMsg?: string;
   missing: boolean;
   shareBusy: boolean;
+  saveFeedback: { status: "saving" | "ok" | "error"; code?: string } | null;
   pendingShares: boolean;
   longPress: LongPressState;
   onLongPressStart: (
@@ -37,6 +38,11 @@ type Props = {
   moveShareTop: (idx: number) => void;
   moveShareBottom: (idx: number) => void;
   onChange: (idx: number, field: keyof Share, value: string) => void;
+  onCommitChange: (
+    idx: number,
+    field: "name" | "ipiNumber" | "caeNumber",
+    value: string,
+  ) => void | Promise<void>;
   onDelete: (idx: number) => void;
 };
 
@@ -47,6 +53,7 @@ export function PublishingTable({
   roleMsg,
   missing,
   shareBusy,
+  saveFeedback,
   pendingShares,
   longPress,
   onLongPressStart,
@@ -56,6 +63,7 @@ export function PublishingTable({
   moveShareTop,
   moveShareBottom,
   onChange,
+  onCommitChange,
   onDelete,
 }: Props) {
   const isWriter = role === "WRITER";
@@ -82,12 +90,28 @@ export function PublishingTable({
                 <span className="text-destructive">{roleMsg}</span>
               </>
             ) : missing ? (
-              <span className="text-amber-400">incompleto</span>
-            ) : (
-              <span className="text-emerald-500">OK</span>
-            )}
+              <>
+                <span>·</span>
+                <span className="text-amber-400">incompleto</span>
+              </>
+            ) : !saveFeedback ? (
+              <>
+                <span>·</span>
+                <span className="text-emerald-500">OK</span>
+              </>
+            ) : null}
           </span>
-          {shareBusy && <span className="text-[11px] text-muted-foreground">Moviendo…</span>}
+          {saveFeedback?.status === "saving" && (
+            <span className="text-[10px] text-amber-400">Saving...</span>
+          )}
+          {saveFeedback?.status === "ok" && (
+            <span className="text-[10px] text-emerald-500">OK</span>
+          )}
+          {saveFeedback?.status === "error" && (
+            <span className="text-[10px] text-destructive">
+              ERROR {saveFeedback.code ? `(${saveFeedback.code})` : ""}
+            </span>
+          )}
         </div>
         <div className="hidden table-scroll md:block">
           <table className="min-w-full w-full text-xs">
@@ -120,10 +144,13 @@ export function PublishingTable({
                   >
                     <td className="w-10 px-2 py-2 text-center text-muted-foreground">:::</td>
                     <td className="px-2 py-2">
-                      <Input
+                      <EditableIconInput
                         value={share.name}
-                        onChange={(e) => onChange(roleIdx, "name", e.target.value)}
-                        className="h-8 text-xs"
+                        onChange={(value) => onChange(roleIdx, "name", value)}
+                        onCommit={(value) => onCommitChange(roleIdx, "name", value)}
+                        disabled={shareBusy}
+                        placeholder="-"
+                        iconAriaLabel="Editar nombre"
                       />
                     </td>
                     <td className="w-16 px-1 py-2 text-center">
@@ -270,6 +297,7 @@ export function PublishingTable({
                         <EditableIconInput
                           value={share.ipiNumber ?? ""}
                           onChange={(value) => onChange(roleIdx, "ipiNumber", value)}
+                          onCommit={(value) => onCommitChange(roleIdx, "ipiNumber", value)}
                           disabled={shareBusy}
                           placeholder="-"
                           iconAriaLabel="Editar IPI"
@@ -277,6 +305,7 @@ export function PublishingTable({
                         <EditableIconInput
                           value={share.caeNumber ?? ""}
                           onChange={(value) => onChange(roleIdx, "caeNumber", value)}
+                          onCommit={(value) => onCommitChange(roleIdx, "caeNumber", value)}
                           disabled={shareBusy}
                           placeholder="-"
                           iconAriaLabel="Editar CAE"

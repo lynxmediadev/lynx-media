@@ -10,6 +10,8 @@ type UsePublishingSharesArgs = {
   initialShares: Share[];
 };
 
+type SaveFeedback = { status: "saving" | "ok" | "error"; code?: string } | null;
+
 export function usePublishingShares({ trackId, initialShares }: UsePublishingSharesArgs) {
   const [shares, setShares] = React.useState<Share[]>(
     (initialShares ?? []).slice().sort(sortByOrder),
@@ -21,6 +23,8 @@ export function usePublishingShares({ trackId, initialShares }: UsePublishingSha
   const [savingWriter, setSavingWriter] = React.useState(false);
   const [savingPublisher, setSavingPublisher] = React.useState(false);
   const [reorderSharePending, setReorderSharePending] = React.useState(false);
+  const [saveFeedback, setSaveFeedback] = React.useState<SaveFeedback>(null);
+  const saveFeedbackTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [newWriter, setNewWriter] = React.useState<
     Share & { ipiNumber: string; pro: string; caeNumber: string }
@@ -63,8 +67,27 @@ export function usePublishingShares({ trackId, initialShares }: UsePublishingSha
     setShareError(roleErrors.WRITER ?? roleErrors.PUBLISHER ?? null);
   };
 
+  React.useEffect(
+    () => () => {
+      if (saveFeedbackTimerRef.current) clearTimeout(saveFeedbackTimerRef.current);
+    },
+    [],
+  );
+
+  const showSaveFeedback = (next: SaveFeedback, durationMs?: number) => {
+    if (saveFeedbackTimerRef.current) clearTimeout(saveFeedbackTimerRef.current);
+    setSaveFeedback(next);
+    if (durationMs && durationMs > 0) {
+      saveFeedbackTimerRef.current = setTimeout(() => {
+        setSaveFeedback(null);
+        saveFeedbackTimerRef.current = null;
+      }, durationMs);
+    }
+  };
+
   const persistShares = async (ordered: Share[]) => {
     setReorderSharePending(true);
+    showSaveFeedback({ status: "saving" });
     const result = await updatePublishingShares({
       trackId,
       oneStop: false,
@@ -78,9 +101,17 @@ export function usePublishingShares({ trackId, initialShares }: UsePublishingSha
     if (!result.ok) {
       const msg = "message" in result ? result.message : null;
       setShareError(msg ?? "Error al guardar publishing shares.");
+      const code =
+        result.fieldErrors?.publishingShares?.length
+          ? "PUB_ONESTOP_100"
+          : msg?.toLowerCase().includes("validación")
+            ? "PUB_VALIDATION"
+            : "PUB_SAVE_FAILED";
+      showSaveFeedback({ status: "error", code }, 5000);
       return false;
     }
     setShareError(null);
+    showSaveFeedback({ status: "ok" }, 500);
     return true;
   };
 
@@ -89,6 +120,26 @@ export function usePublishingShares({ trackId, initialShares }: UsePublishingSha
     setShares(ordered);
     validateShares(ordered);
     return persistShares(ordered);
+  };
+
+  const commitShareField = async (idx: number, field: keyof Share, value: string) => {
+    const next = shares.map((s, i) =>
+      i === idx
+        ? {
+            ...s,
+            [field]:
+              field === "sharePct"
+                ? value === ""
+                  ? null
+                  : Number(value)
+                : value,
+          }
+        : s,
+    );
+    const ordered = applyRoleSortOrders(next);
+    setShares(ordered);
+    validateShares(ordered);
+    await persistShares(ordered);
   };
 
   const moveShare = (globalIdx: number, delta: number) => {
@@ -213,12 +264,14 @@ export function usePublishingShares({ trackId, initialShares }: UsePublishingSha
     savingWriter,
     savingPublisher,
     reorderSharePending,
+    saveFeedback,
     moveShare,
     moveShareTo,
     moveShareTop,
     moveShareBottom,
     addShare,
     deleteShare,
+    commitShareField,
     handleShareChange: (idx: number, field: keyof Share, value: string) => {
       const next = shares.map((s, i) =>
         i === idx

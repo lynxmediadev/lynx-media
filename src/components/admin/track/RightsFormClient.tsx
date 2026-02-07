@@ -181,6 +181,7 @@ export default function RightsFormClient({ trackId, track, fieldErrors }: Rights
                   roleMsg={roleMsg}
                   missing={missing}
                   shareBusy={shareBusy}
+                  saveFeedback={pub.saveFeedback}
                   pendingShares={false}
                   longPress={longPress}
                   onLongPressStart={(type, idx, dir, e) =>
@@ -206,6 +207,11 @@ export default function RightsFormClient({ trackId, track, fieldErrors }: Rights
                   onChange={(idx, field, value) => {
                     const g = toGlobal(idx);
                     if (g >= 0) pub.handleShareChange(g, field, value);
+                  }}
+                  onCommitChange={(idx, field, value) => {
+                    const g = toGlobal(idx);
+                    if (g >= 0) return pub.commitShareField(g, field, value);
+                    return Promise.resolve();
                   }}
                   onDelete={(idx) => {
                     const g = toGlobal(idx);
@@ -235,6 +241,11 @@ export default function RightsFormClient({ trackId, track, fieldErrors }: Rights
                     onChange={(idx, field, value) => {
                       const g = toGlobal(idx);
                       if (g >= 0) pub.handleShareChange(g, field, value);
+                    }}
+                    onCommitChange={(idx, field, value) => {
+                      const g = toGlobal(idx);
+                      if (g >= 0) return pub.commitShareField(g, field, value);
+                      return Promise.resolve();
                     }}
                     onDelete={(idx) => {
                       const g = toGlobal(idx);
@@ -279,6 +290,7 @@ export default function RightsFormClient({ trackId, track, fieldErrors }: Rights
         masterError={mas.masterError}
         sumMaster={mas.sumMaster}
         masterBusy={masterBusy}
+        saveFeedback={mas.saveFeedback}
         pendingMaster={false}
         longPress={longPress}
         onLongPressStart={(type, idx, dir, e) => handleLongPress(type, idx, dir, e)}
@@ -288,6 +300,7 @@ export default function RightsFormClient({ trackId, track, fieldErrors }: Rights
         moveMasterTop={mas.moveMasterTop}
         moveMasterBottom={mas.moveMasterBottom}
         onChange={mas.handleMasterChange}
+        onCommitChange={mas.commitMasterField}
         onDelete={(idx) => setDeleteTarget({ type: "master", idx })}
       />
       <div className="md:hidden">
@@ -301,6 +314,7 @@ export default function RightsFormClient({ trackId, track, fieldErrors }: Rights
           moveMaster={mas.moveMaster}
           moveMasterTo={mas.moveMasterTo}
           onChange={mas.handleMasterChange}
+          onCommitChange={mas.commitMasterField}
           onDelete={(idx) => setDeleteTarget({ type: "master", idx })}
         />
       </div>

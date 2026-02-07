@@ -32,6 +32,11 @@ type Props = {
   moveShare: (idx: number, delta: number) => void;
   moveShareTo: (idx: number, target: number) => void;
   onChange: (idx: number, field: keyof Share, value: string) => void;
+  onCommitChange: (
+    idx: number,
+    field: "name" | "ipiNumber" | "caeNumber",
+    value: string,
+  ) => void | Promise<void>;
   onDelete: (idx: number) => void;
 };
 
@@ -46,6 +51,7 @@ export function PublishingCards({
   moveShare,
   moveShareTo,
   onChange,
+  onCommitChange,
   onDelete,
 }: Props) {
   const [expanded, setExpanded] = React.useState<Record<string, boolean>>({});
@@ -183,10 +189,13 @@ export function PublishingCards({
                   <div className="grid grid-cols-1 gap-2">
                     <div className="space-y-1">
                       <Label className="text-[11px] text-muted-foreground">Nombre</Label>
-                      <Input
+                      <EditableIconInput
                         value={share.name}
-                        onChange={(e) => onChange(idx, "name", e.target.value)}
-                        className="h-8 text-xs"
+                        onChange={(value) => onChange(idx, "name", value)}
+                        onCommit={(value) => onCommitChange(idx, "name", value)}
+                        disabled={shareBusy}
+                        placeholder="-"
+                        iconAriaLabel="Editar nombre"
                       />
                     </div>
                     <div className="space-y-1">
@@ -221,6 +230,7 @@ export function PublishingCards({
                         <EditableIconInput
                           value={share.ipiNumber ?? ""}
                           onChange={(value) => onChange(idx, "ipiNumber", value)}
+                          onCommit={(value) => onCommitChange(idx, "ipiNumber", value)}
                           disabled={shareBusy}
                           placeholder="-"
                           iconAriaLabel="Editar IPI"
@@ -231,6 +241,7 @@ export function PublishingCards({
                         <EditableIconInput
                           value={share.caeNumber ?? ""}
                           onChange={(value) => onChange(idx, "caeNumber", value)}
+                          onCommit={(value) => onCommitChange(idx, "caeNumber", value)}
                           disabled={shareBusy}
                           placeholder="-"
                           iconAriaLabel="Editar CAE"
