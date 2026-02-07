@@ -107,6 +107,7 @@ export function MasterNewForm({ newMaster, setNewMaster, savingMaster, addMaster
             disabled={savingMaster || !canSubmit}
             className="inline-flex h-8 items-center justify-center rounded border border-border bg-card px-3 text-xs font-semibold text-foreground hover:border-foreground/70 disabled:opacity-60"
           >
+            <Plus className="mr-1 h-3.5 w-3.5" />
             Añadir master
           </button>
         </div>
