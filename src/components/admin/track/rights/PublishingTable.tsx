@@ -1,8 +1,8 @@
 import * as React from "react";
 import { ArrowDown, ArrowUp, SquareX } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import EditableIconInput from "@/components/admin/ui/EditableIconInput";
+import NumericSelectInput from "@/components/admin/ui/NumericSelectInput";
 import type { Share } from "./types";
 
 type Role = "WRITER" | "PUBLISHER";
@@ -40,7 +40,7 @@ type Props = {
   onChange: (idx: number, field: keyof Share, value: string) => void;
   onCommitChange: (
     idx: number,
-    field: "name" | "ipiNumber" | "caeNumber",
+    field: "name" | "sharePct" | "ipiNumber" | "caeNumber",
     value: string,
   ) => void | Promise<void>;
   onDelete: (idx: number) => void;
@@ -87,31 +87,42 @@ export function PublishingTable({
             {roleMsg ? (
               <>
                 <span>·</span>
-                <span className="text-destructive">{roleMsg}</span>
+                <span className="text-destructive" title={roleMsg}>
+                  ERROR
+                </span>
               </>
             ) : missing ? (
               <>
                 <span>·</span>
-                <span className="text-amber-400">incompleto</span>
+                <span className="text-amber-400">INCOMPLETO</span>
               </>
-            ) : !saveFeedback ? (
+            ) : (
               <>
                 <span>·</span>
                 <span className="text-emerald-500">OK</span>
               </>
-            ) : null}
+            )}
+            {saveFeedback?.status === "saving" && (
+              <>
+                <span>·</span>
+                <span className="text-amber-400">Saving...</span>
+              </>
+            )}
+            {saveFeedback?.status === "ok" && (
+              <>
+                <span>·</span>
+                <span className="text-emerald-500">DONE</span>
+              </>
+            )}
+            {saveFeedback?.status === "error" && (
+              <>
+                <span>·</span>
+                <span className="text-destructive">
+                  ERROR {saveFeedback.code ? `(${saveFeedback.code})` : ""}
+                </span>
+              </>
+            )}
           </span>
-          {saveFeedback?.status === "saving" && (
-            <span className="text-[10px] text-amber-400">Saving...</span>
-          )}
-          {saveFeedback?.status === "ok" && (
-            <span className="text-[10px] text-emerald-500">OK</span>
-          )}
-          {saveFeedback?.status === "error" && (
-            <span className="text-[10px] text-destructive">
-              ERROR {saveFeedback.code ? `(${saveFeedback.code})` : ""}
-            </span>
-          )}
         </div>
         <div className="hidden table-scroll md:block">
           <table className="min-w-full w-full text-xs">
@@ -154,17 +165,16 @@ export function PublishingTable({
                       />
                     </td>
                     <td className="w-16 px-1 py-2 text-center">
-                      <Input
+                      <NumericSelectInput
                         key={`pos-${share.id ?? `${role}-${roleIdx}`}-${share.sortOrder ?? roleIdx}`}
-                        type="number"
                         min={1}
                         max={roleShares.length}
                         value={posValues[`${share.id ?? `${role}-${roleIdx}`}-${share.sortOrder ?? roleIdx}`] ?? String(roleIdx + 1)}
-                        onChange={(e) =>
+                        onChange={(value) =>
                           setPosValues((prev) => ({
                             ...prev,
                             [`${share.id ?? `${role}-${roleIdx}`}-${share.sortOrder ?? roleIdx}`]:
-                              e.target.value,
+                              value,
                           }))
                         }
                         disabled={shareBusy}
@@ -181,10 +191,10 @@ export function PublishingTable({
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             e.preventDefault();
-                            const val = Number((e.target as HTMLInputElement).value);
-                            if (!Number.isInteger(val) || val < 1 || val > roleShares.length) {
-                              (e.target as HTMLInputElement).classList.add("border-destructive");
-                              return;
+                          const val = Number((e.target as HTMLInputElement).value);
+                          if (!Number.isInteger(val) || val < 1 || val > roleShares.length) {
+                            (e.target as HTMLInputElement).classList.add("border-destructive");
+                            return;
                             }
                             (e.target as HTMLInputElement).classList.remove("border-destructive");
                             moveShareTo(roleIdx, val - 1);
@@ -269,12 +279,13 @@ export function PublishingTable({
                         )}
                     </td>
                     <td className="px-2 py-2">
-                      <Input
-                        type="number"
+                      <NumericSelectInput
                         min={0}
                         max={100}
                         value={share.sharePct ?? ""}
-                        onChange={(e) => onChange(roleIdx, "sharePct", e.target.value)}
+                        onChange={(value) => onChange(roleIdx, "sharePct", value)}
+                        onCommit={(value) => onCommitChange(roleIdx, "sharePct", value)}
+                        disabled={shareBusy}
                         className="h-8 text-xs text-right"
                       />
                     </td>

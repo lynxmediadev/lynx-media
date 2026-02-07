@@ -249,6 +249,7 @@ ___________________________________________________________
 | FormField2 | `src/components/admin/ui/FormField2.tsx` | Variante antigua de FormField | Legacy |
 | SaveStateBadge | `src/components/admin/ui/SaveStateBadge.tsx` | Estado corto de guardado/error | Activo |
 | EditableIconInput | `src/components/admin/ui/EditableIconInput.tsx` | Input bloqueado con ícono editar y foco automático | Activo |
+| NumericSelectInput | `src/components/admin/ui/NumericSelectInput.tsx` | Input numérico sin spinners con select-all en click/focus | Activo |
 
 ### 3) Módulos reutilizables del editor de track (`src/components/admin/track`)
 | Componente | Ruta | Uso principal | Estado |

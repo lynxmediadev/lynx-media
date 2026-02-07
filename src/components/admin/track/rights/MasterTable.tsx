@@ -1,8 +1,8 @@
 import * as React from "react";
 import { ArrowDown, ArrowUp, SquareX } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import EditableIconInput from "@/components/admin/ui/EditableIconInput";
+import NumericSelectInput from "@/components/admin/ui/NumericSelectInput";
 import type { MasterShare } from "./types";
 
 type LongPressState =
@@ -35,7 +35,7 @@ type Props = {
   ) => void;
   onCommitChange: (
     idx: number,
-    field: "name" | "contact" | "notes",
+    field: "name" | "sharePct" | "contact" | "notes",
     value: string,
   ) => void | Promise<void>;
   onDelete: (idx: number) => void;
@@ -81,31 +81,42 @@ export function MasterTable({
           {masterError ? (
             <>
               <span>·</span>
-              <span className="text-destructive">{masterError}</span>
+              <span className="text-destructive" title={masterError}>
+                ERROR
+              </span>
             </>
           ) : sumMaster() < 100 ? (
             <>
               <span>·</span>
               <span className="text-amber-400">INCOMPLETO</span>
             </>
-          ) : !saveFeedback ? (
+          ) : (
             <>
               <span>·</span>
               <span className="text-emerald-500">OK</span>
             </>
-          ) : null}
+          )}
+          {saveFeedback?.status === "saving" && (
+            <>
+              <span>·</span>
+              <span className="text-amber-400">Saving...</span>
+            </>
+          )}
+          {saveFeedback?.status === "ok" && (
+            <>
+              <span>·</span>
+              <span className="text-emerald-500">DONE</span>
+            </>
+          )}
+          {saveFeedback?.status === "error" && (
+            <>
+              <span>·</span>
+              <span className="text-destructive">
+                ERROR {saveFeedback.code ? `(${saveFeedback.code})` : ""}
+              </span>
+            </>
+          )}
         </span>
-        {saveFeedback?.status === "saving" && (
-          <span className="text-[10px] text-amber-400">Saving...</span>
-        )}
-        {saveFeedback?.status === "ok" && (
-          <span className="text-[10px] text-emerald-500">OK</span>
-        )}
-        {saveFeedback?.status === "error" && (
-          <span className="text-[10px] text-destructive">
-            ERROR {saveFeedback.code ? `(${saveFeedback.code})` : ""}
-          </span>
-        )}
       </div>
 
       <div className="hidden w-full overflow-x-auto rounded-md bg-transparent p-1.5 table-scroll md:block">
@@ -147,16 +158,15 @@ export function MasterTable({
                     />
                   </td>
                   <td className="w-16 px-1 py-2 text-center">
-                    <Input
+                    <NumericSelectInput
                       key={`pos-${ms.id ?? `ms-${idx}`}-${ms.sortOrder ?? idx}`}
-                      type="number"
                       min={1}
                       max={masterShares.length}
                       value={posValues[`${ms.id ?? `ms-${idx}`}-${ms.sortOrder ?? idx}`] ?? String(idx + 1)}
-                      onChange={(e) =>
+                      onChange={(value) =>
                         setPosValues((prev) => ({
                           ...prev,
-                          [`${ms.id ?? `ms-${idx}`}-${ms.sortOrder ?? idx}`]: e.target.value,
+                          [`${ms.id ?? `ms-${idx}`}-${ms.sortOrder ?? idx}`]: value,
                         }))
                       }
                       disabled={masterBusy}
@@ -261,16 +271,14 @@ export function MasterTable({
                       )}
                   </td>
                   <td className="px-2 py-2">
-                    <Input
-                      type="number"
+                    <NumericSelectInput
                       min={0}
                       max={100}
                       value={ms.sharePct ?? ""}
-                      onChange={(e) => onChange(idx, "sharePct", e.target.value)}
+                      onChange={(value) => onChange(idx, "sharePct", value)}
+                      onCommit={(value) => onCommitChange(idx, "sharePct", value)}
+                      disabled={masterBusy}
                       className="h-8 text-xs text-right"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") e.preventDefault();
-                      }}
                     />
                   </td>
                   <td className="px-2 py-2">

@@ -91,7 +91,7 @@ export function useMasterShares({ trackId, initialMasterShares }: UseMasterShare
       return false;
     }
     setMasterError(null);
-    showSaveFeedback({ status: "ok" }, 500);
+    showSaveFeedback({ status: "ok" }, 1000);
     return true;
   };
 

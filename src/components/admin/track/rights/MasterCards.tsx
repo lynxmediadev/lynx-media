@@ -1,8 +1,8 @@
 import * as React from "react";
 import { ArrowDown, ArrowUp, Eye, SquareX } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import EditableIconInput from "@/components/admin/ui/EditableIconInput";
+import NumericSelectInput from "@/components/admin/ui/NumericSelectInput";
 import type { MasterShare } from "./types";
 
 type LongPressState =
@@ -30,7 +30,7 @@ type Props = {
   ) => void;
   onCommitChange: (
     idx: number,
-    field: "name" | "contact" | "notes",
+    field: "name" | "sharePct" | "contact" | "notes",
     value: string,
   ) => void | Promise<void>;
   onDelete: (idx: number) => void;
@@ -97,16 +97,15 @@ export function MasterCards({
                   </div>
                   <div className="flex items-center gap-1">
                     <Label className="text-[10px] text-muted-foreground">Pos.</Label>
-                    <Input
+                    <NumericSelectInput
                       key={`pos-${rowId}`}
-                      type="number"
                       min={1}
                       max={masterShares.length}
                       value={posValues[rowId] ?? String(idx + 1)}
-                      onChange={(e) =>
+                      onChange={(value) =>
                         setPosValues((prev) => ({
                           ...prev,
-                          [rowId]: e.target.value,
+                          [rowId]: value,
                         }))
                       }
                       disabled={masterBusy}
@@ -194,12 +193,13 @@ export function MasterCards({
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[11px] text-muted-foreground">% </Label>
-                    <Input
-                      type="number"
+                    <NumericSelectInput
                       min={0}
                       max={100}
                       value={ms.sharePct ?? ""}
-                      onChange={(e) => onChange(idx, "sharePct", e.target.value)}
+                      onChange={(value) => onChange(idx, "sharePct", value)}
+                      onCommit={(value) => onCommitChange(idx, "sharePct", value)}
+                      disabled={masterBusy}
                       className="h-8 text-xs"
                     />
                   </div>

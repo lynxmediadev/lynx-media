@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import NumericSelectInput from "@/components/admin/ui/NumericSelectInput";
 
 type Props = {
   newMaster: {
@@ -48,15 +49,14 @@ export function MasterNewForm({ newMaster, setNewMaster, savingMaster, addMaster
         </div>
         <div className="flex w-full flex-col gap-1 md:w-20">
           <Label className="text-[11px] text-muted-foreground">% </Label>
-          <Input
-            type="number"
+          <NumericSelectInput
             min={0}
             max={100}
             value={newMaster.sharePct ?? ""}
-            onChange={(e) =>
+            onChange={(value) =>
               setNewMaster((prev) => ({
                 ...prev,
-                sharePct: e.target.value === "" ? null : Number(e.target.value),
+                sharePct: value === "" ? null : Number(value),
               }))
             }
             className="h-8 text-xs text-right"

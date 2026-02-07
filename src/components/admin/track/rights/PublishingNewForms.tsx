@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import NumericSelectInput from "@/components/admin/ui/NumericSelectInput";
 import type { Share } from "./types";
 
 const PRO_OPTIONS = ["ASCAP", "BMI", "SCD"] as const;
@@ -70,15 +71,14 @@ export function PublishingNewForms({
           </div>
           <div className="flex flex-col gap-1">
             <Label className="text-[11px] text-muted-foreground">% </Label>
-            <Input
-              type="number"
+            <NumericSelectInput
               min={0}
               max={100}
               value={state.sharePct ?? ""}
-              onChange={(e) =>
+              onChange={(value) =>
                 setState((prev) => ({
                   ...prev,
-                  sharePct: e.target.value === "" ? null : Number(e.target.value),
+                  sharePct: value === "" ? null : Number(value),
                 }))
               }
               onKeyDown={handleEnter}

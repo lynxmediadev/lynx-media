@@ -111,7 +111,7 @@ export function usePublishingShares({ trackId, initialShares }: UsePublishingSha
       return false;
     }
     setShareError(null);
-    showSaveFeedback({ status: "ok" }, 500);
+    showSaveFeedback({ status: "ok" }, 1000);
     return true;
   };
 
