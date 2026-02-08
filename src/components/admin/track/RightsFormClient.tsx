@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Building2, Disc3, User } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -172,8 +173,24 @@ export default function RightsFormClient({ trackId, track, fieldErrors }: Rights
             const missing = total < 100;
             const roleMsg = pub.shareRoleErrors[role];
             const toGlobal = roleIndexToGlobal(role);
+            const roleLabel = role === "WRITER" ? "WRITER" : "PUBLISHER";
+            const roleHint =
+              role === "WRITER" ? "Titulares de composición" : "Titulares de publishing";
+            const RoleIcon = role === "WRITER" ? User : Building2;
             return (
-              <div key={role} className="space-y-3">
+              <div
+                key={role}
+                className="space-y-3 rounded-lg border border-border/60 bg-card/25 p-3"
+              >
+                <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                  <div className="flex items-center gap-2">
+                    <RoleIcon className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-xs font-semibold tracking-[0.08em] text-foreground">
+                      {roleLabel}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-muted-foreground">{roleHint}</span>
+                </div>
                 <PublishingTable
                   role={role}
                   roleShares={roleShares}
@@ -285,45 +302,54 @@ export default function RightsFormClient({ trackId, track, fieldErrors }: Rights
       </div>
 
       {/* Master */}
-      <MasterTable
-        masterShares={mas.masterShares}
-        masterError={mas.masterError}
-        sumMaster={mas.sumMaster}
-        masterBusy={masterBusy}
-        saveFeedback={mas.saveFeedback}
-        pendingMaster={false}
-        longPress={longPress}
-        onLongPressStart={(type, idx, dir, e) => handleLongPress(type, idx, dir, e)}
-        onLongPressCancel={cancelLongPress}
-        moveMaster={mas.moveMaster}
-        moveMasterTo={mas.moveMasterTo}
-        moveMasterTop={mas.moveMasterTop}
-        moveMasterBottom={mas.moveMasterBottom}
-        onChange={mas.handleMasterChange}
-        onCommitChange={mas.commitMasterField}
-        onDelete={(idx) => setDeleteTarget({ type: "master", idx })}
-      />
-      <div className="md:hidden">
-        <MasterCards
+      <div className="space-y-3 rounded-lg border border-border/60 bg-card/25 p-3">
+        <div className="flex items-center justify-between border-b border-border/50 pb-2">
+          <div className="flex items-center gap-2">
+            <Disc3 className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs font-semibold tracking-[0.08em] text-foreground">MASTER</span>
+          </div>
+          <span className="text-[11px] text-muted-foreground">Titulares de master</span>
+        </div>
+        <MasterTable
           masterShares={mas.masterShares}
+          masterError={mas.masterError}
+          sumMaster={mas.sumMaster}
           masterBusy={masterBusy}
           pendingMaster={false}
+          saveFeedback={mas.saveFeedback}
           longPress={longPress}
           onLongPressStart={(type, idx, dir, e) => handleLongPress(type, idx, dir, e)}
           onLongPressCancel={cancelLongPress}
           moveMaster={mas.moveMaster}
           moveMasterTo={mas.moveMasterTo}
+          moveMasterTop={mas.moveMasterTop}
+          moveMasterBottom={mas.moveMasterBottom}
           onChange={mas.handleMasterChange}
           onCommitChange={mas.commitMasterField}
           onDelete={(idx) => setDeleteTarget({ type: "master", idx })}
         />
+        <div className="md:hidden">
+          <MasterCards
+            masterShares={mas.masterShares}
+            masterBusy={masterBusy}
+            pendingMaster={false}
+            longPress={longPress}
+            onLongPressStart={(type, idx, dir, e) => handleLongPress(type, idx, dir, e)}
+            onLongPressCancel={cancelLongPress}
+            moveMaster={mas.moveMaster}
+            moveMasterTo={mas.moveMasterTo}
+            onChange={mas.handleMasterChange}
+            onCommitChange={mas.commitMasterField}
+            onDelete={(idx) => setDeleteTarget({ type: "master", idx })}
+          />
+        </div>
+        <MasterNewForm
+          newMaster={mas.newMaster}
+          setNewMaster={mas.setNewMaster}
+          savingMaster={mas.savingMaster}
+          addMaster={mas.addMaster}
+        />
       </div>
-      <MasterNewForm
-        newMaster={mas.newMaster}
-        setNewMaster={mas.setNewMaster}
-        savingMaster={mas.savingMaster}
-        addMaster={mas.addMaster}
-      />
 
       {/* Toggles y metadatos */}
       <RightsToggles

@@ -83,7 +83,7 @@ export function PublishingTable({
       <div className="w-full overflow-x-auto rounded-md bg-transparent p-1.5">
         <div className="flex items-center justify-between rounded-md border border-border/50 bg-muted/60 px-3 py-2 text-[11px] uppercase tracking-[0.08em] font-semibold text-foreground">
           <span className="flex items-center gap-2">
-            <span>{role} · Total: {total}%</span>
+            <span>Total: {total}%</span>
             {roleMsg ? (
               <>
                 <span>·</span>

@@ -77,7 +77,7 @@ export function MasterTable({
       </p>
       <div className="flex items-center justify-between gap-2 rounded-md border border-border/50 bg-muted/60 px-3 py-2 text-[11px] uppercase tracking-[0.08em] font-semibold text-foreground">
         <span className="flex items-center gap-2">
-          <span>MASTER · TOTAL: {sumMaster()}%</span>
+          <span>TOTAL: {sumMaster()}%</span>
           {masterError ? (
             <>
               <span>·</span>
