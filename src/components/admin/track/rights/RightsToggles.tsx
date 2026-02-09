@@ -95,10 +95,20 @@ export function RightsToggles({
         </div>
       </div>
 
-      <FormField label="Content ID Admin" error={firstError(serverErrors, "contentIdAdmin")}>
+      <FormField
+        label="Content ID Admin"
+        descriptionPosition="below"
+        description="ID/cuenta administradora de Content ID (quien reclama y gestiona monetización)."
+        error={firstError(serverErrors, "contentIdAdmin")}
+      >
         <Input name="contentIdAdmin" defaultValue={track.contentIdAdmin} className="text-xs" />
       </FormField>
-      <FormField label="Content ID Whitelist" error={firstError(serverErrors, "contentIdWhitelist")}>
+      <FormField
+        label="Content ID Whitelist"
+        descriptionPosition="below"
+        description="Canales permitidos para usar el audio sin reclamación (uno por línea o texto libre)."
+        error={firstError(serverErrors, "contentIdWhitelist")}
+      >
         <Textarea
           name="contentIdWhitelist"
           defaultValue={track.contentIdWhitelist}
@@ -106,7 +116,12 @@ export function RightsToggles({
           rows={2}
         />
       </FormField>
-      <FormField label="Master (titular único)" error={firstError(serverErrors, "master")}>
+      <FormField
+        label="Master (titular único)"
+        descriptionPosition="below"
+        description="Usar solo cuando existe un único dueño del master. Si hay varios titulares, usar la lista MASTER."
+        error={firstError(serverErrors, "master")}
+      >
         <Input
           name="master"
           defaultValue={track.master}
@@ -114,7 +129,12 @@ export function RightsToggles({
           placeholder="Solo si hay un único dueño del master"
         />
       </FormField>
-      <FormField label="Restricciones" error={firstError(serverErrors, "restrictions")}>
+      <FormField
+        label="Restricciones"
+        descriptionPosition="below"
+        description="Condiciones legales/comerciales adicionales para licenciar este track."
+        error={firstError(serverErrors, "restrictions")}
+      >
         <Textarea
           name="restrictions"
           defaultValue={(track.restrictions ?? []).join("\n")}

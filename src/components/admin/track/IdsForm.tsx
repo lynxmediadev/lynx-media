@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import FormField from "../ui/FormField";
-import { Input } from "@/components/ui/input";
+import EditableIconInput from "@/components/admin/ui/EditableIconInput";
 
 type FieldErrors = Record<string, string[]>;
 
@@ -25,25 +25,21 @@ type IdsFormProps = {
 
 export default function IdsForm({ track, fieldErrors }: IdsFormProps) {
   const [clientErrors, setClientErrors] = React.useState<ClientErrors>({});
+  const [isrcValue, setIsrcValue] = React.useState(track.isrc ?? "");
+  const [iswcValue, setIswcValue] = React.useState(track.iswc ?? "");
+  const [upcValue, setUpcValue] = React.useState(track.upc ?? "");
   const serverErrors: FieldErrors = fieldErrors ?? {};
 
   function validateField(
-    name: keyof ClientErrors,
-    value: string,
+    _name: keyof ClientErrors,
+    _value: string,
   ): string | null {
-    const trimmed = value.trim();
-
     // Todos opcionales por ahora; sin validación en blur
     return null;
   }
 
-  function handleBlur(
-    e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) {
-    const { name, value } = e.target;
-    if (!["isrc", "iswc", "upc"].includes(name)) return;
-
-    const error = validateField(name as keyof ClientErrors, value);
+  function handleFieldBlur(name: keyof ClientErrors, value: string) {
+    const error = validateField(name, value);
     setClientErrors((prev) => ({ ...prev, [name]: error }));
   }
 
@@ -72,13 +68,14 @@ export default function IdsForm({ track, fieldErrors }: IdsFormProps) {
           }
           error={clientErrors.isrc ?? serverErrors.isrc?.[0] ?? null}
         >
-          <Input
+          <EditableIconInput
             id="isrc"
             name="isrc"
-            type="text"
-            defaultValue={track.isrc ?? ""}
-            onBlur={handleBlur}
-            className="w-full text-sm"
+            value={isrcValue}
+            onChange={setIsrcValue}
+            onBlurValue={(value) => handleFieldBlur("isrc", value)}
+            lockOnInit
+            inputClassName="w-full text-sm h-9 pr-8"
             placeholder="CL-XXX-24-00001"
           />
         </FormField>
@@ -96,13 +93,14 @@ export default function IdsForm({ track, fieldErrors }: IdsFormProps) {
           }
           error={clientErrors.iswc ?? serverErrors.iswc?.[0] ?? null}
         >
-          <Input
+          <EditableIconInput
             id="iswc"
             name="iswc"
-            type="text"
-            defaultValue={track.iswc ?? ""}
-            onBlur={handleBlur}
-            className="w-full text-sm"
+            value={iswcValue}
+            onChange={setIswcValue}
+            onBlurValue={(value) => handleFieldBlur("iswc", value)}
+            lockOnInit
+            inputClassName="w-full text-sm h-9 pr-8"
             placeholder="T-123.456.789-Z"
           />
         </FormField>
@@ -117,13 +115,14 @@ export default function IdsForm({ track, fieldErrors }: IdsFormProps) {
           }
           error={clientErrors.upc ?? serverErrors.upc?.[0] ?? null}
         >
-          <Input
+          <EditableIconInput
             id="upc"
             name="upc"
-            type="text"
-            defaultValue={track.upc ?? ""}
-            onBlur={handleBlur}
-            className="w-full text-sm"
+            value={upcValue}
+            onChange={setUpcValue}
+            onBlurValue={(value) => handleFieldBlur("upc", value)}
+            lockOnInit
+            inputClassName="w-full text-sm h-9 pr-8"
             placeholder="123456789012"
           />
         </FormField>

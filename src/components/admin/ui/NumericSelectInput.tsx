@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 type NumericSelectInputProps = {
+  id?: string;
+  name?: string;
   value: string | number;
   onChange: (value: string) => void;
   onCommit?: (value: string) => void | Promise<void>;
@@ -13,6 +15,7 @@ type NumericSelectInputProps = {
   step?: number | "any";
   disabled?: boolean;
   className?: string;
+  placeholder?: string;
   onBlur?: React.FocusEventHandler<HTMLInputElement>;
   onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>;
   commitOnEnter?: boolean;
@@ -21,6 +24,8 @@ type NumericSelectInputProps = {
 };
 
 export default function NumericSelectInput({
+  id,
+  name,
   value,
   onChange,
   onCommit,
@@ -29,6 +34,7 @@ export default function NumericSelectInput({
   step,
   disabled = false,
   className,
+  placeholder,
   onBlur,
   onKeyDown,
   commitOnEnter = true,
@@ -67,12 +73,15 @@ export default function NumericSelectInput({
 
   return (
     <Input
+      id={id}
+      name={name}
       ref={inputRef}
       type="number"
       inputMode="numeric"
       min={min}
       max={max}
       step={step}
+      placeholder={placeholder}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       data-allow-enter="true"

@@ -6,9 +6,13 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 type EditableIconInputProps = {
+  id?: string;
+  name?: string;
+  required?: boolean;
   value: string;
   onChange: (value: string) => void;
   onCommit?: (value: string) => void | Promise<void>;
+  onBlurValue?: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
   inputClassName?: string;
@@ -21,9 +25,13 @@ type EditableIconInputProps = {
 };
 
 export default function EditableIconInput({
+  id,
+  name,
+  required = false,
   value,
   onChange,
   onCommit,
+  onBlurValue,
   placeholder = "-",
   disabled = false,
   inputClassName = "h-8 pr-8 text-xs text-foreground placeholder:text-muted-foreground/90 placeholder:opacity-100 placeholder:italic",
@@ -91,6 +99,9 @@ export default function EditableIconInput({
   return (
     <div className="relative">
       <Input
+        id={id}
+        name={name}
+        required={required}
         ref={inputRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -106,6 +117,9 @@ export default function EditableIconInput({
         placeholder={placeholder}
         onKeyDown={(e) => {
           if (!commitOnEnter || e.key !== "Enter") return;
+          // Si no hay commit local, dejamos que Enter siga su curso natural
+          // (por ejemplo submit del formulario padre).
+          if (!onCommit) return;
           e.preventDefault();
           e.stopPropagation();
           skipBlurCommitRef.current = true;
@@ -114,6 +128,7 @@ export default function EditableIconInput({
           });
         }}
         onBlur={() => {
+          onBlurValue?.(inputRef.current?.value ?? value);
           if (!commitOnBlur) return;
           if (skipBlurCommitRef.current) {
             skipBlurCommitRef.current = false;

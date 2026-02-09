@@ -4,7 +4,7 @@
 import * as React from "react";
 import FormField from "../ui/FormField";
 import SaveStateBadge, { type SaveState } from "../ui/SaveStateBadge";
-import { Input } from "@/components/ui/input";
+import EditableIconInput from "@/components/admin/ui/EditableIconInput";
 import { MoodChips } from "./MoodChips";
 import UseChips from "./UseChips";
 import CategoryChips from "./CategoryChips";
@@ -43,6 +43,8 @@ export default function CreativeForm({
   categoryError,
 }: CreativeFormProps) {
   const serverErrors: FieldErrors = fieldErrors ?? {};
+  const [titleValue, setTitleValue] = React.useState(track.title ?? "");
+  const [artistValue, setArtistValue] = React.useState(track.artist ?? "");
 
   // ⬇⬇⬇ NUEVO: estado de errores en el cliente ⬇⬇⬇
   const [clientErrors, setClientErrors] = React.useState<ClientErrors>({});
@@ -102,13 +104,8 @@ export default function CreativeForm({
   }
 
   // Se dispara al salir del campo (onBlur)
-  function handleBlur(
-    e: React.FocusEvent<HTMLInputElement>,
-  ) {
-    const { name, value } = e.target;
-    if (!["title", "artist", "moods", "uses"].includes(name)) return;
-
-    const error = validateField(name as keyof ClientErrors, value);
+  function handleFieldBlur(name: keyof ClientErrors, value: string) {
+    const error = validateField(name, value);
     setClientErrors((prev) => ({
       ...prev,
       [name]: error,
@@ -133,14 +130,15 @@ export default function CreativeForm({
           description={<>Nombre interno y/o comercial del track.</>}
           error={clientErrors.title ?? serverErrors.title?.[0] ?? null}
         >
-          <Input
+          <EditableIconInput
             id="title"
             name="title"
-            type="text"
             required
-            defaultValue={track.title ?? ""}
-            onBlur={handleBlur}
-            className="w-full text-sm"
+            value={titleValue}
+            onChange={setTitleValue}
+            onBlurValue={(value) => handleFieldBlur("title", value)}
+            lockOnInit
+            inputClassName="w-full text-sm h-9 pr-8"
             placeholder="Nombre del track"
           />
         </FormField>
@@ -154,13 +152,14 @@ export default function CreativeForm({
             <>Alias o nombre artístico visible para el cliente (si aplica).</>
           }
         >
-          <Input
+          <EditableIconInput
             id="artist"
             name="artist"
-            type="text"
-            defaultValue={track.artist ?? ""}
-            onBlur={handleBlur}
-            className="w-full text-sm"
+            value={artistValue}
+            onChange={setArtistValue}
+            onBlurValue={(value) => handleFieldBlur("artist", value)}
+            lockOnInit
+            inputClassName="w-full text-sm h-9 pr-8"
             placeholder="Nombre del artista / proyecto"
           />
         </FormField>

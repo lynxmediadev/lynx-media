@@ -4,6 +4,7 @@ import * as React from "react";
 import FormField from "../ui/FormField";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import NumericSelectInput from "@/components/admin/ui/NumericSelectInput";
 import {
   Select,
   SelectContent,
@@ -119,6 +120,20 @@ export default function SyncMetaForm({
   fieldErrors,
 }: SyncMetaFormProps) {
   const serverErrors: FieldErrors = fieldErrors ?? {};
+  const [bpmValue, setBpmValue] = React.useState(
+    track.bpm === null || track.bpm === undefined ? "" : String(track.bpm),
+  );
+  const [exclusiveTermMonthsValue, setExclusiveTermMonthsValue] = React.useState(
+    track.exclusiveTermMonths === null || track.exclusiveTermMonths === undefined
+      ? ""
+      : String(track.exclusiveTermMonths),
+  );
+  const [budgetMinValue, setBudgetMinValue] = React.useState(
+    track.budgetMin === null || track.budgetMin === undefined ? "" : String(track.budgetMin),
+  );
+  const [budgetMaxValue, setBudgetMaxValue] = React.useState(
+    track.budgetMax === null || track.budgetMax === undefined ? "" : String(track.budgetMax),
+  );
   const [trackTypeValue, setTrackTypeValue] = React.useState(
     track.trackType ? track.trackType : NONE_VALUE,
   );
@@ -175,12 +190,12 @@ export default function SyncMetaForm({
                 descriptionPosition="above"
                 description="BPM promedio (admite decimales)."
               >
-                <Input
+                <NumericSelectInput
                   id="bpm"
                   name="bpm"
-                  type="number"
-                  step="0.1"
-                  defaultValue={track.bpm ?? ""}
+                  step={0.1}
+                  value={bpmValue}
+                  onChange={setBpmValue}
                   className="w-full text-xs"
                   placeholder="Ej: 120"
                 />
@@ -318,11 +333,13 @@ export default function SyncMetaForm({
                 descriptionPosition="above"
                 description="Dejar vacío si no aplica."
               >
-                <Input
+                <NumericSelectInput
                   id="exclusiveTermMonths"
                   name="exclusiveTermMonths"
-                  type="number"
-                  defaultValue={track.exclusiveTermMonths ?? ""}
+                  min={0}
+                  step={1}
+                  value={exclusiveTermMonthsValue}
+                  onChange={setExclusiveTermMonthsValue}
                   className="w-full text-xs"
                   placeholder="Ej: 12"
                 />
@@ -486,11 +503,13 @@ export default function SyncMetaForm({
             error={firstError(serverErrors, "budgetMin")}
             label="Presupuesto mínimo"
           >
-            <Input
+            <NumericSelectInput
               id="budgetMin"
               name="budgetMin"
-              type="number"
-              defaultValue={track.budgetMin ?? ""}
+              min={0}
+              step={1}
+              value={budgetMinValue}
+              onChange={setBudgetMinValue}
               className="w-full text-xs"
               placeholder="Ej: 300"
             />
@@ -501,11 +520,13 @@ export default function SyncMetaForm({
             error={firstError(serverErrors, "budgetMax")}
             label="Presupuesto máximo"
           >
-            <Input
+            <NumericSelectInput
               id="budgetMax"
               name="budgetMax"
-              type="number"
-              defaultValue={track.budgetMax ?? ""}
+              min={0}
+              step={1}
+              value={budgetMaxValue}
+              onChange={setBudgetMaxValue}
               className="w-full text-xs"
               placeholder="Ej: 2000"
             />
