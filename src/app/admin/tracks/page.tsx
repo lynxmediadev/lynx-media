@@ -30,7 +30,11 @@ type AnalyzeRow = {
   analysisAt: Date | null;
   assetKey: string | null;
   audioUrl: string | null;
-  moods: string[];
+  moodLinks: Array<{
+    mood: {
+      name: string;
+    };
+  }>;
   durationSec: number | null;
   sampleRateHz: number | null;
   loudnessLufs: number | null;
@@ -97,7 +101,20 @@ export default async function Page(props: {
         analysisAt: true,
         assetKey: true,
         audioUrl: true,
-        moods: true,
+        moodLinks: {
+          select: {
+            mood: {
+              select: {
+                name: true,
+              },
+            },
+          },
+          orderBy: {
+            mood: {
+              name: "asc",
+            },
+          },
+        },
         durationSec: true,
         sampleRateHz: true,
         loudnessLufs: true,
@@ -390,7 +407,7 @@ function AudioInfo({ row }: { row: AnalyzeRow }) {
 }
 
 function MetadataSummary({ row }: { row: AnalyzeRow }) {
-  const moods = formatListShort(row.moods);
+  const moods = formatListShort(row.moodLinks.map((entry) => entry.mood.name));
   const genres = formatListShort(row.genres);
   const licenseTypeLabel = formatLicenseType(row.licenseType);
   const mediaBuyLine = formatText(row.mediaBuy);

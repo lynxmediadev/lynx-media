@@ -67,6 +67,9 @@ export function PublishingTable({
   onDelete,
 }: Props) {
   const isWriter = role === "WRITER";
+  const roleErrorLabel = roleMsg?.toLowerCase().includes("100")
+    ? "TOTAL NO PUEDE SUPERAR 100%"
+    : "ERROR DE VALIDACION";
   const [posValues, setPosValues] = React.useState<Record<string, string>>({});
   const positionSignature = React.useMemo(
     () => roleShares.map((s, i) => `${s.id ?? `${role}-${i}`}-${s.sortOrder ?? i}`).join("|"),
@@ -87,9 +90,7 @@ export function PublishingTable({
             {roleMsg ? (
               <>
                 <span>·</span>
-                <span className="text-destructive" title={roleMsg}>
-                  ERROR
-                </span>
+                <span className="text-destructive" title={roleMsg}>{roleErrorLabel}</span>
               </>
             ) : missing ? (
               <>

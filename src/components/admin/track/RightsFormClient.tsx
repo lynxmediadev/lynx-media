@@ -17,8 +17,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { updatePublishingShares } from "@/app/admin/track/actions/update-publishing-shares";
-import { updateMasterShares } from "@/app/admin/track/actions/update-master-shares";
 import type { Share, MasterShare } from "./rights/types";
 import { usePublishingShares } from "./rights/usePublishingShares";
 import { useMasterShares } from "./rights/useMasterShares";

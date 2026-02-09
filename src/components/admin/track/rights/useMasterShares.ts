@@ -69,30 +69,41 @@ export function useMasterShares({ trackId, initialMasterShares }: UseMasterShare
   const persistMaster = async (ordered: MasterShare[]) => {
     setReorderMasterPending(true);
     showSaveFeedback({ status: "saving" });
-    const result = await updateMasterShares({
-      trackId,
-      shares: ordered.map((s) => ({
-        name: s.name,
-        sharePct:
-          s.sharePct === null || Number.isNaN(Number(s.sharePct)) ? null : Number(s.sharePct),
-        contact: s.contact ?? null,
-        notes: s.notes ?? null,
-        sortOrder: s.sortOrder ?? null,
-      })),
-    });
-    setReorderMasterPending(false);
-    if (!result.ok) {
-      const msg = "message" in result ? result.message : null;
-      setMasterError(msg ?? "Error al guardar titular de master.");
-      const code = msg?.toLowerCase().includes("validación")
-        ? "MASTER_VALIDATION"
+    try {
+      const result = await updateMasterShares({
+        trackId,
+        shares: ordered.map((s) => ({
+          name: s.name,
+          sharePct:
+            s.sharePct === null || Number.isNaN(Number(s.sharePct)) ? null : Number(s.sharePct),
+          contact: s.contact ?? null,
+          notes: s.notes ?? null,
+          sortOrder: s.sortOrder ?? null,
+        })),
+      });
+      if (!result.ok) {
+        const msg = "message" in result ? result.message : null;
+        setMasterError(msg ?? "Error al guardar titular de master.");
+        const code = msg?.toLowerCase().includes("validación")
+          ? "MASTER_VALIDATION"
+          : "MASTER_SAVE_FAILED";
+        showSaveFeedback({ status: "error", code }, 5000);
+        return false;
+      }
+      setMasterError(null);
+      showSaveFeedback({ status: "ok" }, 1000);
+      return true;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error inesperado al guardar master.";
+      setMasterError(msg);
+      const code = msg.includes("Failed to find Server Action")
+        ? "MASTER_ACTION_STALE"
         : "MASTER_SAVE_FAILED";
       showSaveFeedback({ status: "error", code }, 5000);
       return false;
+    } finally {
+      setReorderMasterPending(false);
     }
-    setMasterError(null);
-    showSaveFeedback({ status: "ok" }, 1000);
-    return true;
   };
 
   const saveMasterShares = (next: MasterShare[]) => {

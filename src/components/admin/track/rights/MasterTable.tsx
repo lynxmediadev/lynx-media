@@ -59,6 +59,9 @@ export function MasterTable({
   onCommitChange,
   onDelete,
 }: Props) {
+  const masterErrorLabel = masterError?.toLowerCase().includes("100")
+    ? "TOTAL NO PUEDE SUPERAR 100%"
+    : "ERROR DE VALIDACION";
   const [posValues, setPosValues] = React.useState<Record<string, string>>({});
   const positionSignature = React.useMemo(
     () => masterShares.map((s, i) => `${s.id ?? `ms-${i}`}-${s.sortOrder ?? i}`).join("|"),
@@ -81,9 +84,7 @@ export function MasterTable({
           {masterError ? (
             <>
               <span>·</span>
-              <span className="text-destructive" title={masterError}>
-                ERROR
-              </span>
+              <span className="text-destructive" title={masterError}>{masterErrorLabel}</span>
             </>
           ) : sumMaster() < 100 ? (
             <>

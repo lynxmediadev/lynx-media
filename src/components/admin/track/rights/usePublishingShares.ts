@@ -88,31 +88,42 @@ export function usePublishingShares({ trackId, initialShares }: UsePublishingSha
   const persistShares = async (ordered: Share[]) => {
     setReorderSharePending(true);
     showSaveFeedback({ status: "saving" });
-    const result = await updatePublishingShares({
-      trackId,
-      oneStop: false,
-      shares: ordered.map((s) => ({
-        ...s,
-        sharePct:
-          s.sharePct === null || Number.isNaN(Number(s.sharePct)) ? null : Number(s.sharePct),
-      })),
-    });
-    setReorderSharePending(false);
-    if (!result.ok) {
-      const msg = "message" in result ? result.message : null;
-      setShareError(msg ?? "Error al guardar publishing shares.");
-      const code =
-        result.fieldErrors?.publishingShares?.length
-          ? "PUB_ONESTOP_100"
-          : msg?.toLowerCase().includes("validación")
-            ? "PUB_VALIDATION"
-            : "PUB_SAVE_FAILED";
+    try {
+      const result = await updatePublishingShares({
+        trackId,
+        oneStop: false,
+        shares: ordered.map((s) => ({
+          ...s,
+          sharePct:
+            s.sharePct === null || Number.isNaN(Number(s.sharePct)) ? null : Number(s.sharePct),
+        })),
+      });
+      if (!result.ok) {
+        const msg = "message" in result ? result.message : null;
+        setShareError(msg ?? "Error al guardar publishing shares.");
+        const code =
+          result.fieldErrors?.publishingShares?.length
+            ? "PUB_ONESTOP_100"
+            : msg?.toLowerCase().includes("validación")
+              ? "PUB_VALIDATION"
+              : "PUB_SAVE_FAILED";
+        showSaveFeedback({ status: "error", code }, 5000);
+        return false;
+      }
+      setShareError(null);
+      showSaveFeedback({ status: "ok" }, 1000);
+      return true;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error inesperado al guardar publishing.";
+      setShareError(msg);
+      const code = msg.includes("Failed to find Server Action")
+        ? "PUB_ACTION_STALE"
+        : "PUB_SAVE_FAILED";
       showSaveFeedback({ status: "error", code }, 5000);
       return false;
+    } finally {
+      setReorderSharePending(false);
     }
-    setShareError(null);
-    showSaveFeedback({ status: "ok" }, 1000);
-    return true;
   };
 
   const saveShares = (list: Share[]) => {
