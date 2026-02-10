@@ -21,11 +21,6 @@ type SyncMetaFormProps = {
   track: {
     licenseType: string | null;
     mediaBuy: string | null;
-    bpm: number | null;
-    key: string | null;
-    trackType: string | null;
-    genres: string[];
-    subgenres: string[];
     exclusiveTerritories: string[];
     exclusiveTermMonths: number | null;
     restrictedTerritories: string[];
@@ -40,14 +35,6 @@ type SyncMetaFormProps = {
   };
   fieldErrors?: FieldErrors;
 };
-
-const TRACK_TYPES = [
-  { value: NONE_VALUE, label: "—" },
-  { value: "INSTRUMENTAL", label: "Instrumental" },
-  { value: "VOCAL", label: "Vocal" },
-  { value: "VOCAL_INSTRUMENTAL", label: "Vocal + Instrumental" },
-  { value: "OTHER", label: "Otro" },
-];
 
 const LICENSE_TYPES = [
   { value: NONE_VALUE, label: "—" },
@@ -72,43 +59,6 @@ const CURRENCIES = [
   { value: "EUR", label: "EUR" },
 ];
 
-const KEY_SUGGESTIONS = [
-  "C",
-  "C#",
-  "Db",
-  "D",
-  "D#",
-  "Eb",
-  "E",
-  "F",
-  "F#",
-  "Gb",
-  "G",
-  "G#",
-  "Ab",
-  "A",
-  "A#",
-  "Bb",
-  "B",
-  "Cm",
-  "C#m",
-  "Dbm",
-  "Dm",
-  "D#m",
-  "Ebm",
-  "Em",
-  "Fm",
-  "F#m",
-  "Gbm",
-  "Gm",
-  "G#m",
-  "Abm",
-  "Am",
-  "A#m",
-  "Bbm",
-  "Bm",
-];
-
 function firstError(fieldErrors: FieldErrors | undefined, key: string) {
   if (!fieldErrors) return null;
   const arr = fieldErrors[key];
@@ -120,9 +70,6 @@ export default function SyncMetaForm({
   fieldErrors,
 }: SyncMetaFormProps) {
   const serverErrors: FieldErrors = fieldErrors ?? {};
-  const [bpmValue, setBpmValue] = React.useState(
-    track.bpm === null || track.bpm === undefined ? "" : String(track.bpm),
-  );
   const [exclusiveTermMonthsValue, setExclusiveTermMonthsValue] = React.useState(
     track.exclusiveTermMonths === null || track.exclusiveTermMonths === undefined
       ? ""
@@ -134,9 +81,6 @@ export default function SyncMetaForm({
   const [budgetMaxValue, setBudgetMaxValue] = React.useState(
     track.budgetMax === null || track.budgetMax === undefined ? "" : String(track.budgetMax),
   );
-  const [trackTypeValue, setTrackTypeValue] = React.useState(
-    track.trackType ? track.trackType : NONE_VALUE,
-  );
   const [licenseTypeValue, setLicenseTypeValue] = React.useState(
     track.licenseType ? track.licenseType : NONE_VALUE,
   );
@@ -147,8 +91,6 @@ export default function SyncMetaForm({
     track.budgetCurrency ? track.budgetCurrency : NONE_VALUE,
   );
 
-  const trackTypeInputValue =
-    trackTypeValue === NONE_VALUE ? "" : trackTypeValue;
   const licenseTypeInputValue =
     licenseTypeValue === NONE_VALUE ? "" : licenseTypeValue;
   const pricingTierInputValue =
@@ -156,8 +98,6 @@ export default function SyncMetaForm({
   const budgetCurrencyInputValue =
     budgetCurrencyValue === NONE_VALUE ? "" : budgetCurrencyValue;
 
-  const genresDefault = (track.genres ?? []).join("\n");
-  const subgenresDefault = (track.subgenres ?? []).join("\n");
   const exclusiveTerritoriesDefault = (track.exclusiveTerritories ?? []).join("\n");
   const restrictedTerritoriesDefault = (track.restrictedTerritories ?? []).join("\n");
   const restrictedIndustriesDefault = (track.restrictedIndustries ?? []).join("\n");
@@ -172,125 +112,11 @@ export default function SyncMetaForm({
           Metadata sync
         </h2>
         <p className="mt-1 text-xs text-muted-foreground">
-          Licencia base, BPM, tonalidad, clasificacion, restricciones y pricing.
+          Licencia base, exclusividad, restricciones y pricing.
         </p>
       </div>
 
       <div className="space-y-4">
-          <div className="space-y-3 rounded-lg border border-border bg-card/80 p-3">
-            <h3 className="text-sm font-semibold text-foreground">
-              Musical y clasificación
-            </h3>
-
-            <div className="grid gap-3 md:grid-cols-2">
-              <FormField
-                htmlFor="bpm"
-                error={firstError(serverErrors, "bpm")}
-                label="BPM"
-                descriptionPosition="above"
-                description="BPM promedio (admite decimales)."
-              >
-                <NumericSelectInput
-                  id="bpm"
-                  name="bpm"
-                  step={0.1}
-                  value={bpmValue}
-                  onChange={setBpmValue}
-                  className="w-full text-xs"
-                  placeholder="Ej: 120"
-                />
-              </FormField>
-
-              <FormField
-                htmlFor="key"
-                error={firstError(serverErrors, "key")}
-                label="Tonalidad (Key)"
-                descriptionPosition="above"
-                description="Ej: C#m, Bb, Am."
-              >
-                <Input
-                  id="key"
-                  name="key"
-                  type="text"
-                  list="key-options"
-                  defaultValue={track.key ?? ""}
-                  className="w-full text-xs"
-                  placeholder="Ej: C#m"
-                />
-                <datalist id="key-options">
-                  {KEY_SUGGESTIONS.map((key) => (
-                    <option key={key} value={key} />
-                  ))}
-                </datalist>
-              </FormField>
-            </div>
-
-            <FormField
-              htmlFor="trackType"
-              error={firstError(serverErrors, "trackType")}
-              label="Tipo de track"
-              descriptionPosition="above"
-              description="Clasificación principal del track."
-            >
-              <input
-                type="hidden"
-                name="trackType"
-                value={trackTypeInputValue}
-              />
-              <Select
-                value={trackTypeValue}
-                onValueChange={setTrackTypeValue}
-              >
-                <SelectTrigger id="trackType" className="w-full text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TRACK_TYPES.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormField>
-
-            <div className="grid gap-3 md:grid-cols-2">
-              <FormField
-                htmlFor="genres"
-                error={firstError(serverErrors, "genres")}
-                label="Géneros"
-                descriptionPosition="above"
-                description="Uno por línea (o separados por comas)."
-              >
-                <Textarea
-                  id="genres"
-                  name="genres"
-                  defaultValue={genresDefault}
-                  rows={4}
-                  className="w-full resize-y text-xs"
-                  placeholder="Ej: Cinematic, Ambient, Hip Hop"
-                />
-              </FormField>
-
-              <FormField
-                htmlFor="subgenres"
-                error={firstError(serverErrors, "subgenres")}
-                label="Subgéneros"
-                descriptionPosition="above"
-                description="Opcional, uno por línea."
-              >
-                <Textarea
-                  id="subgenres"
-                  name="subgenres"
-                  defaultValue={subgenresDefault}
-                  rows={4}
-                  className="w-full resize-y text-xs"
-                  placeholder="Ej: Dark Ambient, Neo Classical"
-                />
-              </FormField>
-            </div>
-          </div>
-
           <div className="space-y-3 rounded-lg border border-border bg-card/80 p-3">
             <h3 className="text-sm font-semibold text-foreground">
               Exclusividad y restricciones

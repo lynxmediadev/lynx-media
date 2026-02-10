@@ -242,6 +242,11 @@ export default function TrackEditForm({
               id: track.id,
               title: track.title,
               artist: track.artist,
+              bpm: track.bpm,
+              key: track.key,
+              trackType: track.trackType,
+              genres: track.genres,
+              subgenres: track.subgenres,
               // Módulo de Moods
               assignedMoods: track.assignedMoods,
               // Módulo de Uses
@@ -305,11 +310,6 @@ export default function TrackEditForm({
             track={{
               licenseType: track.licenseType,
               mediaBuy: track.mediaBuy,
-              bpm: track.bpm,
-              key: track.key,
-              trackType: track.trackType,
-              genres: track.genres,
-              subgenres: track.subgenres,
               exclusiveTerritories: track.exclusiveTerritories,
               exclusiveTermMonths: track.exclusiveTermMonths,
               restrictedTerritories: track.restrictedTerritories,

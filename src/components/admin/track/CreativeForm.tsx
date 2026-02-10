@@ -5,6 +5,16 @@ import * as React from "react";
 import FormField from "../ui/FormField";
 import SaveStateBadge, { type SaveState } from "../ui/SaveStateBadge";
 import EditableIconInput from "@/components/admin/ui/EditableIconInput";
+import NumericSelectInput from "@/components/admin/ui/NumericSelectInput";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { MoodChips } from "./MoodChips";
 import UseChips from "./UseChips";
 import CategoryChips from "./CategoryChips";
@@ -14,15 +24,70 @@ type FieldErrors = Record<string, string[]>;
 type ClientErrors = {
   title?: string | null;
   artist?: string | null;
+  bpm?: string | null;
+  key?: string | null;
+  trackType?: string | null;
+  genres?: string | null;
+  subgenres?: string | null;
   moods?: string | null;
   uses?: string | null;
 };
+
+const NONE_VALUE = "__NONE__";
+const TRACK_TYPES = [
+  { value: NONE_VALUE, label: "—" },
+  { value: "INSTRUMENTAL", label: "Instrumental" },
+  { value: "VOCAL", label: "Vocal" },
+  { value: "VOCAL_INSTRUMENTAL", label: "Vocal + Instrumental" },
+  { value: "OTHER", label: "Otro" },
+];
+const KEY_SUGGESTIONS = [
+  "C",
+  "C#",
+  "Db",
+  "D",
+  "D#",
+  "Eb",
+  "E",
+  "F",
+  "F#",
+  "Gb",
+  "G",
+  "G#",
+  "Ab",
+  "A",
+  "A#",
+  "Bb",
+  "B",
+  "Cm",
+  "C#m",
+  "Dbm",
+  "Dm",
+  "D#m",
+  "Ebm",
+  "Em",
+  "Fm",
+  "F#m",
+  "Gbm",
+  "Gm",
+  "G#m",
+  "Abm",
+  "Am",
+  "A#m",
+  "Bbm",
+  "Bm",
+];
 
 type CreativeFormProps = {
   track: {
     id: string;
     title: string | null;
     artist: string | null;
+    bpm: number | null;
+    key: string | null;
+    trackType: string | null;
+    genres: string[];
+    subgenres: string[];
     assignedMoods: string[];
     assignedUses: string[];
     assignedCategories: Array<{ id?: string; slug?: string; name: string }>;
@@ -45,6 +110,16 @@ export default function CreativeForm({
   const serverErrors: FieldErrors = fieldErrors ?? {};
   const [titleValue, setTitleValue] = React.useState(track.title ?? "");
   const [artistValue, setArtistValue] = React.useState(track.artist ?? "");
+  const [bpmValue, setBpmValue] = React.useState(
+    track.bpm === null || track.bpm === undefined ? "" : String(track.bpm),
+  );
+  const [trackTypeValue, setTrackTypeValue] = React.useState(
+    track.trackType ? track.trackType : NONE_VALUE,
+  );
+  const trackTypeInputValue =
+    trackTypeValue === NONE_VALUE ? "" : trackTypeValue;
+  const genresDefault = (track.genres ?? []).join("\n");
+  const subgenresDefault = (track.subgenres ?? []).join("\n");
 
   // ⬇⬇⬇ NUEVO: estado de errores en el cliente ⬇⬇⬇
   const [clientErrors, setClientErrors] = React.useState<ClientErrors>({});
@@ -163,6 +238,110 @@ export default function CreativeForm({
             placeholder="Nombre del artista / proyecto"
           />
         </FormField>
+      </div>
+
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-foreground">Metadata musical</h3>
+        <div className="grid gap-3 md:grid-cols-2">
+          <FormField
+            htmlFor="bpm"
+            error={clientErrors.bpm ?? serverErrors.bpm?.[0] ?? null}
+            label="BPM"
+            descriptionPosition="above"
+            description="BPM promedio (admite decimales)."
+          >
+            <NumericSelectInput
+              id="bpm"
+              name="bpm"
+              step={0.1}
+              value={bpmValue}
+              onChange={setBpmValue}
+              className="w-full text-xs"
+              placeholder="Ej: 120"
+            />
+          </FormField>
+
+          <FormField
+            htmlFor="key"
+            error={clientErrors.key ?? serverErrors.key?.[0] ?? null}
+            label="Tonalidad (Key)"
+            descriptionPosition="above"
+            description="Ej: C#m, Bb, Am."
+          >
+            <Input
+              id="key"
+              name="key"
+              type="text"
+              list="key-options"
+              defaultValue={track.key ?? ""}
+              className="w-full text-xs"
+              placeholder="Ej: C#m"
+            />
+            <datalist id="key-options">
+              {KEY_SUGGESTIONS.map((key) => (
+                <option key={key} value={key} />
+              ))}
+            </datalist>
+          </FormField>
+        </div>
+
+        <FormField
+          htmlFor="trackType"
+          error={clientErrors.trackType ?? serverErrors.trackType?.[0] ?? null}
+          label="Tipo de track"
+          descriptionPosition="above"
+          description="Clasificación principal del track."
+        >
+          <input type="hidden" name="trackType" value={trackTypeInputValue} />
+          <Select value={trackTypeValue} onValueChange={setTrackTypeValue}>
+            <SelectTrigger id="trackType" className="w-full text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TRACK_TYPES.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FormField>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <FormField
+            htmlFor="genres"
+            error={clientErrors.genres ?? serverErrors.genres?.[0] ?? null}
+            label="Géneros"
+            descriptionPosition="above"
+            description="Uno por línea (o separados por comas)."
+          >
+            <Textarea
+              id="genres"
+              name="genres"
+              defaultValue={genresDefault}
+              rows={4}
+              className="w-full resize-y text-xs"
+              placeholder="Ej: Cinematic, Ambient, Hip Hop"
+            />
+          </FormField>
+
+          <FormField
+            htmlFor="subgenres"
+            error={clientErrors.subgenres ?? serverErrors.subgenres?.[0] ?? null}
+            label="Subgéneros"
+            descriptionPosition="above"
+            description="Opcional, uno por línea."
+          >
+            <Textarea
+              id="subgenres"
+              name="subgenres"
+              defaultValue={subgenresDefault}
+              rows={4}
+              className="w-full resize-y text-xs"
+              placeholder="Ej: Dark Ambient, Neo Classical"
+            />
+          </FormField>
+        </div>
       </div>
 
       {/* Sección: Tags (Moods / Usos / Categorías) */}
