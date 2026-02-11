@@ -12,7 +12,7 @@
  * │ - Exporta dos componentes de UI:                                           │
  * │     1) default AnalyzeActions → para /admin/tracks (tabla)                 │
  * │        - Botones: Analizar, Payload, Ver track                             │
- * │     2) TrackAnalyzeHeaderButtons → para /admin/track/[id]/edit (header)    │
+ * │     2) TrackAnalyzeHeaderButtons → para /admin/tracks/[id]/edit (header)   │
  * │        - Botones: Analizar, Payload (sin "Ver track")                      │
  * └─────────────────────────────────────────────────────────────────────────────┘
  */
@@ -36,7 +36,6 @@ type BaseProps = {
 type TrackAnalysisHook = {
   busy: boolean;
   error: string | null;
-  isBrowser: boolean;
   isModalOpen: boolean;
   lastPayload: any | null;
   trackUrl: string;
@@ -63,7 +62,6 @@ function useTrackAnalysisActions(
   const [lastPayload, setLastPayload] = React.useState<any | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
-  const [isBrowser, setIsBrowser] = React.useState(false);
   const [audioStatus, setAudioStatus] = React.useState<
     "unknown" | "checking" | "ok" | "invalid"
   >(initialAudioStatus ?? "unknown");
@@ -72,10 +70,6 @@ function useTrackAnalysisActions(
   );
 
   const busy = isLoading || isPending;
-
-  React.useEffect(() => {
-    setIsBrowser(true);
-  }, []);
 
   React.useEffect(() => {
     if (initialAudioStatus !== undefined) return;
@@ -121,7 +115,7 @@ function useTrackAnalysisActions(
     };
   }, [id, audioUrl, initialAudioStatus]);
 
-  const trackUrl = `/admin/track/${encodeURIComponent(id)}/edit`;
+  const trackUrl = `/admin/tracks/${encodeURIComponent(id)}/edit`;
 
   async function handleAnalyze() {
     if (busy) return;
@@ -171,7 +165,6 @@ function useTrackAnalysisActions(
   return {
     busy,
     error,
-    isBrowser,
     isModalOpen,
     lastPayload,
     trackUrl,
@@ -290,7 +283,6 @@ export default function AnalyzeActions({
   const {
     busy,
     error,
-    isBrowser,
     isModalOpen,
     lastPayload,
     trackUrl,
@@ -305,40 +297,6 @@ export default function AnalyzeActions({
     initialAudioStatus,
     initialAudioMessage,
   );
-
-  if (!isBrowser) {
-    return (
-      <div className={`inline-flex items-center gap-2 ${className}`}>
-        <Button
-          type="button"
-          disabled
-          variant="outline"
-          size="sm"
-          className="h-8 w-24 text-xs text-muted-foreground"
-        >
-          …
-        </Button>
-        <Button
-          type="button"
-          disabled
-          variant="outline"
-          size="sm"
-          className="h-8 w-24 text-xs text-muted-foreground"
-        >
-          …
-        </Button>
-        <Button
-          type="button"
-          disabled
-          variant="outline"
-          size="sm"
-          className="h-8 w-24 text-xs text-muted-foreground"
-        >
-          …
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -386,7 +344,7 @@ export default function AnalyzeActions({
         </p>
       )}
 
-      {isBrowser &&
+      {typeof document !== "undefined" &&
         isModalOpen &&
         createPortal(
           <PayloadModal
@@ -402,7 +360,7 @@ export default function AnalyzeActions({
 }
 
 /**
- * Componente para el HEADER de /admin/track/[id]/edit.
+ * Componente para el HEADER de /admin/tracks/[id]/edit.
  * - Botones: Analizar + Payload (sin "Ver track").
  */
 export function TrackAnalyzeHeaderButtons({
@@ -415,7 +373,6 @@ export function TrackAnalyzeHeaderButtons({
   const {
     busy,
     error,
-    isBrowser,
     isModalOpen,
     lastPayload,
     trackUrl,
@@ -430,31 +387,6 @@ export function TrackAnalyzeHeaderButtons({
     initialAudioStatus,
     initialAudioMessage,
   );
-
-  if (!isBrowser) {
-    return (
-      <div className={`inline-flex items-center gap-2 ${className}`}>
-        <Button
-          type="button"
-          disabled
-          variant="outline"
-          size="sm"
-          className="h-8 w-24 text-xs text-muted-foreground"
-        >
-          …
-        </Button>
-        <Button
-          type="button"
-          disabled
-          variant="outline"
-          size="sm"
-          className="h-8 w-24 text-xs text-muted-foreground"
-        >
-          …
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -493,7 +425,7 @@ export function TrackAnalyzeHeaderButtons({
         </p>
       )}
 
-      {isBrowser &&
+      {typeof document !== "undefined" &&
         isModalOpen &&
         createPortal(
           <PayloadModal

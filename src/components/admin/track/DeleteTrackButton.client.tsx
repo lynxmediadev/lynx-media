@@ -3,7 +3,7 @@
  * Botón de eliminación de track (admin).
  *
  * Peras y manzanas:
- * - Muestra un botón rojo "Eliminar" en el header de /admin/track/[id]/edit.
+ * - Muestra un botón rojo "Eliminar" en el header de /admin/tracks/[id]/edit.
  * - Al hacer click:
  *     • Abre un modal de confirmación.
  *     • Dentro del modal hay un <form> que ejecuta una Server Action

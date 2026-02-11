@@ -48,7 +48,7 @@ export async function updateMasterShares(input: unknown): Promise<Result> {
         });
       }
     });
-    revalidatePath(`/admin/track/${trackId}/edit`);
+    revalidatePath(`/admin/tracks/${trackId}/edit`);
     revalidatePath("/admin/tracks");
     return { ok: true };
   } catch (err) {

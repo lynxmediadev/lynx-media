@@ -39,7 +39,7 @@ export async function createCatalogTag({
     });
 
     // Revalida la página de edición para refrescar checkboxes
-    revalidatePath(`/admin/track/${trackId}/edit`);
+    revalidatePath(`/admin/tracks/${trackId}/edit`);
     return { ok: true, tag };
   } catch (e) {
     console.error("[createCatalogTag] error", e);

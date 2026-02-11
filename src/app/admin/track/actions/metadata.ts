@@ -58,7 +58,7 @@ export async function updateSyncMeta(
       select: { id: true },
     });
 
-    revalidatePath(`/admin/track/${data.id}/edit`);
+    revalidatePath(`/admin/tracks/${data.id}/edit`);
     revalidatePath("/admin/tracks");
 
     return { ok: true, message: "Metadata sync actualizada" };
@@ -117,7 +117,7 @@ export async function updateDeliverables(
       }
     });
 
-    revalidatePath(`/admin/track/${data.id}/edit`);
+    revalidatePath(`/admin/tracks/${data.id}/edit`);
     revalidatePath("/admin/tracks");
 
     return { ok: true, message: "Entregables actualizados" };

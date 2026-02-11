@@ -324,7 +324,7 @@ export async function updateTrackAll(
       }
     });
 
-    revalidatePath(`/admin/track/${trackId}/edit`);
+    revalidatePath(`/admin/tracks/${trackId}/edit`);
     revalidatePath("/admin/tracks");
 
     return {

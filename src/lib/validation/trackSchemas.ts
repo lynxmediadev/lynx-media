@@ -3,9 +3,9 @@
  * Esquemas Zod para formularios de Track (admin).
  *
  * Contiene:
- *  - creativeFormSchema  → /admin/track/[id]/edit (CreativeForm)
- *  - idsFormSchema       → /admin/track/[id]/edit (IdsForm)
- *  - rightsFormSchema    → /admin/track/[id]/edit (RightsFormClient)
+ *  - creativeFormSchema  → /admin/tracks/[id]/edit (CreativeForm)
+ *  - idsFormSchema       → /admin/tracks/[id]/edit (IdsForm)
+ *  - rightsFormSchema    → /admin/tracks/[id]/edit (RightsFormClient)
  *
  * Peras y manzanas:
  * - Recibimos valores crudos desde FormData (strings, null, undefined).

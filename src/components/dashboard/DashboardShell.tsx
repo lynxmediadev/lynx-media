@@ -24,6 +24,8 @@ function isLikelyId(segment: string): boolean {
 }
 
 function humanize(segment: string): string {
+  if (isLikelyId(segment)) return segment;
+
   return segment
     .split("-")
     .filter(Boolean)
@@ -46,8 +48,7 @@ function buildBreadcrumbs(
   const remainder = pathname.replace(activeItem.href, "");
   const extraSegments = remainder
     .split("/")
-    .filter(Boolean)
-    .filter((seg) => !isLikelyId(seg));
+    .filter(Boolean);
 
   for (const seg of extraSegments) {
     crumbs.push({ label: humanize(seg) });

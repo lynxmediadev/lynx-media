@@ -76,7 +76,7 @@ export async function updatePublishingShares(input: unknown): Promise<Result> {
       }
     });
 
-    revalidatePath(`/admin/track/${trackId}/edit`);
+    revalidatePath(`/admin/tracks/${trackId}/edit`);
     revalidatePath("/admin/tracks");
     return { ok: true };
   } catch (err) {

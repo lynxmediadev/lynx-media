@@ -27,10 +27,10 @@ Regla de validación:
 - Solo el usuario puede marcar un item como `listo` (`[x]`) de forma explícita.
 - Si no hay confirmación explícita del usuario, el estado se mantiene en `pendiente` (`[ ]`).
 
-Referencia única para `/admin/track/[id]/edit`:
+Referencia única para `/admin/tracks/[id]/edit`:
 
 - Usar exclusivamente la sección `## Inventario operativo actualizado (vigente)`.
-- Dentro de esa sección, el bloque oficial es `### 3) Inventario completo de /admin/track/[id]/edit (módulos + campos internos)`.
+- Dentro de esa sección, el bloque oficial es `### 3) Inventario completo de /admin/tracks/[id]/edit (módulos + campos internos)`.
 
 ---
 
@@ -358,7 +358,7 @@ Estado de ruta:
 - [ ] [No reusable][ R ] Placeholder `Audit Log` (`src/app/admin/audit-log/page.tsx`)
 - [ ] [No reusable][ R ] Placeholder `Settings` (`src/app/admin/settings/page.tsx`)
 
-### 3) Inventario completo de `/admin/track/[id]/edit` (módulos + campos internos)
+### 3) Inventario completo de `/admin/tracks/[id]/edit` (módulos + campos internos)
 
 Estado de ruta:
 

@@ -15,7 +15,7 @@ export async function deleteCatalogTag({
   if (!id) return { ok: false, message: "ID requerido" };
   try {
     await prisma.tag.delete({ where: { id } });
-    revalidatePath(`/admin/track/${trackId}/edit`);
+    revalidatePath(`/admin/tracks/${trackId}/edit`);
     return { ok: true };
   } catch (e) {
     console.error("[deleteCatalogTag] error", e);
