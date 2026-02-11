@@ -1,234 +1,39 @@
- ○ Compiling /track/[id] ...
- ✓ Compiled /track/[id] in 696ms (1194 modules)
-prisma:error 
-Invalid `prisma.track.findUnique()` invocation:
+1/1
 
-{
-  where: {
-    id: "cmkx1ed3f000duq9glemziy2b"
-  },
-  select: {
-    id: true,
-    title: true,
-    artist: true,
-    coverUrl: true,
-    durationSec: true,
-    bpm: true,
-    key: true,
-    trackType: true,
-    genres: true,
-    subgenres: true,
-    assetKey: true,
-    audioUrl: true,
-    waveform: true,
-    moods: true,
-    ~~~~~
-    uses: true,
-    restrictions: true,
-    master: true,
-    isrc: true,
-    iswc: true,
-    licenseType: true,
-    oneStop: true,
-    clearedForSync: true,
-    exclusiveTerritories: true,
-    exclusiveTermMonths: true,
-    restrictedTerritories: true,
-    restrictedIndustries: true,
-    restrictedPlatforms: true,
-    restrictedBrands: true,
-    mediaBuy: true,
-    pricingTier: true,
-    budgetMin: true,
-    budgetMax: true,
-    budgetCurrency: true,
-    publishingSplit: true,
-    publishingShares: {
-      select: {
-        role: true,
-        name: true,
-        sharePct: true,
-        ipiNumber: true,
-        pro: true,
-        caeNumber: true
-      }
-    },
-    versions: {
-      select: {
-        label: true,
-        durationSec: true,
-        kind: true,
-        sortOrder: true
-      },
-      orderBy: {
-        sortOrder: "asc"
-      }
-    },
-    stems: {
-      select: {
-        name: true,
-        group: true,
-        sortOrder: true
-      },
-      orderBy: {
-        sortOrder: "asc"
-      }
-    },
-    updatedAt: true,
-    tags: {
-      select: {
-        tag: {
-          select: {
-            slug: true,
-            type: true,
-            name: true
-          }
-        }
-      }
-    },
-?   createdAt?: true,
-?   upc?: true,
-?   mfn?: true,
-?   contentIdEnrolled?: true,
-?   contentIdAdmin?: true,
-?   contentIdWhitelist?: true,
-?   assetMime?: true,
-?   assetSize?: true,
-?   loudnessLufs?: true,
-?   loudnessRangeLu?: true,
-?   lraLowLufs?: true,
-?   lraHighLufs?: true,
-?   truePeakDbfs?: true,
-?   sampleRateHz?: true,
-?   channels?: true,
-?   bitrateKbps?: true,
-?   analysisAt?: true,
-?   masterShares?: true,
-?   moodLinks?: true,
-?   _count?: true
-  }
-}
+Next.js 15.5.9 (outdated)
+Webpack
+Console Error
 
-Unknown field `moods` for select statement on model `Track`. Available options are marked with ?.
- ⨯ Error [PrismaClientValidationError]: 
-Invalid `prisma.track.findUnique()` invocation:
 
-{
-  where: {
-    id: "cmkx1ed3f000duq9glemziy2b"
-  },
-  select: {
-    id: true,
-    title: true,
-    artist: true,
-    coverUrl: true,
-    durationSec: true,
-    bpm: true,
-    key: true,
-    trackType: true,
-    genres: true,
-    subgenres: true,
-    assetKey: true,
-    audioUrl: true,
-    waveform: true,
-    moods: true,
-    ~~~~~
-    uses: true,
-    restrictions: true,
-    master: true,
-    isrc: true,
-    iswc: true,
-    licenseType: true,
-    oneStop: true,
-    clearedForSync: true,
-    exclusiveTerritories: true,
-    exclusiveTermMonths: true,
-    restrictedTerritories: true,
-    restrictedIndustries: true,
-    restrictedPlatforms: true,
-    restrictedBrands: true,
-    mediaBuy: true,
-    pricingTier: true,
-    budgetMin: true,
-    budgetMax: true,
-    budgetCurrency: true,
-    publishingSplit: true,
-    publishingShares: {
-      select: {
-        role: true,
-        name: true,
-        sharePct: true,
-        ipiNumber: true,
-        pro: true,
-        caeNumber: true
-      }
-    },
-    versions: {
-      select: {
-        label: true,
-        durationSec: true,
-        kind: true,
-        sortOrder: true
-      },
-      orderBy: {
-        sortOrder: "asc"
-      }
-    },
-    stems: {
-      select: {
-        name: true,
-        group: true,
-        sortOrder: true
-      },
-      orderBy: {
-        sortOrder: "asc"
-      }
-    },
-    updatedAt: true,
-    tags: {
-      select: {
-        tag: {
-          select: {
-            slug: true,
-            type: true,
-            name: true
-          }
-        }
-      }
-    },
-?   createdAt?: true,
-?   upc?: true,
-?   mfn?: true,
-?   contentIdEnrolled?: true,
-?   contentIdAdmin?: true,
-?   contentIdWhitelist?: true,
-?   assetMime?: true,
-?   assetSize?: true,
-?   loudnessLufs?: true,
-?   loudnessRangeLu?: true,
-?   lraLowLufs?: true,
-?   lraHighLufs?: true,
-?   truePeakDbfs?: true,
-?   sampleRateHz?: true,
-?   channels?: true,
-?   bitrateKbps?: true,
-?   analysisAt?: true,
-?   masterShares?: true,
-?   moodLinks?: true,
-?   _count?: true
-  }
-}
+DialogContent requires a DialogTitle for the component to be accessible for screen reader users.
 
-Unknown field `moods` for select statement on model `Track`. Available options are marked with ?.
-    at async TrackPublicPage (src/app/track/[id]/page.tsx:343:17)
-  341 |
-  342 |   // 1) Datos del track (pública + ficha técnica)
-> 343 |   const track = await db.track.findUnique({
-      |                 ^
-  344 |     where: { id },
-  345 |     select: {
-  346 |       id: true, {
-  clientVersion: '6.19.2',
-  digest: '1992053009'
-}
- GET /track/cmkx1ed3f000duq9glemziy2b 500 in 1613ms
+If you want to hide the DialogTitle, you can wrap it with our VisuallyHidden component.
+
+For more information, see https://radix-ui.com/primitives/docs/components/dialog
+
+src/components/ui/sheet.tsx (58:7) @ SheetContent
+
+
+  56 |     <SheetPortal>
+  57 |       <SheetOverlay />
+> 58 |       <SheetPrimitive.Content
+     |       ^
+  59 |         data-slot="sheet-content"
+  60 |         className={cn(
+  61 |           "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
+Call Stack
+75
+
+Show 69 ignore-listed frame(s)
+SheetContent
+src/components/ui/sheet.tsx (58:7)
+SheetPortal
+src/components/ui/sheet.tsx (28:10)
+SheetContent
+src/components/ui/sheet.tsx (56:5)
+DashboardShell
+src/components/dashboard/DashboardShell.tsx (149:9)
+AdminDashboardLayoutClient
+src/components/admin/AdminDashboardLayoutClient.tsx (12:5)
+AdminLayout
+src/app/admin/layout.tsx (14:10)

@@ -186,7 +186,7 @@ export default async function Page(props: {
   };
 
   return (
-    <main className="mx-auto w-full max-w-7xl space-y-6 px-4 py-4 sm:px-5 md:px-6">
+    <section className="space-y-6">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold text-foreground">
           Análisis técnico de tracks
@@ -310,7 +310,7 @@ export default async function Page(props: {
         </table>
         </div>
       </section>
-    </main>
+    </section>
   );
 }
 

@@ -7,180 +7,195 @@ En base a eso, creo que aplicamos una lógica diferente en los tags para Categor
 Yo lo que quería era tener una ruta tipo /sync o /beats para acceder más rápido a cada tipo de música.
 
 Ahora cambié la visión sobre eso.
+
 - En primer lugar, necesito que agregues al contexto, en un archivo llamado /docs/PROJECT_GENERAL_CONTEXT.md: En lynxmedia.cl no habrá venta de BEATS para artistas/raperos. Eso lo haremos en otro proyecto de ODR.
 - En Lynx Media nos enfocaremos, en cuánto a lo musical, sólo en SYNC LICENSING.
 
 Ahora unas consideraciones para la implementación y planificación:
-- Quiero que los *tags de categoría* tengan la misma lógica que Moods, lo que supongo que significa sacar la lógica de pivote a TrackTags.
+
+- Quiero que los _tags de categoría_ tengan la misma lógica que Moods, lo que supongo que significa sacar la lógica de pivote a TrackTags.
 - Como ahora tendremos un solo catálogo, categorías será un tag más, ¿Podremos crear un filtro en /catalog que considere las variables principales para filtrar tracks en este contexto?
 - /catalog será la página principal de catálogo.
 - Ya no necesito /beats o /sync, deja todo limpio para usar esas rutas a futuro sin problemas.
 - Tampoco necesito esos botones en /catalog con las Categorías.
 - Ya que quitaremos la lógica de pivote, seguramente quedará lógica en código perdido, archivos innecesarios y que pueden llevar a confusiones, bugs, etc. Hay que dejar limpia esta implementación.
 
-
-
 ## Inventario de rutas y checklist (fuente vigente)
 
 Regla de validación:
+
 - Solo el usuario puede marcar un item como `listo` (`[x]`) de forma explícita.
 - Si no hay confirmación explícita del usuario, el estado se mantiene en `pendiente` (`[ ]`).
 
 Referencia única para `/admin/track/[id]/edit`:
+
 - Usar exclusivamente la sección `## Inventario operativo actualizado (vigente)`.
-- Dentro de esa sección, el bloque oficial es `### 2) Inventario completo de /admin/track/[id]/edit (módulos + campos internos)`.
+- Dentro de esa sección, el bloque oficial es `### 3) Inventario completo de /admin/track/[id]/edit (módulos + campos internos)`.
 
+---
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-___________________________________________________________
-
-/* MANTENER SIEMPRE EL INVENTARIO DE COMPONENTES REUTILIZABLES AL FINAL DE ESTE DOCUMENTO */ 
+/_ MANTENER SIEMPRE EL INVENTARIO DE COMPONENTES REUTILIZABLES AL FINAL DE ESTE DOCUMENTO _/
 
 ## Inventario de componentes reutilizables (proyecto)
 
 ### 1) UI base global (`src/components/ui`)
-| Componente | Ruta | Uso principal | Estado |
-|---|---|---|---|
-| Accordion | `src/components/ui/accordion.tsx` | Contenedores expandibles | Activo |
-| Badge | `src/components/ui/badge.tsx` | Etiquetas de estado | Activo |
-| Button | `src/components/ui/button.tsx` | Botón base del proyecto | Activo |
-| Card | `src/components/ui/card.tsx` | Contenedor visual base | Activo |
-| Checkbox | `src/components/ui/checkbox.tsx` | Selección booleana | Activo |
-| Dialog | `src/components/ui/dialog.tsx` | Modales/confirmaciones | Activo |
-| DropdownMenu | `src/components/ui/dropdown-menu.tsx` | Menús contextuales | Activo |
-| Input | `src/components/ui/input.tsx` | Campo de texto base | Activo |
-| Label | `src/components/ui/label.tsx` | Etiqueta accesible de campos | Activo |
-| Select | `src/components/ui/select.tsx` | Selector de opciones | Activo |
-| Separator | `src/components/ui/separator.tsx` | Separadores visuales | Activo |
-| Sheet | `src/components/ui/sheet.tsx` | Panel lateral/drawer | Activo |
-| Slider | `src/components/ui/slider.tsx` | Rango deslizante | Activo |
-| Tabs | `src/components/ui/tabs.tsx` | Navegación por pestañas | Activo |
-| Textarea | `src/components/ui/textarea.tsx` | Texto multilínea base | Activo |
-| Tooltip | `src/components/ui/tooltip.tsx` | Ayudas contextuales | Activo |
-| useToast | `src/components/ui/use-toast.ts` | Hook de notificaciones | Activo |
-| TagChips | `src/components/ui/TagChips.tsx` | Sistema genérico de tags/chips | Activo |
-| CopyButton | `src/components/ui/CopyButton.tsx` | Copiar texto con feedback | Activo |
-| CopyIconButton | `src/components/ui/CopyIconButton.tsx` | Copiar vía botón ícono | Activo |
-| AudioPlayer | `src/components/ui/AudioPlayer.tsx` | Reproductor de audio UI | Activo |
-| AudioPlayerDemo | `src/components/ui/AudioPlayerDemo.tsx` | Demo/uso de AudioPlayer | Activo |
-| CatalogCardUI | `src/components/ui/catalog/card.tsx` | Card visual de catálogo | Activo |
+
+| Componente      | Ruta                                    | Uso principal                  | Estado |
+| --------------- | --------------------------------------- | ------------------------------ | ------ |
+| Accordion       | `src/components/ui/accordion.tsx`       | Contenedores expandibles       | Activo |
+| Badge           | `src/components/ui/badge.tsx`           | Etiquetas de estado            | Activo |
+| Button          | `src/components/ui/button.tsx`          | Botón base del proyecto        | Activo |
+| Card            | `src/components/ui/card.tsx`            | Contenedor visual base         | Activo |
+| Checkbox        | `src/components/ui/checkbox.tsx`        | Selección booleana             | Activo |
+| Dialog          | `src/components/ui/dialog.tsx`          | Modales/confirmaciones         | Activo |
+| DropdownMenu    | `src/components/ui/dropdown-menu.tsx`   | Menús contextuales             | Activo |
+| Input           | `src/components/ui/input.tsx`           | Campo de texto base            | Activo |
+| Label           | `src/components/ui/label.tsx`           | Etiqueta accesible de campos   | Activo |
+| Select          | `src/components/ui/select.tsx`          | Selector de opciones           | Activo |
+| Separator       | `src/components/ui/separator.tsx`       | Separadores visuales           | Activo |
+| Sheet           | `src/components/ui/sheet.tsx`           | Panel lateral/drawer           | Activo |
+| Slider          | `src/components/ui/slider.tsx`          | Rango deslizante               | Activo |
+| Tabs            | `src/components/ui/tabs.tsx`            | Navegación por pestañas        | Activo |
+| Textarea        | `src/components/ui/textarea.tsx`        | Texto multilínea base          | Activo |
+| Tooltip         | `src/components/ui/tooltip.tsx`         | Ayudas contextuales            | Activo |
+| useToast        | `src/components/ui/use-toast.ts`        | Hook de notificaciones         | Activo |
+| TagChips        | `src/components/ui/TagChips.tsx`        | Sistema genérico de tags/chips | Activo |
+| CopyButton      | `src/components/ui/CopyButton.tsx`      | Copiar texto con feedback      | Activo |
+| CopyIconButton  | `src/components/ui/CopyIconButton.tsx`  | Copiar vía botón ícono         | Activo |
+| AudioPlayer     | `src/components/ui/AudioPlayer.tsx`     | Reproductor de audio UI        | Activo |
+| AudioPlayerDemo | `src/components/ui/AudioPlayerDemo.tsx` | Demo/uso de AudioPlayer        | Activo |
+| CatalogCardUI   | `src/components/ui/catalog/card.tsx`    | Card visual de catálogo        | Activo |
 
 ### 2) UI admin compartida (`src/components/admin/ui`)
-| Componente | Ruta | Uso principal | Estado |
-|---|---|---|---|
-| FormField | `src/components/admin/ui/FormField.tsx` | Envoltura estándar de campos admin | Activo |
-| FormField2 | `src/components/admin/ui/FormField2.tsx` | Variante antigua de FormField | Legacy |
-| SaveStateBadge | `src/components/admin/ui/SaveStateBadge.tsx` | Estado corto de guardado/error | Activo |
-| EditableIconInput | `src/components/admin/ui/EditableIconInput.tsx` | Input bloqueado con ícono editar y foco automático | Activo |
+
+| Componente         | Ruta                                             | Uso principal                                             | Estado |
+| ------------------ | ------------------------------------------------ | --------------------------------------------------------- | ------ |
+| FormField          | `src/components/admin/ui/FormField.tsx`          | Envoltura estándar de campos admin                        | Activo |
+| FormField2         | `src/components/admin/ui/FormField2.tsx`         | Variante antigua de FormField                             | Legacy |
+| SaveStateBadge     | `src/components/admin/ui/SaveStateBadge.tsx`     | Estado corto de guardado/error                            | Activo |
+| EditableIconInput  | `src/components/admin/ui/EditableIconInput.tsx`  | Input bloqueado con ícono editar y foco automático        | Activo |
 | NumericSelectInput | `src/components/admin/ui/NumericSelectInput.tsx` | Input numérico sin spinners con select-all en click/focus | Activo |
 
 ### 3) Módulos reutilizables del editor de track (`src/components/admin/track`)
-| Componente | Ruta | Uso principal | Estado |
-|---|---|---|---|
-| TagModule | `src/components/admin/track/TagModule.tsx` | Wrapper de módulos de tags | Activo |
-| MoodChips | `src/components/admin/track/MoodChips.tsx` | Gestión de tags de moods | Activo |
-| UseChips | `src/components/admin/track/UseChips.tsx` | Gestión de tags de usos | Activo |
-| CategoryChips | `src/components/admin/track/CategoryChips.tsx` | Gestión de tags de categorías | Activo |
-| CreativeForm | `src/components/admin/track/CreativeForm.tsx` | Módulo creativo del edit | Activo |
-| IdsForm | `src/components/admin/track/IdsForm.tsx` | ISRC/ISWC/UPC | Activo |
-| SyncMetaForm | `src/components/admin/track/SyncMetaForm.tsx` | Metadata comercial/sync | Activo |
-| DeliverablesForm | `src/components/admin/track/DeliverablesForm.tsx` | Entregables (versiones/stems) | Activo |
-| AudioAnalysisSection | `src/components/admin/track/AudioAnalysisSection.tsx` | Visualización técnica de audio | Activo |
-| CatalogTagsForm | `src/components/admin/track/CatalogTagsForm.tsx` | Flujo legacy de tags catálogo | Legacy |
-| DeleteTrackButton | `src/components/admin/track/DeleteTrackButton.client.tsx` | Borrado de track en admin | Activo |
-| TrackEditForm | `src/components/admin/track/TrackEditForm.tsx` | Orquestador global de /edit | Activo |
-| RightsFormClient | `src/components/admin/track/RightsFormClient.tsx` | Módulo publishing/master | Activo |
+
+| Componente           | Ruta                                                      | Uso principal                  | Estado |
+| -------------------- | --------------------------------------------------------- | ------------------------------ | ------ |
+| TagModule            | `src/components/admin/track/TagModule.tsx`                | Wrapper de módulos de tags     | Activo |
+| MoodChips            | `src/components/admin/track/MoodChips.tsx`                | Gestión de tags de moods       | Activo |
+| UseChips             | `src/components/admin/track/UseChips.tsx`                 | Gestión de tags de usos        | Activo |
+| CategoryChips        | `src/components/admin/track/CategoryChips.tsx`            | Gestión de tags de categorías  | Activo |
+| CreativeForm         | `src/components/admin/track/CreativeForm.tsx`             | Módulo creativo del edit       | Activo |
+| IdsForm              | `src/components/admin/track/IdsForm.tsx`                  | ISRC/ISWC/UPC                  | Activo |
+| SyncMetaForm         | `src/components/admin/track/SyncMetaForm.tsx`             | Metadata comercial/sync        | Activo |
+| DeliverablesForm     | `src/components/admin/track/DeliverablesForm.tsx`         | Entregables (versiones/stems)  | Activo |
+| AudioAnalysisSection | `src/components/admin/track/AudioAnalysisSection.tsx`     | Visualización técnica de audio | Activo |
+| CatalogTagsForm      | `src/components/admin/track/CatalogTagsForm.tsx`          | Flujo legacy de tags catálogo  | Legacy |
+| DeleteTrackButton    | `src/components/admin/track/DeleteTrackButton.client.tsx` | Borrado de track en admin      | Activo |
+| TrackEditForm        | `src/components/admin/track/TrackEditForm.tsx`            | Orquestador global de /edit    | Activo |
+| RightsFormClient     | `src/components/admin/track/RightsFormClient.tsx`         | Módulo publishing/master       | Activo |
 
 ### 4) Subcomponentes reutilizables de Rights (`src/components/admin/track/rights`)
-| Componente | Ruta | Uso principal | Estado |
-|---|---|---|---|
-| PublishingTable | `src/components/admin/track/rights/PublishingTable.tsx` | Tabla desktop writers/publishers | Activo |
-| PublishingCards | `src/components/admin/track/rights/PublishingCards.tsx` | Cards mobile writers/publishers | Activo |
-| PublishingNewForms | `src/components/admin/track/rights/PublishingNewForms.tsx` | Alta de writer/publisher | Activo |
-| MasterTable | `src/components/admin/track/rights/MasterTable.tsx` | Tabla desktop master shares | Activo |
-| MasterCards | `src/components/admin/track/rights/MasterCards.tsx` | Cards mobile master shares | Activo |
-| MasterNewForm | `src/components/admin/track/rights/MasterNewForm.tsx` | Alta de titular master | Activo |
-| RightsToggles | `src/components/admin/track/rights/RightsToggles.tsx` | Toggles de derechos y flags | Activo |
+
+| Componente         | Ruta                                                       | Uso principal                    | Estado |
+| ------------------ | ---------------------------------------------------------- | -------------------------------- | ------ |
+| PublishingTable    | `src/components/admin/track/rights/PublishingTable.tsx`    | Tabla desktop writers/publishers | Activo |
+| PublishingCards    | `src/components/admin/track/rights/PublishingCards.tsx`    | Cards mobile writers/publishers  | Activo |
+| PublishingNewForms | `src/components/admin/track/rights/PublishingNewForms.tsx` | Alta de writer/publisher         | Activo |
+| MasterTable        | `src/components/admin/track/rights/MasterTable.tsx`        | Tabla desktop master shares      | Activo |
+| MasterCards        | `src/components/admin/track/rights/MasterCards.tsx`        | Cards mobile master shares       | Activo |
+| MasterNewForm      | `src/components/admin/track/rights/MasterNewForm.tsx`      | Alta de titular master           | Activo |
+| RightsToggles      | `src/components/admin/track/rights/RightsToggles.tsx`      | Toggles de derechos y flags      | Activo |
 
 ### 5) Componentes admin reutilizables (licensing/workflow)
-| Componente | Ruta | Uso principal | Estado |
-|---|---|---|---|
-| AnalyzeActions | `src/components/admin/AnalyzeActions.tsx` | Acciones de análisis de solicitudes | Activo |
-| AssigneePicker | `src/components/admin/AssigneePicker.tsx` | Asignación de responsable | Activo |
-| FollowUpPicker | `src/components/admin/FollowUpPicker.tsx` | Programación de seguimiento | Activo |
-| InternalNotesEditor | `src/components/admin/InternalNotesEditor.tsx` | Notas internas con autosave | Activo |
-| PriorityPicker | `src/components/admin/PriorityPicker.tsx` | Prioridad del caso | Activo |
-| QuickAdminActions | `src/components/admin/QuickAdminActions.tsx` | Acciones rápidas de workflow | Activo |
-| ReplyTemplates | `src/components/admin/ReplyTemplates.tsx` | Plantillas de respuesta | Activo |
-| StatusPicker | `src/components/admin/StatusPicker.tsx` | Estado del caso/licencia | Activo |
+
+| Componente          | Ruta                                           | Uso principal                       | Estado |
+| ------------------- | ---------------------------------------------- | ----------------------------------- | ------ |
+| AnalyzeActions      | `src/components/admin/AnalyzeActions.tsx`      | Acciones de análisis de solicitudes | Activo |
+| AssigneePicker      | `src/components/admin/AssigneePicker.tsx`      | Asignación de responsable           | Activo |
+| FollowUpPicker      | `src/components/admin/FollowUpPicker.tsx`      | Programación de seguimiento         | Activo |
+| InternalNotesEditor | `src/components/admin/InternalNotesEditor.tsx` | Notas internas con autosave         | Activo |
+| PriorityPicker      | `src/components/admin/PriorityPicker.tsx`      | Prioridad del caso                  | Activo |
+| QuickAdminActions   | `src/components/admin/QuickAdminActions.tsx`   | Acciones rápidas de workflow        | Activo |
+| ReplyTemplates      | `src/components/admin/ReplyTemplates.tsx`      | Plantillas de respuesta             | Activo |
+| StatusPicker        | `src/components/admin/StatusPicker.tsx`        | Estado del caso/licencia            | Activo |
 
 ### 6) Catálogo y vista pública reutilizable
-| Componente | Ruta | Uso principal | Estado |
-|---|---|---|---|
-| CatalogView | `src/components/catalog/CatalogView.tsx` | Vista principal de catálogo | Activo |
-| TrackTags | `src/components/catalog/TrackTags.tsx` | Render de tags en catálogo | Activo |
-| CardView | `src/components/catalog/views/CardView.tsx` | Modo cards de catálogo | Activo |
-| SplitView | `src/components/catalog/views/SplitView.tsx` | Modo split de catálogo | Activo |
-| TableView | `src/components/catalog/views/TableView.tsx` | Modo tabla de catálogo | Activo |
-| CatalogFilterBar | `src/components/public/CatalogFilterBar.tsx` | Barra de filtros públicos | Activo |
-| TrackCard | `src/components/public/TrackCard.tsx` | Card pública de track | Activo |
-| TrackCardWave | `src/components/public/TrackCardWave.tsx` | Card con waveform | Activo |
-| TrackCardWavePlayer | `src/components/public/TrackCardWavePlayer.tsx` | Card + reproductor integrado | Activo |
-| TrackMetadataTable | `src/components/public/TrackMetadataTable.tsx` | Tabla metadata pública | Activo |
-| PublicPlayer | `src/components/public/PublicPlayer.tsx` | Reproductor público principal | Activo |
-| PublicAudioBar | `src/components/public/PublicAudioBar.tsx` | Barra de progreso/audio pública | Activo |
-| WaveformScrubber | `src/components/public/WaveformScrubber.tsx` | Scrubber de waveform | Activo |
-| CopyLinkButton | `src/components/public/CopyLinkButton.tsx` | Copiar URL de track/catálogo | Activo |
-| LicensingDialog | `src/components/public/LicensingDialog.tsx` | Diálogo de licenciamiento | Activo |
-| PublicLicenseForm | `src/components/public/PublicLicenseForm.tsx` | Formulario público de licensing | Activo |
-| SimilarTracks | `src/components/public/SimilarTracks.tsx` | Tracks relacionados | Activo |
+
+| Componente          | Ruta                                            | Uso principal                   | Estado |
+| ------------------- | ----------------------------------------------- | ------------------------------- | ------ |
+| CatalogView         | `src/components/catalog/CatalogView.tsx`        | Vista principal de catálogo     | Activo |
+| TrackTags           | `src/components/catalog/TrackTags.tsx`          | Render de tags en catálogo      | Activo |
+| CardView            | `src/components/catalog/views/CardView.tsx`     | Modo cards de catálogo          | Activo |
+| SplitView           | `src/components/catalog/views/SplitView.tsx`    | Modo split de catálogo          | Activo |
+| TableView           | `src/components/catalog/views/TableView.tsx`    | Modo tabla de catálogo          | Activo |
+| CatalogFilterBar    | `src/components/public/CatalogFilterBar.tsx`    | Barra de filtros públicos       | Activo |
+| TrackCard           | `src/components/public/TrackCard.tsx`           | Card pública de track           | Activo |
+| TrackCardWave       | `src/components/public/TrackCardWave.tsx`       | Card con waveform               | Activo |
+| TrackCardWavePlayer | `src/components/public/TrackCardWavePlayer.tsx` | Card + reproductor integrado    | Activo |
+| TrackMetadataTable  | `src/components/public/TrackMetadataTable.tsx`  | Tabla metadata pública          | Activo |
+| PublicPlayer        | `src/components/public/PublicPlayer.tsx`        | Reproductor público principal   | Activo |
+| PublicAudioBar      | `src/components/public/PublicAudioBar.tsx`      | Barra de progreso/audio pública | Activo |
+| WaveformScrubber    | `src/components/public/WaveformScrubber.tsx`    | Scrubber de waveform            | Activo |
+| CopyLinkButton      | `src/components/public/CopyLinkButton.tsx`      | Copiar URL de track/catálogo    | Activo |
+| LicensingDialog     | `src/components/public/LicensingDialog.tsx`     | Diálogo de licenciamiento       | Activo |
+| PublicLicenseForm   | `src/components/public/PublicLicenseForm.tsx`   | Formulario público de licensing | Activo |
+| SimilarTracks       | `src/components/public/SimilarTracks.tsx`       | Tracks relacionados             | Activo |
 
 ### 7) Audio reutilizable
-| Componente | Ruta | Uso principal | Estado |
-|---|---|---|---|
+
+| Componente     | Ruta                                      | Uso principal                    | Estado |
+| -------------- | ----------------------------------------- | -------------------------------- | ------ |
 | LinkedWaveform | `src/components/audio/LinkedWaveform.tsx` | Waveform sincronizado con player | Activo |
-| QualityBadges | `src/components/audio/QualityBadges.tsx` | Badges de calidad/formatos | Activo |
-| Sparkline | `src/components/audio/Sparkline.tsx` | Visual mini de waveform | Activo |
+| QualityBadges  | `src/components/audio/QualityBadges.tsx`  | Badges de calidad/formatos       | Activo |
+| Sparkline      | `src/components/audio/Sparkline.tsx`      | Visual mini de waveform          | Activo |
 
 ### 8) Comunes y layout reutilizable
-| Componente | Ruta | Uso principal | Estado |
-|---|---|---|---|
-| ClientOnly | `src/components/common/ClientOnly.tsx` | Render sólo en cliente | Activo |
-| ScrollToSectionButton | `src/components/common/ScrollToSectionButton.tsx` | Navegación por secciones | Activo |
-| SmoothScroll | `src/components/common/SmoothScroll.tsx` | Scroll suave global | Activo |
-| ThemeToggle (common) | `src/components/common/ThemeToggle.tsx` | Cambio de tema | Activo |
-| Navbar | `src/components/layout/Navbar.tsx` | Barra superior principal | Activo |
-| Footer | `src/components/layout/Footer.tsx` | Pie de página | Activo |
-| ThemeProvider | `src/components/providers/ThemeProvider.tsx` | Provider de tema | Activo |
-| FrontendShell | `src/components/site/FrontendShell.tsx` | Shell del frontend | Activo |
-| SiteHeader | `src/components/site/SiteHeader.tsx` | Header del sitio | Activo |
-| ThemeToggle (site) | `src/components/site/ThemeToggle.tsx` | Toggle tema en site shell | Activo |
-| SaveButton | `src/components/forms/SaveButton.tsx` | Botón reutilizable de guardado | Activo |
-| copyable | `src/components/copyable.tsx` | Wrapper para copiar contenido | Activo |
-| whitelist-dialog | `src/components/whitelist-dialog.tsx` | Dialog de whitelist | Activo |
+
+| Componente            | Ruta                                              | Uso principal                  | Estado |
+| --------------------- | ------------------------------------------------- | ------------------------------ | ------ |
+| ClientOnly            | `src/components/common/ClientOnly.tsx`            | Render sólo en cliente         | Activo |
+| ScrollToSectionButton | `src/components/common/ScrollToSectionButton.tsx` | Navegación por secciones       | Activo |
+| SmoothScroll          | `src/components/common/SmoothScroll.tsx`          | Scroll suave global            | Activo |
+| ThemeToggle (common)  | `src/components/common/ThemeToggle.tsx`           | Cambio de tema                 | Activo |
+| Navbar                | `src/components/layout/Navbar.tsx`                | Barra superior principal       | Activo |
+| Footer                | `src/components/layout/Footer.tsx`                | Pie de página                  | Activo |
+| ThemeProvider         | `src/components/providers/ThemeProvider.tsx`      | Provider de tema               | Activo |
+| FrontendShell         | `src/components/site/FrontendShell.tsx`           | Shell del frontend             | Activo |
+| SiteHeader            | `src/components/site/SiteHeader.tsx`              | Header del sitio               | Activo |
+| ThemeToggle (site)    | `src/components/site/ThemeToggle.tsx`             | Toggle tema en site shell      | Activo |
+| SaveButton            | `src/components/forms/SaveButton.tsx`             | Botón reutilizable de guardado | Activo |
+| copyable              | `src/components/copyable.tsx`                     | Wrapper para copiar contenido  | Activo |
+| whitelist-dialog      | `src/components/whitelist-dialog.tsx`             | Dialog de whitelist            | Activo |
+
+### 9) Dashboard reusable (`src/components/dashboard`)
+
+| Componente             | Ruta                                                | Uso principal                                                     | Estado |
+| ---------------------- | --------------------------------------------------- | ----------------------------------------------------------------- | ------ |
+| DashboardShell         | `src/components/dashboard/DashboardShell.tsx`       | Shell reusable con sidebar/topbar/content y versión mobile drawer | Activo |
+| DashboardSidebar       | `src/components/dashboard/DashboardSidebar.tsx`     | Sidebar desktop + navegación activa por pathname                  | Activo |
+| DashboardMobileSidebar | `src/components/dashboard/DashboardSidebar.tsx`     | Navegación mobile dentro de `Sheet`                               | Activo |
+| DashboardTopbar        | `src/components/dashboard/DashboardTopbar.tsx`      | Topbar con título contextual, breadcrumbs y acciones              | Activo |
+| DashboardBreadcrumbs   | `src/components/dashboard/DashboardBreadcrumbs.tsx` | Breadcrumb reusable para rutas dashboard                          | Activo |
+| DashboardContent (Main Content) | `src/components/dashboard/DashboardContent.tsx`     | Wrapper de ancho/spacing para contenido dashboard                 | Activo |
+| adminDashboardSections | `src/components/dashboard/nav-config.admin.ts`      | Config centralizada de navegación admin                           | Activo |
+| Tipos de contrato nav  | `src/components/dashboard/types.ts`                 | `DashboardNavItem` y `DashboardSection` para escalabilidad        | Activo |
 
 ## Inventario operativo actualizado (vigente)
 
 Nota:
+
 - Esta sección es la referencia vigente para trabajo de mantenimiento fino.
 - Si hay diferencias con listas anteriores del documento, usar esta sección.
 - Regla de estado: solo el usuario marca `[x]`; por defecto todo queda en `[ ]`.
+- Clasificación de componentes:
+  - `[Reusable]`: ya reusable y compartible.
+  - `[No reusable]`: específico de una ruta/módulo.
+  - `[ R ]`: hoy no reusable, pero conviene extraerlo a reusable.
 
 ### 1) Inventario de componentes reutilizables (con internos identificables)
 
 #### `EditableIconInput` (`src/components/admin/ui/EditableIconInput.tsx`)
+
 - [ ] Interno: campo base (`Input`) de texto editable/bloqueable
 - [ ] Interno: botón ícono editar (`SquarePen`)
 - [ ] Prop clave: `value`
@@ -196,6 +211,7 @@ Nota:
 - [ ] Comportamiento: click en input desbloquea sin select-all
 
 #### `NumericSelectInput` (`src/components/admin/ui/NumericSelectInput.tsx`)
+
 - [ ] Interno: input numérico sin spinners nativos
 - [ ] Interno: select-all en focus/click
 - [ ] Prop clave: `value`
@@ -209,6 +225,7 @@ Nota:
 - [ ] Comportamiento: blur dispara commit (si corresponde)
 
 #### `SaveStateBadge` (`src/components/admin/ui/SaveStateBadge.tsx`)
+
 - [ ] Estado: `idle`
 - [ ] Estado: `saving`
 - [ ] Estado: `saved`
@@ -216,6 +233,7 @@ Nota:
 - [ ] Labels configurables por prop
 
 #### `TagChips` (`src/components/ui/TagChips.tsx`)
+
 - [ ] Interno: lista de asignados (chips seleccionados)
 - [ ] Interno: botón quitar chip asignado (`X`)
 - [ ] Interno: botón toggle panel (si `showToggleButton=true`)
@@ -239,6 +257,7 @@ Nota:
 - [ ] Prop clave: `defaultOpen` / `showToggleButton`
 
 #### `MoodChips` (`src/components/admin/track/MoodChips.tsx`)
+
 - [ ] Wrapper reusable sobre `TagChips` + `useTagCatalog`
 - [ ] Endpoint catálogo: `GET/POST /api/moods`
 - [ ] Endpoint asignación: `GET/POST /api/tracks/:id/moods`
@@ -248,6 +267,7 @@ Nota:
 - [ ] Interno: `onSaveState` para badge de módulo
 
 #### `UseChips` (`src/components/admin/track/UseChips.tsx`)
+
 - [ ] Wrapper reusable sobre `TagChips` + `useTagCatalog`
 - [ ] Endpoint catálogo: `GET/POST /api/uses`
 - [ ] Endpoint asignación: `GET/POST /api/tracks/:id/uses`
@@ -257,6 +277,7 @@ Nota:
 - [ ] Interno: `onSaveState` para badge de módulo
 
 #### `CategoryChips` (`src/components/admin/track/CategoryChips.tsx`)
+
 - [ ] Wrapper reusable sobre `TagChips` + `useTagCatalog`
 - [ ] Endpoint catálogo: `GET/POST/DELETE /api/categories`
 - [ ] Endpoint asignación: `GET/POST /api/tracks/:id/categories`
@@ -267,6 +288,7 @@ Nota:
 - [ ] Interno: bloqueo delete de categoría si está asignada
 
 #### Subcomponentes Rights reutilizables (`src/components/admin/track/rights/*`)
+
 - [ ] `PublishingTable` (desktop WRITER/PUBLISHER)
 - [ ] `PublishingCards` (mobile WRITER/PUBLISHER)
 - [ ] `PublishingNewForms` (alta WRITER/PUBLISHER)
@@ -275,24 +297,89 @@ Nota:
 - [ ] `MasterNewForm` (alta MASTER)
 - [ ] `RightsToggles` (toggles/flags derechos)
 
-### 2) Inventario completo de `/admin/track/[id]/edit` (módulos + campos internos)
+### 2) Inventario completo de `/admin` (Dashboard Admin)
 
 Estado de ruta:
+
+- [ ] Ruta revisada/validada por usuario
+
+#### A. Shell / Layout
+
+- [ ] [No reusable] `src/app/admin/layout.tsx` (entry del layout admin)
+- [ ] [No reusable][ R ] `src/components/admin/AdminDashboardLayoutClient.tsx` (wrapper cliente de admin)
+- [ ] [Reusable] `DashboardShell` (`src/components/dashboard/DashboardShell.tsx`)
+- [ ] [Reusable] `DashboardContent (Main Content)` (`src/components/dashboard/DashboardContent.tsx`)
+
+#### B. Navegación lateral (Sidebar)
+
+- [ ] [Reusable] `DashboardSidebar` (`src/components/dashboard/DashboardSidebar.tsx`)
+- [ ] [Reusable] `DashboardMobileSidebar` (`src/components/dashboard/DashboardSidebar.tsx`)
+- [ ] [Reusable] Contratos nav (`DashboardNavItem`, `DashboardSection`) en `src/components/dashboard/types.ts`
+- [ ] [No reusable][ R ] Config admin de nav (`adminDashboardSections`) en `src/components/dashboard/nav-config.admin.ts`
+- [ ] [No reusable][ R ] Agrupaciones de navegación: `General`, `Workspace`, `Licensing`, `System`
+- [ ] [No reusable][ R ] Items de navegación admin:
+  - [ ] `Overview` (`/admin`)
+  - [ ] `Account` (`/admin/account`)
+  - [ ] `Tracks` (`/admin/tracks`)
+  - [ ] `Uploads` (`/admin/uploads`)
+  - [ ] `Playlists` (`/admin/playlists`)
+  - [ ] `Sound Kits` (`/admin/sound-kits`)
+  - [ ] `Services` (`/admin/services`)
+  - [ ] `Requests` (`/admin/licensing`)
+  - [ ] `Contracts` (`/admin/contracts`)
+  - [ ] `Contact Inbox` (`/admin/requests`)
+  - [ ] `Audit Log` (`/admin/audit-log`)
+  - [ ] `Settings` (`/admin/settings`)
+
+#### C. Topbar / Breadcrumbs / acciones globales
+
+- [ ] [Reusable] `DashboardTopbar` (`src/components/dashboard/DashboardTopbar.tsx`)
+- [ ] [Reusable] `DashboardBreadcrumbs` (`src/components/dashboard/DashboardBreadcrumbs.tsx`)
+- [ ] [No reusable][ R ] Acción topbar: botón `Sitio público`
+- [ ] [Reusable] Acción topbar: `ThemeToggle`
+- [ ] [No reusable][ R ] Acción topbar: `Cerrar sesión` (form POST `/admin/logout`)
+- [ ] [No reusable][ R ] Título contextual por ruta activa (mapping desde nav config)
+
+#### D. Drawer mobile
+
+- [ ] [Reusable] `Sheet` + `SheetContent` (ui base)
+- [ ] [No reusable][ R ] `SheetTitle` sr-only específico de navegación admin
+- [ ] [No reusable][ R ] Estado local `mobileOpen`
+
+#### E. Overview + Placeholders de rutas
+
+- [ ] [No reusable][ R ] Overview page (`src/app/admin/page.tsx`)
+- [ ] [No reusable][ R ] `PlaceholderPage` (`src/components/admin/PlaceholderPage.tsx`)
+- [ ] [No reusable][ R ] Placeholder `Account` (`src/app/admin/account/page.tsx`)
+- [ ] [No reusable][ R ] Placeholder `Playlists` (`src/app/admin/playlists/page.tsx`)
+- [ ] [No reusable][ R ] Placeholder `Sound Kits` (`src/app/admin/sound-kits/page.tsx`)
+- [ ] [No reusable][ R ] Placeholder `Services` (`src/app/admin/services/page.tsx`)
+- [ ] [No reusable][ R ] Placeholder `Contracts` (`src/app/admin/contracts/page.tsx`)
+- [ ] [No reusable][ R ] Placeholder `Audit Log` (`src/app/admin/audit-log/page.tsx`)
+- [ ] [No reusable][ R ] Placeholder `Settings` (`src/app/admin/settings/page.tsx`)
+
+### 3) Inventario completo de `/admin/track/[id]/edit` (módulos + campos internos)
+
+Estado de ruta:
+
 - [ ] Ruta revisada/validada por usuario
 
 #### A. Formulario orquestador (`TrackEditForm`)
-- [ ] Hidden input: `id`
-- [ ] Barra global: mensaje de estado (`status.message`)
-- [ ] Botón global: `Guardar todo`
+
+- [ ] [No reusable] Hidden input: `id`
+- [ ] [No reusable][ R ] Barra global: mensaje de estado (`status.message`)
+- [ ] [No reusable][ R ] Botón global: `Guardar todo`
 
 #### B. Sección `Metadata creativa & identificadores`
 
 ##### B1. Módulo `Creativo` (`CreativeForm`)
-- [ ] Input: `title`
-- [ ] Input: `artist`
+
+- [ ] [No reusable] Input: `title`
+- [ ] [No reusable] Input: `artist`
 
 ##### B2. Módulo `Moods` (`MoodChips` + `TagChips`)
-- [ ] Badge estado módulo (`SaveStateBadge`)
+
+- [ ] [Reusable] Badge estado módulo (`SaveStateBadge`)
 - [ ] Lista: `Moods asignados`
 - [ ] Campo búsqueda: `Buscar mood`
 - [ ] Botón: `Añadir`
@@ -300,11 +387,12 @@ Estado de ruta:
 - [ ] Acción sugerido: agregar a asignados
 - [ ] Acción sugerido: eliminar de catálogo (`X` + confirmación)
 - [ ] Acción asignado: quitar de asignados (`X`)
-- [ ] Botón: `Guardar Moods`
-- [ ] Hidden input: `moods`
+- [ ] [No reusable][ R ] Botón: `Guardar Moods`
+- [ ] [No reusable] Hidden input: `moods`
 
 ##### B3. Módulo `Usos previstos` (`UseChips` + `TagChips`)
-- [ ] Badge estado módulo (`SaveStateBadge`)
+
+- [ ] [Reusable] Badge estado módulo (`SaveStateBadge`)
 - [ ] Lista: `Usos asignados`
 - [ ] Campo búsqueda: `Buscar uso`
 - [ ] Botón: `Añadir`
@@ -312,11 +400,12 @@ Estado de ruta:
 - [ ] Acción sugerido: agregar a asignados
 - [ ] Acción sugerido: eliminar de catálogo (`X` + confirmación)
 - [ ] Acción asignado: quitar de asignados (`X`)
-- [ ] Botón: `Guardar Usos`
-- [ ] Hidden input: `uses`
+- [ ] [No reusable][ R ] Botón: `Guardar Usos`
+- [ ] [No reusable] Hidden input: `uses`
 
 ##### B4. Módulo `Categorías` (`CategoryChips` + `TagChips`)
-- [ ] Badge estado módulo (`SaveStateBadge`)
+
+- [ ] [Reusable] Badge estado módulo (`SaveStateBadge`)
 - [ ] Lista: `Categorías asignadas`
 - [ ] Campo búsqueda: `Buscar categoría`
 - [ ] Botón: `Añadir`
@@ -324,19 +413,22 @@ Estado de ruta:
 - [ ] Acción sugerido: agregar a asignadas
 - [ ] Acción sugerido: eliminar de catálogo (`X` + confirmación)
 - [ ] Acción asignado: quitar de asignadas (`X`)
-- [ ] Botón: `Guardar Categorías`
-- [ ] Hidden input: `catalogTags`
+- [ ] [No reusable][ R ] Botón: `Guardar Categorías`
+- [ ] [No reusable] Hidden input: `catalogTags`
 
 ##### B5. Módulo `Identificadores` (`IdsForm`)
-- [ ] Input: `isrc`
-- [ ] Input: `iswc`
-- [ ] Input: `upc`
+
+- [ ] [No reusable] Input: `isrc`
+- [ ] [No reusable] Input: `iswc`
+- [ ] [No reusable] Input: `upc`
 
 ##### B6. Módulo `Derechos & explotación` (`RightsFormClient`)
-- [ ] Hidden input: `publishingShares`
-- [ ] Hidden input: `masterShares`
+
+- [ ] [No reusable] Hidden input: `publishingShares`
+- [ ] [No reusable] Hidden input: `masterShares`
 
 ###### B6.1 Lista de `WRITER` (`PublishingTable` / `PublishingCards`)
+
 - [ ] Campo por item: `name` (`EditableIconInput`)
 - [ ] Campo por item: `sortOrder` (`NumericSelectInput`, mover por posición)
 - [ ] Acción por item: flecha arriba/abajo (click)
@@ -349,6 +441,7 @@ Estado de ruta:
 - [ ] Acción por item: eliminar
 
 ###### B6.2 Form alta `WRITER` (`PublishingNewForms`)
+
 - [ ] Campo: `newWriter.name` (requerido)
 - [ ] Campo: `newWriter.sharePct`
 - [ ] Campo: `newWriter.ipiNumber`
@@ -357,6 +450,7 @@ Estado de ruta:
 - [ ] Acción: botón `Añadir writer`
 
 ###### B6.3 Lista de `PUBLISHER` (`PublishingTable` / `PublishingCards`)
+
 - [ ] Campo por item: `name` (`EditableIconInput`)
 - [ ] Campo por item: `sortOrder` (`NumericSelectInput`, mover por posición)
 - [ ] Acción por item: flecha arriba/abajo (click)
@@ -369,6 +463,7 @@ Estado de ruta:
 - [ ] Acción por item: eliminar
 
 ###### B6.4 Form alta `PUBLISHER` (`PublishingNewForms`)
+
 - [ ] Campo: `newPublisher.name` (requerido)
 - [ ] Campo: `newPublisher.sharePct`
 - [ ] Campo: `newPublisher.ipiNumber`
@@ -377,6 +472,7 @@ Estado de ruta:
 - [ ] Acción: botón `Añadir publisher`
 
 ###### B6.5 Lista de `MASTER` (`MasterTable` / `MasterCards`)
+
 - [ ] Campo por item: `name` (`EditableIconInput`)
 - [ ] Campo por item: `sortOrder` (`NumericSelectInput`, mover por posición)
 - [ ] Acción por item: flecha arriba/abajo (click)
@@ -388,6 +484,7 @@ Estado de ruta:
 - [ ] Acción por item: eliminar
 
 ###### B6.6 Form alta `MASTER` (`MasterNewForm`)
+
 - [ ] Campo: `newMaster.name` (requerido)
 - [ ] Campo: `newMaster.sharePct`
 - [ ] Campo: `newMaster.contact`
@@ -395,6 +492,7 @@ Estado de ruta:
 - [ ] Acción: botón `Añadir master`
 
 ###### B6.7 Submódulo `RightsToggles`
+
 - [ ] Toggle: `mfn`
 - [ ] Toggle: `oneStop`
 - [ ] Toggle: `clearedForSync`
@@ -405,46 +503,52 @@ Estado de ruta:
 - [ ] Textarea: `restrictions`
 
 ###### B6.8 Modal de confirmación eliminación (`RightsFormClient`)
+
 - [ ] Botón: `Cancelar`
 - [ ] Botón: `Eliminar`
 
 #### C. Sección `Metadata sync & entregables`
 
 ##### C1. Módulo `Metadata sync` (`SyncMetaForm`)
-- [ ] Input: `bpm`
-- [ ] Input: `key` (con datalist)
-- [ ] Select + hidden: `trackType`
-- [ ] Textarea: `genres`
-- [ ] Textarea: `subgenres`
-- [ ] Select + hidden: `licenseType`
-- [ ] Input: `exclusiveTermMonths`
-- [ ] Input: `mediaBuy`
-- [ ] Textarea: `exclusiveTerritories`
-- [ ] Textarea: `restrictedTerritories`
-- [ ] Textarea: `restrictedIndustries`
-- [ ] Textarea: `restrictedPlatforms`
-- [ ] Textarea: `restrictedBrands`
-- [ ] Textarea: `restrictions`
-- [ ] Select + hidden: `pricingTier`
-- [ ] Input: `budgetMin`
-- [ ] Input: `budgetMax`
-- [ ] Select + hidden: `budgetCurrency`
+
+- [ ] [No reusable] Input: `bpm`
+- [ ] [No reusable] Input: `key` (con datalist)
+- [ ] [No reusable][ R ] Select + hidden: `trackType`
+- [ ] [No reusable] Textarea: `genres`
+- [ ] [No reusable] Textarea: `subgenres`
+- [ ] [No reusable][ R ] Select + hidden: `licenseType`
+- [ ] [No reusable] Input: `exclusiveTermMonths`
+- [ ] [No reusable] Input: `mediaBuy`
+- [ ] [No reusable] Textarea: `exclusiveTerritories`
+- [ ] [No reusable] Textarea: `restrictedTerritories`
+- [ ] [No reusable] Textarea: `restrictedIndustries`
+- [ ] [No reusable] Textarea: `restrictedPlatforms`
+- [ ] [No reusable] Textarea: `restrictedBrands`
+- [ ] [No reusable] Textarea: `restrictions`
+- [ ] [No reusable][ R ] Select + hidden: `pricingTier`
+- [ ] [No reusable] Input: `budgetMin`
+- [ ] [No reusable] Input: `budgetMax`
+- [ ] [No reusable][ R ] Select + hidden: `budgetCurrency`
 
 ##### C2. Módulo `Entregables` (`DeliverablesForm`)
-- [ ] Textarea: `versions`
-- [ ] Textarea: `stems`
 
-### 3) Plantilla de checklist para nuevas rutas
+- [ ] [No reusable] Textarea: `versions`
+- [ ] [No reusable] Textarea: `stems`
+
+### 4) Plantilla de checklist para nuevas rutas
 
 ```md
 ### Ruta: `/ruta/a/trabajar`
+
 Fecha de confirmación: `pendiente`
 
 Módulos:
+
 - [ ] Módulo A
 - [ ] Módulo B
 
 Campos internos:
+
 - [ ] Campo 1
 - [ ] Campo 2
 ```

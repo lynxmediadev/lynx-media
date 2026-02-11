@@ -23,11 +23,12 @@ export default function FrontendShell({ children }: FrontendShellProps) {
   const pathname = usePathname();
 
   const hideHeader = pathname.startsWith("/admin");
+  const isAdminRoute = pathname.startsWith("/admin");
 
   return (
     <div className="min-h-dvh">
       {!hideHeader && <SiteHeader />}
-      <main className="px-4 sm:px-6">{children}</main>
+      <main className={isAdminRoute ? "" : "px-4 sm:px-6"}>{children}</main>
     </div>
   );
 }
