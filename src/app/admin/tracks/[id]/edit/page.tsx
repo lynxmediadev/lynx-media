@@ -1,119 +1,148 @@
 // src/app/admin/tracks/[id]/edit/page.tsx
 /**
- * Editor unificado de track (admin)
+ * Editor modular de track (admin) - Overview
  *
  * Ruta:
  *   - /admin/tracks/[id]/edit
  *
- * Unifica:
- *   • Audio & análisis técnico (player + métricas).
- *   • Metadata creativa (título, artista, moods, usos).
- *   • Identificadores (ISRC / ISWC / UPC).
- *   • Derechos & explotación (incluye Publishing split).
- *
- * Peras y manzanas:
- * - Es la “ficha completa” del track.
- * - Desde aquí puedes revisar casi todo lo relevante del track.
- * - Usa un único guardado para campos editables.
+ * Esta vista es el panel de control del editor modular.
+ * Cada modulo se edita en su subruta y existe una vista completa temporal en /full.
  */
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import Link from "next/link";
-import { Suspense } from "react";
 
 import prisma from "@/lib/prisma";
-import TrackEditForm from "@/components/admin/track/TrackEditForm";
+import { Button } from "@/components/ui/button";
 import { TrackAnalyzeHeaderButtons } from "@/components/admin/AnalyzeActions";
 import { DeleteTrackButton } from "@/components/admin/track/DeleteTrackButton.client";
 import { deleteObjectFromS3 } from "@/lib/storage/delete-object";
-import { Button } from "@/components/ui/button";
-import AudioAnalysisSection from "@/components/admin/track/AudioAnalysisSection";
+import { TrackEditShell } from "@/components/admin/track/edit/TrackEditShell";
 import {
-  getCatalogTagOptions,
-  getMoodTagOptions,
-  getTrackAudioHeaderModule,
-  getTrackDeliverablesModule,
   getTrackEditCore,
+  getTrackAudioHeaderModule,
   getTrackRightsModule,
-  getUseTagOptions,
+  getTrackDeliverablesModule,
 } from "@/server/track-edit/queries";
+import { getTrackEditModuleNavItems } from "@/components/admin/track/edit/module-nav";
 
-/**
- * FUNCION PRINCIPAL DE PAGINA: AdminTrackEditPage
- * Que hace:
- * - Carga todos los datos del track para la ruta /admin/tracks/[id]/edit.
- * - Prepara datos por modulo para el formulario de edicion.
- *
- * Input:
- * - params: Promise<{ id: string }>
- *
- * Output:
- * - JSX de la pagina de edicion completa del track.
- */
-export default async function AdminTrackEditPage({
+type ModuleStatus = "ok" | "warning" | "info";
+
+function StatusChip({ status, text }: { status: ModuleStatus; text: string }) {
+  const style =
+    status === "ok"
+      ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-300"
+      : status === "warning"
+        ? "border-amber-500/35 bg-amber-500/10 text-amber-300"
+        : "border-border bg-muted/30 text-muted-foreground";
+
+  return (
+    <span
+      className={`inline-flex h-6 items-center rounded-md border px-2 text-[11px] font-medium ${style}`}
+    >
+      {text}
+    </span>
+  );
+}
+
+function ModuleCard({
+  title,
+  description,
+  href,
+  status,
+  statusText,
+  details,
+}: {
+  title: string;
+  description: string;
+  href: string;
+  status: ModuleStatus;
+  statusText: string;
+  details: string[];
+}) {
+  return (
+    <article className="rounded-lg border border-border bg-card/50 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+          <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+        </div>
+        <StatusChip status={status} text={statusText} />
+      </div>
+
+      <ul className="mt-3 space-y-1">
+        {details.map((detail) => (
+          <li key={detail} className="text-xs text-muted-foreground">
+            {detail}
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-4">
+        <Button asChild size="sm" variant="outline" className="text-xs">
+          <Link href={href}>Editar modulo</Link>
+        </Button>
+      </div>
+    </article>
+  );
+}
+
+export default async function AdminTrackEditOverviewPage({
   params,
 }: {
-  // Next 15 entrega params como Promise; lo declaramos así para cumplir PageProps
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
 
-  const trackCore = await getTrackEditCore(id);
-  if (!trackCore) {
-    notFound();
-  }
-  const [trackAudioHeader, trackRights, trackDeliverables, catalogTags, moodTags, useTags] = await Promise.all([
-    getTrackAudioHeaderModule(id),
-    getTrackRightsModule(id),
-    getTrackDeliverablesModule(id),
-    getCatalogTagOptions(),
-    getMoodTagOptions(),
-    getUseTagOptions(),
-  ]);
-  if (!trackAudioHeader || !trackRights || !trackDeliverables) {
+  const [trackCore, trackAudioHeader, trackRights, trackDeliverables] =
+    await Promise.all([
+      getTrackEditCore(id),
+      getTrackAudioHeaderModule(id),
+      getTrackRightsModule(id),
+      getTrackDeliverablesModule(id),
+    ]);
+
+  if (!trackCore || !trackAudioHeader || !trackRights || !trackDeliverables) {
     notFound();
   }
 
-  // MODULO DE WRITERS/PUBLISHERS
-  // Toma el WRITER principal para mostrarlo en resumen tecnico.
-  const primaryWriter =
-    trackRights.publishingShares.find((s) => s.role === "WRITER") ?? null;
-
-  // MODULO DE CATEGORIAS
-  // Lista de CATEGORIAS asignadas al track actual.
+  const assignedMoods =
+    trackCore.tags?.filter((t) => t.tag.type === "MOOD").map((c) => c.tag.name) ?? [];
+  const assignedUses =
+    trackCore.tags?.filter((t) => t.tag.type === "USE").map((c) => c.tag.name) ?? [];
   const assignedCategories =
     trackCore.tags
       ?.filter((t) => t.tag.type === "CATALOG")
       .map((c) => ({ id: c.tag.id, slug: c.tag.slug, name: c.tag.name })) ?? [];
 
-  // MODULO DE MOODS
-  // Lista de MOODS asignados al track actual.
-  const assignedMoods =
-    trackCore.tags?.filter((t) => t.tag.type === "MOOD").map((c) => c.tag.name) ?? [];
+  const writerTotal = trackRights.publishingShares
+    .filter((item) => item.role === "WRITER")
+    .reduce((sum, item) => sum + Number(item.sharePct || 0), 0);
+  const publisherTotal = trackRights.publishingShares
+    .filter((item) => item.role === "PUBLISHER")
+    .reduce((sum, item) => sum + Number(item.sharePct || 0), 0);
+  const masterTotal = trackRights.masterShares.reduce(
+    (sum, item) => sum + Number(item.sharePct || 0),
+    0,
+  );
 
-  // MODULO DE USES
-  // Lista de USES asignados al track actual.
-  const assignedUses =
-    trackCore.tags?.filter((t) => t.tag.type === "USE").map((c) => c.tag.name) ?? [];
+  const rightsStatus: ModuleStatus =
+    writerTotal === 100 && publisherTotal === 100 && masterTotal === 100
+      ? "ok"
+      : "warning";
 
-  /**
-   * FUNCION SERVER ACTION: deleteTrackAction
-   * Que hace:
-   * - Elimina un track de BD.
-   * - Intenta eliminar su asset en almacenamiento.
-   * - Revalida y redirige al listado.
-   *
-   * Input:
-   * - formData con: id, assetKey, coverUrl
-   *
-   * Output:
-   * - No retorna datos de negocio (void).
-   * - Efecto final: redirect a /admin/tracks cuando elimina correctamente.
-   */
+  const idFilledCount = [trackCore.isrc, trackCore.iswc, trackCore.upc].filter(
+    (value) => typeof value === "string" && value.trim().length > 0,
+  ).length;
+
+  const modules = getTrackEditModuleNavItems(trackCore.id, {
+    includeFull: true,
+  });
+
   async function deleteTrackAction(formData: FormData) {
     "use server";
 
@@ -123,19 +152,17 @@ export default async function AdminTrackEditPage({
 
     if (!idFromForm || typeof idFromForm !== "string") {
       console.error(
-        "[track:edit:deleteTrackAction] id inválido en FormData",
+        "[track:edit:deleteTrackAction] id invalido en FormData",
         idFromForm,
       );
       return;
     }
 
     try {
-      // 1) Eliminar de BD
       await prisma.track.delete({
         where: { id: idFromForm },
       });
 
-      // 2) Intentar borrar asset en R2/S3 (no rompe si falla)
       const r2Result = await deleteObjectFromS3(assetKey);
       console.log("[track:edit:deleteTrackAction] deleteObjectFromS3", {
         assetKey,
@@ -148,33 +175,22 @@ export default async function AdminTrackEditPage({
         assetKey,
         coverUrl,
       });
-      // Si algo falla aquí, no intentamos redirigir
       return;
     }
 
-    // 3) Revalidar y REDIRIGIR (fuera del try/catch para no atrapar NEXT_REDIRECT)
     revalidatePath("/admin/tracks");
     redirect("/admin/tracks");
   }
 
   return (
-    <div className="space-y-4 min-h-screen pb-12">
-      {/* HEADER PRINCIPAL */}
-      <header className="flex flex-col gap-3 border-b border-border pb-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">Editar track</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {trackCore.title ?? "(sin título)"} —{" "}
-            <span className="text-muted-foreground">
-              {trackCore.artist ?? "(sin artista)"}
-            </span>
-          </p>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            ID: <span className="font-mono">{trackCore.id}</span>
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
+    <TrackEditShell
+      title={trackCore.title}
+      artist={trackCore.artist}
+      trackId={trackCore.id}
+      modules={modules}
+      activeModuleId="overview"
+      headerActions={
+        <>
           <DeleteTrackButton
             trackId={trackCore.id}
             trackTitle={trackCore.title}
@@ -186,93 +202,81 @@ export default async function AdminTrackEditPage({
             id={trackCore.id}
             audioUrl={trackAudioHeader.audioUrl}
           />
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="text-xs"
-          >
+          <Button asChild variant="outline" size="sm" className="text-xs">
+            <Link href={`/admin/tracks/${trackCore.id}/edit/full`}>Vista completa</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm" className="text-xs">
             <Link href="/admin/tracks">Volver al listado</Link>
           </Button>
-        </div>
-      </header>
-
-      {/* SECCIONES PRINCIPALES */}
-      <div className="space-y-4">
-        {/* 1. Audio / analisis tecnico (carga diferida) */}
-        <Suspense
-          fallback={
-            <section className="space-y-3 rounded-xl border border-border bg-card/80 p-4">
-              <div className="h-5 w-56 animate-pulse rounded bg-muted/40" />
-              <div className="h-24 animate-pulse rounded bg-muted/30" />
-              <div className="h-24 animate-pulse rounded bg-muted/30" />
-            </section>
-          }
-        >
-          <AudioAnalysisSection
-            trackId={trackCore.id}
-            isrc={trackCore.isrc}
-            iswc={trackCore.iswc}
-            licenseType={trackCore.licenseType}
-            composerName={primaryWriter?.name ?? null}
-          />
-        </Suspense>
-
-        {/* ORQUESTADOR DE MODULOS DEL FORMULARIO DE EDICION */}
-        <TrackEditForm
-          track={{
-            id: trackCore.id,
-            title: trackCore.title,
-            artist: trackCore.artist,
-            // MODULO DE MOODS: lista de MOODS asignados.
-            assignedMoods: assignedMoods,
-            // MODULO DE USES: lista de USES asignados.
-            assignedUses: assignedUses,
-            // MODULO DE CATEGORIAS: slugs asignados en TrackTag.
-            catalogTags: trackCore.tags.map((t) => t.tag.slug),
-            assignedCategories: assignedCategories,
-            isrc: trackCore.isrc,
-            iswc: trackCore.iswc,
-            upc: trackCore.upc,
-            licenseType: trackCore.licenseType,
-            mediaBuy: trackCore.mediaBuy,
-            bpm: trackCore.bpm,
-            key: trackCore.key,
-            trackType: trackCore.trackType,
-            genres: trackCore.genres,
-            subgenres: trackCore.subgenres,
-            exclusiveTerritories: trackCore.exclusiveTerritories,
-            exclusiveTermMonths: trackCore.exclusiveTermMonths,
-            restrictedTerritories: trackCore.restrictedTerritories,
-            restrictedIndustries: trackCore.restrictedIndustries,
-            restrictedPlatforms: trackCore.restrictedPlatforms,
-            restrictedBrands: trackCore.restrictedBrands,
-            restrictions: trackCore.restrictions ?? [],
-            pricingTier: trackCore.pricingTier,
-            budgetMin: trackCore.budgetMin,
-            budgetMax: trackCore.budgetMax,
-            budgetCurrency: trackCore.budgetCurrency,
-            mfn: !!trackCore.mfn,
-            oneStop: !!trackCore.oneStop,
-            clearedForSync: !!trackCore.clearedForSync,
-            contentIdEnrolled: !!trackCore.contentIdEnrolled,
-            contentIdAdmin: trackCore.contentIdAdmin,
-            contentIdWhitelist: trackCore.contentIdWhitelist,
-            // MODULO DE MASTER
-            // Lista de MASTERS (masterShares) para edicion de porcentajes/contacto.
-            master: trackRights.master,
-            masterShares: trackRights.masterShares,
-            // MODULO DE WRITERS/PUBLISHERS
-            // Lista de WRITERS/PUBLISHERS (publishingShares) para split publishing.
-            publishingShares: trackRights.publishingShares,
-            versions: trackDeliverables.versions,
-            stems: trackDeliverables.stems,
-          }}
-          catalogTagOptions={catalogTags}
-          moodTagOptions={moodTags}
-          useTagOptions={useTags}
+        </>
+      }
+    >
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <ModuleCard
+          title="Creativo"
+          description="Titulo, artista, modulo musical y tags creativos."
+          href={`/admin/tracks/${trackCore.id}/edit/creative`}
+          status={trackCore.title && trackCore.artist ? "ok" : "warning"}
+          statusText={trackCore.title && trackCore.artist ? "Listo" : "Pendiente"}
+          details={[
+            `Moods asignados: ${assignedMoods.length}`,
+            `Usos asignados: ${assignedUses.length}`,
+            `Categorias asignadas: ${assignedCategories.length}`,
+          ]}
         />
-      </div>
-    </div>
+
+        <ModuleCard
+          title="Derechos"
+          description="Writers, publishers, masters y toggles de explotacion."
+          href={`/admin/tracks/${trackCore.id}/edit/rights`}
+          status={rightsStatus}
+          statusText={rightsStatus === "ok" ? "Listo" : "Revisar"}
+          details={[
+            `Writer total: ${writerTotal}%`,
+            `Publisher total: ${publisherTotal}%`,
+            `Master total: ${masterTotal}%`,
+          ]}
+        />
+
+        <ModuleCard
+          title="Metadata"
+          description="IDs y metadatos sincronizables para entrega/licensing."
+          href={`/admin/tracks/${trackCore.id}/edit/metadata`}
+          status={idFilledCount >= 2 ? "ok" : "warning"}
+          statusText={idFilledCount >= 2 ? "Listo" : "Incompleto"}
+          details={[
+            `IDs completados: ${idFilledCount}/3 (ISRC/ISWC/UPC)`,
+            `BPM: ${trackCore.bpm ?? "-"}`,
+            `Track type: ${trackCore.trackType ?? "-"}`,
+          ]}
+        />
+
+        <ModuleCard
+          title="Entregables"
+          description="Versiones y stems para packaging de entrega."
+          href={`/admin/tracks/${trackCore.id}/edit/deliverables`}
+          status={trackDeliverables.versions.length > 0 ? "ok" : "info"}
+          statusText={trackDeliverables.versions.length > 0 ? "Listo" : "Vacio"}
+          details={[
+            `Versiones: ${trackDeliverables.versions.length}`,
+            `Stems: ${trackDeliverables.stems.length}`,
+            `Audio URL: ${trackAudioHeader.audioUrl ? "Si" : "No"}`,
+          ]}
+        />
+
+        <ModuleCard
+          title="Review"
+          description="Revision consolidada final antes de publicar/entregar."
+          href={`/admin/tracks/${trackCore.id}/edit/review`}
+          status="info"
+          statusText="Disponible"
+          details={[
+            "Vista resumen de control final",
+            "Accesos rapidos a modulos",
+            "Sin cambios de datos en esta fase",
+          ]}
+        />
+      </section>
+    </TrackEditShell>
   );
 }

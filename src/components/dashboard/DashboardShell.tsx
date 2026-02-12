@@ -95,6 +95,9 @@ export function DashboardShell({
     () => buildBreadcrumbs(pathname, activeItem),
     [pathname, activeItem],
   );
+  const isTrackEditRoute =
+    pathname.startsWith("/admin/tracks/") && pathname.includes("/edit");
+  const dashboardContentClass = isTrackEditRoute ? "pb-0" : undefined;
 
   if (shouldHideShell(pathname, hiddenPaths)) {
     return (
@@ -142,7 +145,9 @@ export function DashboardShell({
             }
           />
 
-          <DashboardContent>{children}</DashboardContent>
+          <DashboardContent className={dashboardContentClass}>
+            {children}
+          </DashboardContent>
         </div>
       </div>
 
