@@ -10,8 +10,7 @@ import { TrackEditShell } from "@/components/admin/track/edit/TrackEditShell";
 import { getTrackEditModuleNavItems } from "@/components/admin/track/edit/module-nav";
 import { MetadataModuleForm } from "@/components/admin/track/edit/MetadataModuleForm";
 import {
-  getTrackAudioHeaderModule,
-  getTrackEditCore,
+  getTrackMetadataPageData,
 } from "@/server/track-edit/queries";
 
 export default async function AdminTrackEditMetadataPage({
@@ -21,35 +20,32 @@ export default async function AdminTrackEditMetadataPage({
 }) {
   const { id } = await params;
 
-  const [trackCore, audioHeader] = await Promise.all([
-    getTrackEditCore(id),
-    getTrackAudioHeaderModule(id),
-  ]);
+  const metadataPageData = await getTrackMetadataPageData(id);
 
-  if (!trackCore || !audioHeader) {
+  if (!metadataPageData) {
     notFound();
   }
 
-  const modules = getTrackEditModuleNavItems(trackCore.id, { includeFull: true });
+  const modules = getTrackEditModuleNavItems(metadataPageData.id, { includeFull: true });
 
   return (
     <TrackEditShell
-      title={trackCore.title}
-      artist={trackCore.artist}
-      trackId={trackCore.id}
+      title={metadataPageData.title}
+      artist={metadataPageData.artist}
+      trackId={metadataPageData.id}
       modules={modules}
       activeModuleId="metadata"
       headerActions={
         <>
           <TrackAnalyzeHeaderButtons
-            id={trackCore.id}
-            audioUrl={audioHeader.audioUrl}
+            id={metadataPageData.id}
+            audioUrl={metadataPageData.audioUrl}
           />
           <Button asChild variant="outline" size="sm" className="text-xs">
-            <Link href={`/admin/tracks/${trackCore.id}/edit/full`}>Vista completa</Link>
+            <Link href={`/admin/tracks/${metadataPageData.id}/edit/full`}>Vista completa</Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="text-xs">
-            <Link href={`/admin/tracks/${trackCore.id}/edit`}>Overview</Link>
+            <Link href={`/admin/tracks/${metadataPageData.id}/edit`}>Overview</Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="text-xs">
             <Link href="/admin/tracks">Volver al listado</Link>
@@ -59,23 +55,23 @@ export default async function AdminTrackEditMetadataPage({
     >
       <MetadataModuleForm
         track={{
-          id: trackCore.id,
-          isrc: trackCore.isrc,
-          iswc: trackCore.iswc,
-          upc: trackCore.upc,
-          licenseType: trackCore.licenseType,
-          mediaBuy: trackCore.mediaBuy,
-          exclusiveTerritories: trackCore.exclusiveTerritories ?? [],
-          exclusiveTermMonths: trackCore.exclusiveTermMonths,
-          restrictedTerritories: trackCore.restrictedTerritories ?? [],
-          restrictedIndustries: trackCore.restrictedIndustries ?? [],
-          restrictedPlatforms: trackCore.restrictedPlatforms ?? [],
-          restrictedBrands: trackCore.restrictedBrands ?? [],
-          restrictions: trackCore.restrictions ?? [],
-          pricingTier: trackCore.pricingTier,
-          budgetMin: trackCore.budgetMin,
-          budgetMax: trackCore.budgetMax,
-          budgetCurrency: trackCore.budgetCurrency,
+          id: metadataPageData.id,
+          isrc: metadataPageData.isrc,
+          iswc: metadataPageData.iswc,
+          upc: metadataPageData.upc,
+          licenseType: metadataPageData.licenseType,
+          mediaBuy: metadataPageData.mediaBuy,
+          exclusiveTerritories: metadataPageData.exclusiveTerritories ?? [],
+          exclusiveTermMonths: metadataPageData.exclusiveTermMonths,
+          restrictedTerritories: metadataPageData.restrictedTerritories ?? [],
+          restrictedIndustries: metadataPageData.restrictedIndustries ?? [],
+          restrictedPlatforms: metadataPageData.restrictedPlatforms ?? [],
+          restrictedBrands: metadataPageData.restrictedBrands ?? [],
+          restrictions: metadataPageData.restrictions ?? [],
+          pricingTier: metadataPageData.pricingTier,
+          budgetMin: metadataPageData.budgetMin,
+          budgetMax: metadataPageData.budgetMax,
+          budgetCurrency: metadataPageData.budgetCurrency,
         }}
       />
     </TrackEditShell>

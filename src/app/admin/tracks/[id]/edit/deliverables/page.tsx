@@ -10,9 +10,7 @@ import { TrackEditShell } from "@/components/admin/track/edit/TrackEditShell";
 import { getTrackEditModuleNavItems } from "@/components/admin/track/edit/module-nav";
 import { DeliverablesModuleForm } from "@/components/admin/track/edit/DeliverablesModuleForm";
 import {
-  getTrackAudioHeaderModule,
-  getTrackDeliverablesModule,
-  getTrackEditCore,
+  getTrackDeliverablesPageData,
 } from "@/server/track-edit/queries";
 
 export default async function AdminTrackEditDeliverablesPage({
@@ -22,36 +20,32 @@ export default async function AdminTrackEditDeliverablesPage({
 }) {
   const { id } = await params;
 
-  const [trackCore, audioHeader, deliverables] = await Promise.all([
-    getTrackEditCore(id),
-    getTrackAudioHeaderModule(id),
-    getTrackDeliverablesModule(id),
-  ]);
+  const deliverablesPageData = await getTrackDeliverablesPageData(id);
 
-  if (!trackCore || !audioHeader || !deliverables) {
+  if (!deliverablesPageData) {
     notFound();
   }
 
-  const modules = getTrackEditModuleNavItems(trackCore.id, { includeFull: true });
+  const modules = getTrackEditModuleNavItems(deliverablesPageData.id, { includeFull: true });
 
   return (
     <TrackEditShell
-      title={trackCore.title}
-      artist={trackCore.artist}
-      trackId={trackCore.id}
+      title={deliverablesPageData.title}
+      artist={deliverablesPageData.artist}
+      trackId={deliverablesPageData.id}
       modules={modules}
       activeModuleId="deliverables"
       headerActions={
         <>
           <TrackAnalyzeHeaderButtons
-            id={trackCore.id}
-            audioUrl={audioHeader.audioUrl}
+            id={deliverablesPageData.id}
+            audioUrl={deliverablesPageData.audioUrl}
           />
           <Button asChild variant="outline" size="sm" className="text-xs">
-            <Link href={`/admin/tracks/${trackCore.id}/edit/full`}>Vista completa</Link>
+            <Link href={`/admin/tracks/${deliverablesPageData.id}/edit/full`}>Vista completa</Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="text-xs">
-            <Link href={`/admin/tracks/${trackCore.id}/edit`}>Overview</Link>
+            <Link href={`/admin/tracks/${deliverablesPageData.id}/edit`}>Overview</Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="text-xs">
             <Link href="/admin/tracks">Volver al listado</Link>
@@ -61,9 +55,9 @@ export default async function AdminTrackEditDeliverablesPage({
     >
       <DeliverablesModuleForm
         track={{
-          id: trackCore.id,
-          versions: deliverables.versions,
-          stems: deliverables.stems,
+          id: deliverablesPageData.id,
+          versions: deliverablesPageData.versions,
+          stems: deliverablesPageData.stems,
         }}
       />
     </TrackEditShell>

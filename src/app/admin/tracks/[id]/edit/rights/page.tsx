@@ -10,9 +10,7 @@ import { TrackEditShell } from "@/components/admin/track/edit/TrackEditShell";
 import { getTrackEditModuleNavItems } from "@/components/admin/track/edit/module-nav";
 import { RightsModuleForm } from "@/components/admin/track/edit/RightsModuleForm";
 import {
-  getTrackAudioHeaderModule,
-  getTrackEditCore,
-  getTrackRightsModule,
+  getTrackRightsPageData,
 } from "@/server/track-edit/queries";
 
 export default async function AdminTrackEditRightsPage({
@@ -22,36 +20,32 @@ export default async function AdminTrackEditRightsPage({
 }) {
   const { id } = await params;
 
-  const [trackCore, audioHeader, rightsModule] = await Promise.all([
-    getTrackEditCore(id),
-    getTrackAudioHeaderModule(id),
-    getTrackRightsModule(id),
-  ]);
+  const rightsPageData = await getTrackRightsPageData(id);
 
-  if (!trackCore || !audioHeader || !rightsModule) {
+  if (!rightsPageData) {
     notFound();
   }
 
-  const modules = getTrackEditModuleNavItems(trackCore.id, { includeFull: true });
+  const modules = getTrackEditModuleNavItems(rightsPageData.id, { includeFull: true });
 
   return (
     <TrackEditShell
-      title={trackCore.title}
-      artist={trackCore.artist}
-      trackId={trackCore.id}
+      title={rightsPageData.title}
+      artist={rightsPageData.artist}
+      trackId={rightsPageData.id}
       modules={modules}
       activeModuleId="rights"
       headerActions={
         <>
           <TrackAnalyzeHeaderButtons
-            id={trackCore.id}
-            audioUrl={audioHeader.audioUrl}
+            id={rightsPageData.id}
+            audioUrl={rightsPageData.audioUrl}
           />
           <Button asChild variant="outline" size="sm" className="text-xs">
-            <Link href={`/admin/tracks/${trackCore.id}/edit/full`}>Vista completa</Link>
+            <Link href={`/admin/tracks/${rightsPageData.id}/edit/full`}>Vista completa</Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="text-xs">
-            <Link href={`/admin/tracks/${trackCore.id}/edit`}>Overview</Link>
+            <Link href={`/admin/tracks/${rightsPageData.id}/edit`}>Overview</Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="text-xs">
             <Link href="/admin/tracks">Volver al listado</Link>
@@ -60,18 +54,18 @@ export default async function AdminTrackEditRightsPage({
       }
     >
       <RightsModuleForm
-        trackId={trackCore.id}
+        trackId={rightsPageData.id}
         track={{
-          mfn: !!trackCore.mfn,
-          contentIdEnrolled: !!trackCore.contentIdEnrolled,
-          contentIdAdmin: trackCore.contentIdAdmin ?? "",
-          contentIdWhitelist: trackCore.contentIdWhitelist ?? "",
-          master: rightsModule.master ?? "",
-          oneStop: !!trackCore.oneStop,
-          clearedForSync: !!trackCore.clearedForSync,
-          publishingShares: rightsModule.publishingShares,
-          masterShares: rightsModule.masterShares,
-          restrictions: trackCore.restrictions ?? [],
+          mfn: !!rightsPageData.mfn,
+          contentIdEnrolled: !!rightsPageData.contentIdEnrolled,
+          contentIdAdmin: rightsPageData.contentIdAdmin ?? "",
+          contentIdWhitelist: rightsPageData.contentIdWhitelist ?? "",
+          master: rightsPageData.master ?? "",
+          oneStop: !!rightsPageData.oneStop,
+          clearedForSync: !!rightsPageData.clearedForSync,
+          publishingShares: rightsPageData.publishingShares,
+          masterShares: rightsPageData.masterShares,
+          restrictions: rightsPageData.restrictions ?? [],
         }}
       />
     </TrackEditShell>

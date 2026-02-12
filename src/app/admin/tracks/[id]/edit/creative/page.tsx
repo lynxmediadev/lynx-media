@@ -10,11 +10,8 @@ import { TrackEditShell } from "@/components/admin/track/edit/TrackEditShell";
 import { getTrackEditModuleNavItems } from "@/components/admin/track/edit/module-nav";
 import { CreativeModuleForm } from "@/components/admin/track/edit/CreativeModuleForm";
 import {
-  getCatalogTagOptions,
-  getMoodTagOptions,
-  getTrackAudioHeaderModule,
-  getTrackEditCore,
-  getUseTagOptions,
+  getTagOptionsBundle,
+  getTrackCreativePageData,
 } from "@/server/track-edit/queries";
 
 export default async function AdminTrackEditCreativePage({
@@ -24,47 +21,44 @@ export default async function AdminTrackEditCreativePage({
 }) {
   const { id } = await params;
 
-  const [trackCore, audioHeader, moodCatalog, useCatalog, categoryCatalog] =
+  const [trackCreative, tagOptions] =
     await Promise.all([
-      getTrackEditCore(id),
-      getTrackAudioHeaderModule(id),
-      getMoodTagOptions(),
-      getUseTagOptions(),
-      getCatalogTagOptions(),
+      getTrackCreativePageData(id),
+      getTagOptionsBundle(),
     ]);
 
-  if (!trackCore || !audioHeader) {
+  if (!trackCreative) {
     notFound();
   }
 
-  const modules = getTrackEditModuleNavItems(trackCore.id, { includeFull: true });
+  const modules = getTrackEditModuleNavItems(trackCreative.id, { includeFull: true });
   const assignedMoods =
-    trackCore.tags?.filter((t) => t.tag.type === "MOOD").map((c) => c.tag.name) ?? [];
+    trackCreative.tags?.filter((t) => t.tag.type === "MOOD").map((c) => c.tag.name) ?? [];
   const assignedUses =
-    trackCore.tags?.filter((t) => t.tag.type === "USE").map((c) => c.tag.name) ?? [];
+    trackCreative.tags?.filter((t) => t.tag.type === "USE").map((c) => c.tag.name) ?? [];
   const assignedCategories =
-    trackCore.tags
+    trackCreative.tags
       ?.filter((t) => t.tag.type === "CATALOG")
       .map((c) => ({ id: c.tag.id, slug: c.tag.slug, name: c.tag.name })) ?? [];
 
   return (
     <TrackEditShell
-      title={trackCore.title}
-      artist={trackCore.artist}
-      trackId={trackCore.id}
+      title={trackCreative.title}
+      artist={trackCreative.artist}
+      trackId={trackCreative.id}
       modules={modules}
       activeModuleId="creative"
       headerActions={
         <>
           <TrackAnalyzeHeaderButtons
-            id={trackCore.id}
-            audioUrl={audioHeader.audioUrl}
+            id={trackCreative.id}
+            audioUrl={trackCreative.audioUrl}
           />
           <Button asChild variant="outline" size="sm" className="text-xs">
-            <Link href={`/admin/tracks/${trackCore.id}/edit/full`}>Vista completa</Link>
+            <Link href={`/admin/tracks/${trackCreative.id}/edit/full`}>Vista completa</Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="text-xs">
-            <Link href={`/admin/tracks/${trackCore.id}/edit`}>Overview</Link>
+            <Link href={`/admin/tracks/${trackCreative.id}/edit`}>Overview</Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="text-xs">
             <Link href="/admin/tracks">Volver al listado</Link>
@@ -74,21 +68,21 @@ export default async function AdminTrackEditCreativePage({
     >
       <CreativeModuleForm
         track={{
-          id: trackCore.id,
-          title: trackCore.title,
-          artist: trackCore.artist,
-          bpm: trackCore.bpm,
-          key: trackCore.key,
-          trackType: trackCore.trackType,
-          genres: trackCore.genres,
-          subgenres: trackCore.subgenres,
+          id: trackCreative.id,
+          title: trackCreative.title,
+          artist: trackCreative.artist,
+          bpm: trackCreative.bpm,
+          key: trackCreative.key,
+          trackType: trackCreative.trackType,
+          genres: trackCreative.genres,
+          subgenres: trackCreative.subgenres,
           assignedMoods,
           assignedUses,
           assignedCategories,
         }}
-        moodCatalog={moodCatalog}
-        useCatalog={useCatalog}
-        categoryCatalog={categoryCatalog}
+        moodCatalog={tagOptions.moodOptions}
+        useCatalog={tagOptions.useOptions}
+        categoryCatalog={tagOptions.catalogOptions}
       />
     </TrackEditShell>
   );

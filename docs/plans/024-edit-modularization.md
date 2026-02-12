@@ -168,7 +168,7 @@ Implementado:
 - [x] Crear ruta `/edit/rights`.
 - [x] Mover `RightsFormClient` y subcomponentes asociados.
 - [x] Confirmar estados de guardado (`SAVING/DONE/ERROR`) y validaciones 100%.
-- [ ] Validar desktop/mobile.
+- [x] Validar desktop/mobile.
 
 Criterio de exito:
 - Rights funcional en subruta, sin regresiones en writer/publisher/master.
@@ -187,7 +187,7 @@ Implementado:
 - [x] Crear ruta `/edit/metadata`.
 - [x] Mover `IdsForm` + `SyncMetaForm` (y campos musicales si aplica al modulo final).
 - [x] Mantener comportamiento de `EditableIconInput` y `NumericSelectInput`.
-- [ ] Validar guardado por Enter + onBlur donde corresponda.
+- [x] Validar guardado por Enter + onBlur donde corresponda.
 
 Criterio de exito:
 - Metadata funcional en subruta con UX consistente.
@@ -224,7 +224,7 @@ Implementado:
 ## Fase 7 - Review final y retiro de legacy
 
 - [x] Crear ruta `/edit/review` consolidada (read-only + acciones clave).
-- [ ] Ejecutar smoke completo de rutas modulares.
+- [x] Ejecutar smoke completo de rutas modulares.
 - [ ] Eliminar dependencia operativa de `/edit/full`.
 - [ ] Opcional: dejar `/edit/full` oculto 1 sprint como emergencia y luego remover.
 
@@ -242,6 +242,17 @@ Criterio de exito:
 
 Criterio de exito:
 - Menor carga inicial y guardados mas focalizados.
+
+Implementado:
+- `track-edit/queries.ts` ahora usa memoizacion server-side por request con `cache(...)`.
+- Se agregaron loaders ligeros por modulo:
+  - `getTrackCreativePageData`
+  - `getTrackRightsPageData`
+  - `getTrackMetadataPageData`
+  - `getTrackDeliverablesPageData`
+- Se agrego `getTagOptionsBundle` para reemplazar 3 lecturas de catalogos (moods/uses/categories) por 1 sola query.
+- Se ajustaron rutas modulares para consumir loaders especificos y reducir payload.
+- Se redujo invalidacion en acciones modulares para evitar `revalidatePath` extra en `/edit/full` cuando no corresponde.
 
 ---
 
@@ -261,14 +272,14 @@ Criterio de exito:
 
 ## Matriz de no-regresion (obligatoria)
 
-- [ ] Sidebar mantiene `Tracks` activo en:
-  - [ ] `/admin/tracks`
-  - [ ] `/admin/tracks/[id]/edit`
-  - [ ] `/admin/tracks/[id]/edit/*`
-- [ ] Guardados no pierden datos entre rutas.
-- [ ] Chips persisten y cargan sin parpadeo anomalo.
-- [ ] Rights mantiene validaciones y mensajes de estado.
-- [ ] Mobile/desktop consistentes en cada subruta.
+- [x] Sidebar mantiene `Tracks` activo en:
+  - [x] `/admin/tracks`
+  - [x] `/admin/tracks/[id]/edit`
+  - [x] `/admin/tracks/[id]/edit/*`
+- [x] Guardados no pierden datos entre rutas.
+- [x] Chips persisten y cargan sin parpadeo anomalo.
+- [x] Rights mantiene validaciones y mensajes de estado.
+- [x] Mobile/desktop consistentes en cada subruta.
 
 ---
 
@@ -287,3 +298,4 @@ Criterio de exito:
 
 - [x] Plan creado.
 - [x] Implementacion iniciada.
+- [x] Smoke manual base validado (usuario).

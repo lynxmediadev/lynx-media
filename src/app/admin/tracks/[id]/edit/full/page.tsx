@@ -37,13 +37,11 @@ import {
 } from "@/components/admin/track/edit/TrackEditShell";
 import { getTrackEditModuleNavItems } from "@/components/admin/track/edit/module-nav";
 import {
-  getCatalogTagOptions,
-  getMoodTagOptions,
+  getTagOptionsBundle,
   getTrackAudioHeaderModule,
   getTrackDeliverablesModule,
   getTrackEditCore,
   getTrackRightsModule,
-  getUseTagOptions,
 } from "@/server/track-edit/queries";
 
 /**
@@ -71,13 +69,11 @@ export default async function AdminTrackEditPage({
   if (!trackCore) {
     notFound();
   }
-  const [trackAudioHeader, trackRights, trackDeliverables, catalogTags, moodTags, useTags] = await Promise.all([
+  const [trackAudioHeader, trackRights, trackDeliverables, tagOptions] = await Promise.all([
     getTrackAudioHeaderModule(id),
     getTrackRightsModule(id),
     getTrackDeliverablesModule(id),
-    getCatalogTagOptions(),
-    getMoodTagOptions(),
-    getUseTagOptions(),
+    getTagOptionsBundle(),
   ]);
   if (!trackAudioHeader || !trackRights || !trackDeliverables) {
     notFound();
@@ -262,9 +258,9 @@ export default async function AdminTrackEditPage({
             versions: trackDeliverables.versions,
             stems: trackDeliverables.stems,
           }}
-          catalogTagOptions={catalogTags}
-          moodTagOptions={moodTags}
-          useTagOptions={useTags}
+          catalogTagOptions={tagOptions.catalogOptions}
+          moodTagOptions={tagOptions.moodOptions}
+          useTagOptions={tagOptions.useOptions}
         />
     </TrackEditShell>
   );

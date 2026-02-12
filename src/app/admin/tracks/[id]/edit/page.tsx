@@ -23,10 +23,7 @@ import { DeleteTrackButton } from "@/components/admin/track/DeleteTrackButton.cl
 import { deleteObjectFromS3 } from "@/lib/storage/delete-object";
 import { TrackEditShell } from "@/components/admin/track/edit/TrackEditShell";
 import {
-  getTrackEditCore,
-  getTrackAudioHeaderModule,
-  getTrackRightsModule,
-  getTrackDeliverablesModule,
+  getTrackOverviewPageData,
 } from "@/server/track-edit/queries";
 import { getTrackEditModuleNavItems } from "@/components/admin/track/edit/module-nav";
 
@@ -98,34 +95,27 @@ export default async function AdminTrackEditOverviewPage({
 }) {
   const { id } = await params;
 
-  const [trackCore, trackAudioHeader, trackRights, trackDeliverables] =
-    await Promise.all([
-      getTrackEditCore(id),
-      getTrackAudioHeaderModule(id),
-      getTrackRightsModule(id),
-      getTrackDeliverablesModule(id),
-    ]);
-
-  if (!trackCore || !trackAudioHeader || !trackRights || !trackDeliverables) {
+  const trackOverview = await getTrackOverviewPageData(id);
+  if (!trackOverview) {
     notFound();
   }
 
   const assignedMoods =
-    trackCore.tags?.filter((t) => t.tag.type === "MOOD").map((c) => c.tag.name) ?? [];
+    trackOverview.tags?.filter((t) => t.tag.type === "MOOD").map((c) => c.tag.name) ?? [];
   const assignedUses =
-    trackCore.tags?.filter((t) => t.tag.type === "USE").map((c) => c.tag.name) ?? [];
+    trackOverview.tags?.filter((t) => t.tag.type === "USE").map((c) => c.tag.name) ?? [];
   const assignedCategories =
-    trackCore.tags
+    trackOverview.tags
       ?.filter((t) => t.tag.type === "CATALOG")
       .map((c) => ({ id: c.tag.id, slug: c.tag.slug, name: c.tag.name })) ?? [];
 
-  const writerTotal = trackRights.publishingShares
+  const writerTotal = trackOverview.publishingShares
     .filter((item) => item.role === "WRITER")
     .reduce((sum, item) => sum + Number(item.sharePct || 0), 0);
-  const publisherTotal = trackRights.publishingShares
+  const publisherTotal = trackOverview.publishingShares
     .filter((item) => item.role === "PUBLISHER")
     .reduce((sum, item) => sum + Number(item.sharePct || 0), 0);
-  const masterTotal = trackRights.masterShares.reduce(
+  const masterTotal = trackOverview.masterShares.reduce(
     (sum, item) => sum + Number(item.sharePct || 0),
     0,
   );
@@ -135,11 +125,11 @@ export default async function AdminTrackEditOverviewPage({
       ? "ok"
       : "warning";
 
-  const idFilledCount = [trackCore.isrc, trackCore.iswc, trackCore.upc].filter(
+  const idFilledCount = [trackOverview.isrc, trackOverview.iswc, trackOverview.upc].filter(
     (value) => typeof value === "string" && value.trim().length > 0,
   ).length;
 
-  const modules = getTrackEditModuleNavItems(trackCore.id, {
+  const modules = getTrackEditModuleNavItems(trackOverview.id, {
     includeFull: true,
   });
 
@@ -184,26 +174,26 @@ export default async function AdminTrackEditOverviewPage({
 
   return (
     <TrackEditShell
-      title={trackCore.title}
-      artist={trackCore.artist}
-      trackId={trackCore.id}
+      title={trackOverview.title}
+      artist={trackOverview.artist}
+      trackId={trackOverview.id}
       modules={modules}
       activeModuleId="overview"
       headerActions={
         <>
           <DeleteTrackButton
-            trackId={trackCore.id}
-            trackTitle={trackCore.title}
+            trackId={trackOverview.id}
+            trackTitle={trackOverview.title}
             deleteAction={deleteTrackAction}
-            assetKey={trackAudioHeader.assetKey}
-            coverUrl={trackAudioHeader.coverUrl}
+            assetKey={trackOverview.assetKey}
+            coverUrl={trackOverview.coverUrl}
           />
           <TrackAnalyzeHeaderButtons
-            id={trackCore.id}
-            audioUrl={trackAudioHeader.audioUrl}
+            id={trackOverview.id}
+            audioUrl={trackOverview.audioUrl}
           />
           <Button asChild variant="outline" size="sm" className="text-xs">
-            <Link href={`/admin/tracks/${trackCore.id}/edit/full`}>Vista completa</Link>
+            <Link href={`/admin/tracks/${trackOverview.id}/edit/full`}>Vista completa</Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="text-xs">
             <Link href="/admin/tracks">Volver al listado</Link>
@@ -215,9 +205,9 @@ export default async function AdminTrackEditOverviewPage({
         <ModuleCard
           title="Creativo"
           description="Titulo, artista, modulo musical y tags creativos."
-          href={`/admin/tracks/${trackCore.id}/edit/creative`}
-          status={trackCore.title && trackCore.artist ? "ok" : "warning"}
-          statusText={trackCore.title && trackCore.artist ? "Listo" : "Pendiente"}
+          href={`/admin/tracks/${trackOverview.id}/edit/creative`}
+          status={trackOverview.title && trackOverview.artist ? "ok" : "warning"}
+          statusText={trackOverview.title && trackOverview.artist ? "Listo" : "Pendiente"}
           details={[
             `Moods asignados: ${assignedMoods.length}`,
             `Usos asignados: ${assignedUses.length}`,
@@ -228,7 +218,7 @@ export default async function AdminTrackEditOverviewPage({
         <ModuleCard
           title="Derechos"
           description="Writers, publishers, masters y toggles de explotacion."
-          href={`/admin/tracks/${trackCore.id}/edit/rights`}
+          href={`/admin/tracks/${trackOverview.id}/edit/rights`}
           status={rightsStatus}
           statusText={rightsStatus === "ok" ? "Listo" : "Revisar"}
           details={[
@@ -241,33 +231,33 @@ export default async function AdminTrackEditOverviewPage({
         <ModuleCard
           title="Metadata"
           description="IDs y metadatos sincronizables para entrega/licensing."
-          href={`/admin/tracks/${trackCore.id}/edit/metadata`}
+          href={`/admin/tracks/${trackOverview.id}/edit/metadata`}
           status={idFilledCount >= 2 ? "ok" : "warning"}
           statusText={idFilledCount >= 2 ? "Listo" : "Incompleto"}
           details={[
             `IDs completados: ${idFilledCount}/3 (ISRC/ISWC/UPC)`,
-            `BPM: ${trackCore.bpm ?? "-"}`,
-            `Track type: ${trackCore.trackType ?? "-"}`,
+            `BPM: ${trackOverview.bpm ?? "-"}`,
+            `Track type: ${trackOverview.trackType ?? "-"}`,
           ]}
         />
 
         <ModuleCard
           title="Entregables"
           description="Versiones y stems para packaging de entrega."
-          href={`/admin/tracks/${trackCore.id}/edit/deliverables`}
-          status={trackDeliverables.versions.length > 0 ? "ok" : "info"}
-          statusText={trackDeliverables.versions.length > 0 ? "Listo" : "Vacio"}
+          href={`/admin/tracks/${trackOverview.id}/edit/deliverables`}
+          status={trackOverview._count.versions > 0 ? "ok" : "info"}
+          statusText={trackOverview._count.versions > 0 ? "Listo" : "Vacio"}
           details={[
-            `Versiones: ${trackDeliverables.versions.length}`,
-            `Stems: ${trackDeliverables.stems.length}`,
-            `Audio URL: ${trackAudioHeader.audioUrl ? "Si" : "No"}`,
+            `Versiones: ${trackOverview._count.versions}`,
+            `Stems: ${trackOverview._count.stems}`,
+            `Audio URL: ${trackOverview.audioUrl ? "Si" : "No"}`,
           ]}
         />
 
         <ModuleCard
           title="Review"
           description="Revision consolidada final antes de publicar/entregar."
-          href={`/admin/tracks/${trackCore.id}/edit/review`}
+          href={`/admin/tracks/${trackOverview.id}/edit/review`}
           status="info"
           statusText="Disponible"
           details={[

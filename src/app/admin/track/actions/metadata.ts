@@ -98,7 +98,6 @@ export async function updateMetadataModule(
 
     revalidatePath(`/admin/tracks/${trackId}/edit`);
     revalidatePath(`/admin/tracks/${trackId}/edit/metadata`);
-    revalidatePath(`/admin/tracks/${trackId}/edit/full`);
     revalidatePath("/admin/tracks");
 
     return { ok: true, message: "Metadata actualizada" };
@@ -217,7 +216,6 @@ export async function updateDeliverables(
 
     revalidatePath(`/admin/tracks/${data.id}/edit`);
     revalidatePath(`/admin/tracks/${data.id}/edit/deliverables`);
-    revalidatePath(`/admin/tracks/${data.id}/edit/full`);
     revalidatePath("/admin/tracks");
 
     return { ok: true, message: "Entregables actualizados" };

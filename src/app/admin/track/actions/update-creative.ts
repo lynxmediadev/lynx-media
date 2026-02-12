@@ -99,7 +99,6 @@ export async function updateCreative(formData: FormData): Promise<UpdateCreative
 
     revalidatePath(`/admin/tracks/${id}/edit`);
     revalidatePath(`/admin/tracks/${id}/edit/creative`);
-    revalidatePath(`/admin/tracks/${id}/edit/full`);
     revalidatePath("/admin/tracks");
 
     return { ok: true, message: "Creativo guardado." };
