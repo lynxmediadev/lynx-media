@@ -127,13 +127,13 @@ No-regresión definida:
 
 ### Paso 7 · QA funcional y no-regresión
 
-- [ ] Smoke navegación completa del menú en Desktop.
-- [ ] Smoke navegación completa del menú en Mobile.
-- [ ] Validar rutas existentes críticas:
-- [ ] `/admin/tracks`
-- [ ] `/admin/track/[id]/edit`
-- [ ] `/admin/licensing`
-- [ ] Verificar que no se rompe “Guardar todo” ni autosaves en `/edit`.
+- [x] Smoke navegación completa del menú en Desktop.
+- [x] Smoke navegación completa del menú en Mobile.
+- [x] Validar rutas existentes críticas:
+- [x] `/admin/tracks`
+- [x] `/admin/track/[id]/edit`
+- [x] `/admin/licensing`
+- [x] Verificar que no se rompe “Guardar todo” ni autosaves en `/edit`.
 - [x] Documentar hallazgos y fixes en `docs/debug/terminal.md` si aplica.
 
 Hallazgo técnico en QA automatizado:

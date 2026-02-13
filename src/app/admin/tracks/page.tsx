@@ -17,7 +17,6 @@
 import Link from "next/link";
 import prisma from "@/lib/prisma";
 import AnalyzeActions from "@/components/admin/AnalyzeActions";
-import { getAudioCheckStatus } from "@/lib/audio/audio-check";
 
 export const dynamic = "force-dynamic";
 
@@ -162,18 +161,6 @@ export default async function Page(props: {
     prisma.track.count(),
   ]);
 
-  const audioChecks = await Promise.all(
-    tracks.map(async (track) => ({
-      id: track.id,
-      result: await getAudioCheckStatus(track.audioUrl, {
-        cacheKey: track.id,
-      }),
-    })),
-  );
-  const audioCheckById = new Map(
-    audioChecks.map(({ id, result }) => [id, result]),
-  );
-
   const totalPages = Math.max(1, Math.ceil(total / per));
   const prevPage = Math.max(1, page - 1);
   const nextPage = Math.min(totalPages, page + 1);
@@ -248,7 +235,6 @@ export default async function Page(props: {
               </tr>
             ) : (
               tracks.map((t) => {
-                const audioCheck = audioCheckById.get(t.id);
                 return (
                   <tr
                     key={t.id}
@@ -297,8 +283,6 @@ export default async function Page(props: {
                     <AnalyzeActions
                       id={t.id}
                       audioUrl={t.audioUrl}
-                      initialAudioStatus={audioCheck?.status}
-                      initialAudioMessage={audioCheck?.message ?? null}
                       className="justify-end"
                     />
                   </td>

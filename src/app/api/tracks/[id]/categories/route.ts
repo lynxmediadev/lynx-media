@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/server/db";
 import { TagType } from "@prisma/client";
+import { syncTrackTagsByType } from "@/server/tags/syncTrackTagsByType";
 
 const bodySchema = z.object({
   slugs: z.array(z.string()).default([]),
@@ -16,6 +17,10 @@ function slugify(input: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 60);
+}
+
+function labelFromSlug(slug: string) {
+  return slug.replace(/-/g, " ").toUpperCase();
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -37,56 +42,33 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   );
 
   try {
-    console.log("[POST /api/tracks/:id/categories] incoming", { id, slugs });
-    await db.$transaction(async (tx) => {
-      // Asegura que todos los slugs existan como Tag CATALOG (si estaban como GENERIC, se promueven)
-      for (const slug of slugs) {
-        await tx.tag.upsert({
-          where: { slug },
-          update: { type: TagType.CATALOG, name: slug.toUpperCase() },
-          create: { slug, name: slug.toUpperCase(), type: TagType.CATALOG },
-        });
-      }
+    const track = await db.track.findUnique({ where: { id }, select: { id: true } });
+    if (!track) {
+      return NextResponse.json({ ok: false, error: "Track no encontrado" }, { status: 404 });
+    }
 
-      // Releer todos los tags finales
-      const tags = await tx.tag.findMany({
-        where: { type: TagType.CATALOG, slug: { in: slugs } },
-        select: { id: true, slug: true, name: true },
-      });
-
-      // Reemplazar pivote
-      await tx.trackTag.deleteMany({
-        where: {
-          trackId: id,
-          tag: { type: TagType.CATALOG },
-        },
-      });
-      if (tags.length) {
-        await tx.trackTag.createMany({
-          data: tags.map((tag) => ({ trackId: id, tagId: tag.id })),
-          skipDuplicates: true, // evita P2002 si llega doble petición o tags repetidos
-        });
-      }
+    const existingTags = await db.tag.findMany({
+      where: { slug: { in: slugs }, type: TagType.CATALOG },
+      select: { slug: true, name: true },
     });
+    const existingBySlug = new Map(existingTags.map((tag) => [tag.slug, tag.name]));
 
-    const assigned = await db.trackTag.findMany({
-      where: { trackId: id, tag: { type: TagType.CATALOG } },
-      select: { tag: { select: { id: true, slug: true, name: true } } },
-      orderBy: { assignedAt: "asc" },
-    });
-
-    console.log("[POST /api/tracks/:id/categories] saved", {
+    const assigned = await syncTrackTagsByType({
       trackId: id,
-      assigned: assigned.map((r) => r.tag.slug),
+      type: TagType.CATALOG,
+      inputs: slugs.map((slug) => ({
+        slug,
+        name: existingBySlug.get(slug) ?? labelFromSlug(slug),
+      })),
     });
 
     return NextResponse.json({
       ok: true,
       slugs,
       items: assigned.map((r) => ({
-        id: r.tag.id,
-        slug: r.tag.slug,
-        name: r.tag.name,
+        id: r.id,
+        slug: r.slug,
+        name: r.name,
       })),
     });
   } catch (err) {

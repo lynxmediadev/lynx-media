@@ -1,2 +1,6 @@
 {
+  "editor.occurrencesHighlight": "singleFile",
+  "editor.selectionHighlight": true,
+  "editor.guides.highlightActiveBracketPair": false,
+  "tailwindCSS.colorDecorators": false
 }

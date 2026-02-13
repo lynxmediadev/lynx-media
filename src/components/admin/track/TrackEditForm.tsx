@@ -8,7 +8,7 @@ import IdsForm from "./IdsForm";
 import RightsFormClient from "./RightsFormClient";
 import SyncMetaForm from "./SyncMetaForm";
 import { updateTrackAll } from "@/app/admin/track/actions/update-all";
-import { Button } from "@/components/ui/button";
+import { ModuleSaveBar } from "@/components/admin/track/edit/ModuleSaveBar";
 
 const DeliverablesForm = dynamic(() => import("./DeliverablesForm"), {
   loading: () => (
@@ -189,40 +189,9 @@ export default function TrackEditForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 pb-8">
+    <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col gap-4">
       {/* CAMPO BASE DEL FORMULARIO */}
       <input type="hidden" name="id" defaultValue={track.id} />
-
-      {/* MÓDULO DE GUARDADO GLOBAL */}
-      {/* Barra fija inferior: estado + boton Guardar todo */}
-      <div
-        id="save-bar"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background"
-        style={{ bottom: 0, margin: 0 }}
-      >
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 md:px-6">
-          <div className="text-xs text-muted-foreground">
-            {status ? (
-              <span
-                className={status.ok ? "text-success" : "text-destructive"}
-              >
-                {status.message}
-              </span>
-            ) : (
-              <span>Guardar todos los cambios desde un solo botón.</span>
-            )}
-          </div>
-          <Button
-            type="submit"
-            disabled={pending}
-            variant="outline"
-            size="lg"
-            className="h-11 px-6 text-xs font-semibold full-sm btn-touch"
-          >
-            {pending ? "Guardando..." : "Guardar todo"}
-          </Button>
-        </div>
-      </div>
 
       {/* MÓDULO CREATIVO + IDENTIFICADORES + DERECHOS */}
       <section className="rounded-xl border border-border bg-card/80 p-4">
@@ -337,6 +306,13 @@ export default function TrackEditForm({
           />
         </div>
       </section>
+
+      <ModuleSaveBar
+        status={status}
+        hint="Guardar todos los cambios desde un solo botón."
+        pending={pending}
+        submitLabel="Guardar todo"
+      />
     </form>
   );
 }

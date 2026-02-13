@@ -46,6 +46,7 @@ export async function GET(req: Request) {
 
   const items = await db.tag.findMany({
     where,
+    select: { id: true, name: true, slug: true, type: true },
     orderBy: { name: "asc" },
     take: 20,
   });
@@ -80,6 +81,7 @@ export async function POST(req: Request) {
         { name: { equals: normalized, mode: "insensitive" } },
       ],
     },
+    select: { id: true, name: true, slug: true, type: true },
   });
 
   if (existing) {

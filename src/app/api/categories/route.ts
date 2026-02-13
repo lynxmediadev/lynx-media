@@ -74,6 +74,7 @@ export async function GET(req: Request) {
 
   const items = await db.tag.findMany({
     where,
+    select: { id: true, name: true, slug: true, type: true },
     orderBy: { name: "asc" },
     take: 20,
   });
@@ -108,6 +109,7 @@ export async function POST(req: Request) {
         { name: { equals: upper, mode: "insensitive" } },
       ],
     },
+    select: { id: true, name: true, slug: true, type: true },
   });
 
   if (existing) {
@@ -120,6 +122,7 @@ export async function POST(req: Request) {
       type: TagType.CATALOG,
       name: { startsWith: upper.slice(0, 3), mode: "insensitive" },
     },
+    select: { id: true, name: true, slug: true, type: true },
     take: 15,
   });
   const similar = nearby.filter((c) => distance(c.name.toLowerCase(), upper.toLowerCase()) <= 1);

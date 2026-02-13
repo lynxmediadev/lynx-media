@@ -9,6 +9,8 @@
  * │     • guarda el payload JSON                                               │
  * │     • refresca la UI vía router.refresh()                                  │
  * │     • muestra un modal con el JSON (botón "Payload")                       │
+ * │ - Optimización: NO hace preflight automático al montar.                    │
+ * │   Solo valida presencia de audioUrl en cliente y analiza bajo demanda.     │
  * │ - Exporta dos componentes de UI:                                           │
  * │     1) default AnalyzeActions → para /admin/tracks (tabla)                 │
  * │        - Botones: Analizar, Payload, Ver track                             │
@@ -28,19 +30,16 @@ import { Button } from "@/components/ui/button";
 type BaseProps = {
   id: string;
   audioUrl?: string | null;
-  initialAudioStatus?: "ok" | "invalid";
-  initialAudioMessage?: string | null;
   className?: string;
 };
 
 type TrackAnalysisHook = {
   busy: boolean;
+  canAnalyze: boolean;
   error: string | null;
   isModalOpen: boolean;
   lastPayload: any | null;
   trackUrl: string;
-  audioStatus: "unknown" | "checking" | "ok" | "invalid";
-  audioMessage: string | null;
   handleAnalyze: () => Promise<void>;
   handleOpenPayload: () => void;
   handleClosePayload: () => void;
@@ -52,8 +51,6 @@ type TrackAnalysisHook = {
 function useTrackAnalysisActions(
   id: string,
   audioUrl?: string | null,
-  initialAudioStatus?: "ok" | "invalid",
-  initialAudioMessage?: string | null,
 ): TrackAnalysisHook {
   const router = useRouter();
 
@@ -62,63 +59,19 @@ function useTrackAnalysisActions(
   const [lastPayload, setLastPayload] = React.useState<any | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
-  const [audioStatus, setAudioStatus] = React.useState<
-    "unknown" | "checking" | "ok" | "invalid"
-  >(initialAudioStatus ?? "unknown");
-  const [audioMessage, setAudioMessage] = React.useState<string | null>(
-    initialAudioMessage ?? null,
-  );
+  const canAnalyze = typeof audioUrl === "string" && audioUrl.trim().length > 0;
 
   const busy = isLoading || isPending;
-
-  React.useEffect(() => {
-    if (initialAudioStatus !== undefined) return;
-    let active = true;
-
-    async function validateAudio() {
-      if (!id) return;
-      if (!audioUrl || audioUrl.trim().length === 0) {
-        setAudioStatus("invalid");
-        setAudioMessage("Audio URL vacío.");
-        return;
-      }
-
-      setAudioStatus("checking");
-      setAudioMessage(null);
-
-      try {
-        const res = await fetch(`/api/tracks/${encodeURIComponent(id)}/audio-check`, {
-          method: "GET",
-        });
-        const json = await res.json().catch(() => null);
-
-        if (!active) return;
-
-        if (res.ok && json?.ok) {
-          setAudioStatus("ok");
-          setAudioMessage(null);
-        } else {
-          setAudioStatus("invalid");
-          setAudioMessage(json?.error ?? "Audio no accesible.");
-        }
-      } catch {
-        if (!active) return;
-        setAudioStatus("invalid");
-        setAudioMessage("Audio no accesible.");
-      }
-    }
-
-    validateAudio();
-
-    return () => {
-      active = false;
-    };
-  }, [id, audioUrl, initialAudioStatus]);
 
   const trackUrl = `/admin/tracks/${encodeURIComponent(id)}/edit`;
 
   async function handleAnalyze() {
     if (busy) return;
+    if (!canAnalyze) {
+      setError("Audio URL vacío.");
+      return;
+    }
+
     setError(null);
     setIsLoading(true);
 
@@ -164,12 +117,11 @@ function useTrackAnalysisActions(
 
   return {
     busy,
+    canAnalyze,
     error,
     isModalOpen,
     lastPayload,
     trackUrl,
-    audioStatus,
-    audioMessage,
     handleAnalyze,
     handleOpenPayload,
     handleClosePayload,
@@ -276,27 +228,19 @@ function PayloadModal({
 export default function AnalyzeActions({
   id,
   audioUrl,
-  initialAudioStatus,
-  initialAudioMessage,
   className = "",
 }: BaseProps) {
   const {
     busy,
+    canAnalyze,
     error,
     isModalOpen,
     lastPayload,
     trackUrl,
-    audioStatus,
-    audioMessage,
     handleAnalyze,
     handleOpenPayload,
     handleClosePayload,
-  } = useTrackAnalysisActions(
-    id,
-    audioUrl,
-    initialAudioStatus,
-    initialAudioMessage,
-  );
+  } = useTrackAnalysisActions(id, audioUrl);
 
   return (
     <>
@@ -304,18 +248,12 @@ export default function AnalyzeActions({
         <Button
           type="button"
           onClick={handleAnalyze}
-          disabled={busy || audioStatus !== "ok"}
+          disabled={busy || !canAnalyze}
           variant="outline"
           size="sm"
           className="h-8 w-24 text-xs"
         >
-          {busy
-            ? "Analizando…"
-            : audioStatus === "checking"
-              ? "Verificando…"
-              : audioStatus === "invalid"
-                ? "Sin audio"
-                : "Analizar"}
+          {busy ? "Analizando…" : !canAnalyze ? "Sin audio" : "Analizar"}
         </Button>
 
         <Button
@@ -338,9 +276,9 @@ export default function AnalyzeActions({
         </Button>
       </div>
 
-      {(error || audioStatus === "invalid") && (
+      {error && (
         <p className="mt-1 text-xs text-destructive">
-          {error ?? audioMessage}
+          {error}
         </p>
       )}
 
@@ -366,27 +304,19 @@ export default function AnalyzeActions({
 export function TrackAnalyzeHeaderButtons({
   id,
   audioUrl,
-  initialAudioStatus,
-  initialAudioMessage,
   className = "",
 }: BaseProps) {
   const {
     busy,
+    canAnalyze,
     error,
     isModalOpen,
     lastPayload,
     trackUrl,
-    audioStatus,
-    audioMessage,
     handleAnalyze,
     handleOpenPayload,
     handleClosePayload,
-  } = useTrackAnalysisActions(
-    id,
-    audioUrl,
-    initialAudioStatus,
-    initialAudioMessage,
-  );
+  } = useTrackAnalysisActions(id, audioUrl);
 
   return (
     <>
@@ -394,18 +324,12 @@ export function TrackAnalyzeHeaderButtons({
         <Button
           type="button"
           onClick={handleAnalyze}
-          disabled={busy || audioStatus !== "ok"}
+          disabled={busy || !canAnalyze}
           variant="outline"
           size="sm"
           className="h-8 w-24 text-xs"
         >
-          {busy
-            ? "Analizando…"
-            : audioStatus === "checking"
-              ? "Verificando…"
-              : audioStatus === "invalid"
-                ? "Sin audio"
-                : "Analizar"}
+          {busy ? "Analizando…" : !canAnalyze ? "Sin audio" : "Analizar"}
         </Button>
 
         <Button
@@ -419,9 +343,9 @@ export function TrackAnalyzeHeaderButtons({
         </Button>
       </div>
 
-      {(error || audioStatus === "invalid") && (
+      {error && (
         <p className="mt-1 text-xs text-destructive">
-          {error ?? audioMessage}
+          {error}
         </p>
       )}
 

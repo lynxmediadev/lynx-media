@@ -358,182 +358,206 @@ Estado de ruta:
 - [ ] [No reusable][ R ] Placeholder `Audit Log` (`src/app/admin/audit-log/page.tsx`)
 - [ ] [No reusable][ R ] Placeholder `Settings` (`src/app/admin/settings/page.tsx`)
 
-### 3) Inventario completo de `/admin/tracks/[id]/edit` (módulos + campos internos)
+### 3) Inventario completo de `/admin/tracks/[id]/edit` (módulos + campos internos, arquitectura modular vigente)
 
 Estado de ruta:
 
 - [ ] Ruta revisada/validada por usuario
 
-#### A. Formulario orquestador (`TrackEditForm`)
+#### A. Nueva estructura de rutas `edit` (vigente)
 
-- [ ] [No reusable] Hidden input: `id`
-- [ ] [No reusable][ R ] Barra global: mensaje de estado (`status.message`)
-- [ ] [No reusable][ R ] Botón global: `Guardar todo`
+- [ ] [No reusable] `/admin/tracks/[id]/edit` -> Overview modular (`src/app/admin/tracks/[id]/edit/page.tsx`)
+- [ ] [No reusable] `/admin/tracks/[id]/edit/creative` -> Módulo Creativo (`src/app/admin/tracks/[id]/edit/creative/page.tsx`)
+- [ ] [No reusable] `/admin/tracks/[id]/edit/rights` -> Módulo Derechos (`src/app/admin/tracks/[id]/edit/rights/page.tsx`)
+- [ ] [No reusable] `/admin/tracks/[id]/edit/metadata` -> Módulo Metadata (`src/app/admin/tracks/[id]/edit/metadata/page.tsx`)
+- [ ] [No reusable] `/admin/tracks/[id]/edit/deliverables` -> Módulo Entregables (`src/app/admin/tracks/[id]/edit/deliverables/page.tsx`)
+- [ ] [No reusable] `/admin/tracks/[id]/edit/review` -> Módulo Review (`src/app/admin/tracks/[id]/edit/review/page.tsx`)
+- [ ] [No reusable] `/admin/tracks/[id]/edit/full` -> Vista completa legacy de compatibilidad (`src/app/admin/tracks/[id]/edit/full/page.tsx`)
+- [ ] [No reusable] `/admin/track/[id]/edit` -> redirect legacy hacia ruta canonical (`src/app/admin/track/[id]/edit/page.tsx`)
 
-#### B. Sección `Metadata creativa & identificadores`
+#### B. Shell y navegación compartida de edición
 
-##### B1. Módulo `Creativo` (`CreativeForm`)
+- [ ] [Reusable] `TrackEditShell` (`src/components/admin/track/edit/TrackEditShell.tsx`)
+- [ ] [No reusable][ R ] Config de navegación de módulos (`src/components/admin/track/edit/module-nav.ts`)
+- [ ] [No reusable][ R ] Cabecera contextual de módulo (acciones de topbar por página `page.tsx`)
+- [ ] [No reusable][ R ] Barra sticky de guardado por módulo (`CreativeModuleForm`, `RightsModuleForm`, `MetadataModuleForm`, `DeliverablesModuleForm`)
 
-- [ ] [No reusable] Input: `title`
-- [ ] [No reusable] Input: `artist`
+#### C. Módulo `Overview` (`/edit`)
 
-##### B2. Módulo `Moods` (`MoodChips` + `TagChips`)
+Componentes por módulo:
 
-- [ ] [Reusable] Badge estado módulo (`SaveStateBadge`)
-- [ ] Lista: `Moods asignados`
-- [ ] Campo búsqueda: `Buscar mood`
-- [ ] Botón: `Añadir`
-- [ ] Lista: sugerencias catálogo
-- [ ] Acción sugerido: agregar a asignados
-- [ ] Acción sugerido: eliminar de catálogo (`X` + confirmación)
-- [ ] Acción asignado: quitar de asignados (`X`)
-- [ ] [No reusable][ R ] Botón: `Guardar Moods`
-- [ ] [No reusable] Hidden input: `moods`
+- [ ] [No reusable] Página Overview (`src/app/admin/tracks/[id]/edit/page.tsx`)
+- [ ] [No reusable][ R ] `StatusChip` (componente local en `page.tsx`)
+- [ ] [No reusable][ R ] `ModuleCard` (componente local en `page.tsx`)
 
-##### B3. Módulo `Usos previstos` (`UseChips` + `TagChips`)
+Reutilizables usados:
 
-- [ ] [Reusable] Badge estado módulo (`SaveStateBadge`)
-- [ ] Lista: `Usos asignados`
-- [ ] Campo búsqueda: `Buscar uso`
-- [ ] Botón: `Añadir`
-- [ ] Lista: sugerencias catálogo
-- [ ] Acción sugerido: agregar a asignados
-- [ ] Acción sugerido: eliminar de catálogo (`X` + confirmación)
-- [ ] Acción asignado: quitar de asignados (`X`)
-- [ ] [No reusable][ R ] Botón: `Guardar Usos`
-- [ ] [No reusable] Hidden input: `uses`
+- [ ] [Reusable] `TrackEditShell`
+- [ ] [Reusable] `DeleteTrackButton`
+- [ ] [Reusable] `TrackAnalyzeHeaderButtons`
+- [ ] [Reusable] `Button`
 
-##### B4. Módulo `Categorías` (`CategoryChips` + `TagChips`)
+#### D. Módulo `Creativo` (`/edit/creative`)
 
-- [ ] [Reusable] Badge estado módulo (`SaveStateBadge`)
-- [ ] Lista: `Categorías asignadas`
-- [ ] Campo búsqueda: `Buscar categoría`
-- [ ] Botón: `Añadir`
-- [ ] Lista: sugerencias catálogo
-- [ ] Acción sugerido: agregar a asignadas
-- [ ] Acción sugerido: eliminar de catálogo (`X` + confirmación)
-- [ ] Acción asignado: quitar de asignadas (`X`)
-- [ ] [No reusable][ R ] Botón: `Guardar Categorías`
-- [ ] [No reusable] Hidden input: `catalogTags`
+Componentes por módulo:
 
-##### B5. Módulo `Identificadores` (`IdsForm`)
+- [ ] [No reusable] Página Creative (`src/app/admin/tracks/[id]/edit/creative/page.tsx`)
+- [ ] [No reusable][ R ] `CreativeModuleForm` (`src/components/admin/track/edit/CreativeModuleForm.tsx`)
+- [ ] [Reusable] `CreativeForm`
+- [ ] [Reusable] `MoodChips`
+- [ ] [Reusable] `UseChips`
+- [ ] [Reusable] `CategoryChips`
 
-- [ ] [No reusable] Input: `isrc`
-- [ ] [No reusable] Input: `iswc`
-- [ ] [No reusable] Input: `upc`
+Campos internos principales:
 
-##### B6. Módulo `Derechos & explotación` (`RightsFormClient`)
+- [ ] Input: `title`
+- [ ] Input: `artist`
+- [ ] Input: `bpm`
+- [ ] Input: `key`
+- [ ] Select+hidden: `trackType`
+- [ ] Textarea: `genres`
+- [ ] Textarea: `subgenres`
+- [ ] Hidden input: `moods`
+- [ ] Hidden input: `uses`
+- [ ] Hidden input: `catalogTags`
 
-- [ ] [No reusable] Hidden input: `publishingShares`
-- [ ] [No reusable] Hidden input: `masterShares`
+Reutilizables usados:
 
-###### B6.1 Lista de `WRITER` (`PublishingTable` / `PublishingCards`)
+- [ ] [Reusable] `TrackEditShell`
+- [ ] [Reusable] `FormField`
+- [ ] [Reusable] `SaveStateBadge`
+- [ ] [Reusable] `EditableIconInput`
+- [ ] [Reusable] `NumericSelectInput`
+- [ ] [Reusable] `TagChips` (vía wrappers Mood/Use/Category)
+- [ ] [Reusable] `Button`
+- [ ] [Reusable] `Input`
 
-- [ ] Campo por item: `name` (`EditableIconInput`)
-- [ ] Campo por item: `sortOrder` (`NumericSelectInput`, mover por posición)
-- [ ] Acción por item: flecha arriba/abajo (click)
-- [ ] Acción por item: `Shift + Arrow` (salto 3)
-- [ ] Acción por item: long-press (`Ir al inicio / Ir al final`)
-- [ ] Campo por item: `sharePct` (`NumericSelectInput`, autosave blur/enter)
-- [ ] Campo por item: `pro` (`select ASCAP/BMI/SCD`, autosave al cambiar)
-- [ ] Campo por item: `ipiNumber` (`EditableIconInput`)
-- [ ] Campo por item: `caeNumber` (`EditableIconInput`)
-- [ ] Acción por item: eliminar
+#### E. Módulo `Derechos` (`/edit/rights`)
 
-###### B6.2 Form alta `WRITER` (`PublishingNewForms`)
+Componentes por módulo:
 
-- [ ] Campo: `newWriter.name` (requerido)
-- [ ] Campo: `newWriter.sharePct`
-- [ ] Campo: `newWriter.ipiNumber`
-- [ ] Campo: `newWriter.pro` (select)
-- [ ] Campo: `newWriter.caeNumber`
-- [ ] Acción: botón `Añadir writer`
+- [ ] [No reusable] Página Rights (`src/app/admin/tracks/[id]/edit/rights/page.tsx`)
+- [ ] [No reusable][ R ] `RightsModuleForm` (`src/components/admin/track/edit/RightsModuleForm.tsx`)
+- [ ] [Reusable] `RightsFormClient`
+- [ ] [Reusable] `PublishingTable`
+- [ ] [Reusable] `PublishingCards`
+- [ ] [Reusable] `PublishingNewForms`
+- [ ] [Reusable] `MasterTable`
+- [ ] [Reusable] `MasterCards`
+- [ ] [Reusable] `MasterNewForm`
+- [ ] [Reusable] `RightsToggles`
 
-###### B6.3 Lista de `PUBLISHER` (`PublishingTable` / `PublishingCards`)
+Campos internos principales:
 
-- [ ] Campo por item: `name` (`EditableIconInput`)
-- [ ] Campo por item: `sortOrder` (`NumericSelectInput`, mover por posición)
-- [ ] Acción por item: flecha arriba/abajo (click)
-- [ ] Acción por item: `Shift + Arrow` (salto 3)
-- [ ] Acción por item: long-press (`Ir al inicio / Ir al final`)
-- [ ] Campo por item: `sharePct` (`NumericSelectInput`, autosave blur/enter)
-- [ ] Campo por item: `pro` (`select ASCAP/BMI/SCD`, autosave al cambiar)
-- [ ] Campo por item: `ipiNumber` (`EditableIconInput`)
-- [ ] Campo por item: `caeNumber` (`EditableIconInput`)
-- [ ] Acción por item: eliminar
+- [ ] Hidden input: `publishingShares`
+- [ ] Hidden input: `masterShares`
+- [ ] WRITER item: `name`, `sortOrder`, `sharePct`, `pro`, `ipiNumber`, `caeNumber`
+- [ ] WRITER alta: `newWriter.name`, `newWriter.sharePct`, `newWriter.ipiNumber`, `newWriter.pro`, `newWriter.caeNumber`
+- [ ] PUBLISHER item: `name`, `sortOrder`, `sharePct`, `pro`, `ipiNumber`, `caeNumber`
+- [ ] PUBLISHER alta: `newPublisher.name`, `newPublisher.sharePct`, `newPublisher.ipiNumber`, `newPublisher.pro`, `newPublisher.caeNumber`
+- [ ] MASTER item: `name`, `sortOrder`, `sharePct`, `contact`, `notes`
+- [ ] MASTER alta: `newMaster.name`, `newMaster.sharePct`, `newMaster.contact`, `newMaster.notes`
+- [ ] Toggles/campos: `mfn`, `oneStop`, `clearedForSync`, `contentIdEnrolled`, `contentIdAdmin`, `contentIdWhitelist`, `master`, `restrictions`
 
-###### B6.4 Form alta `PUBLISHER` (`PublishingNewForms`)
+Reutilizables usados:
 
-- [ ] Campo: `newPublisher.name` (requerido)
-- [ ] Campo: `newPublisher.sharePct`
-- [ ] Campo: `newPublisher.ipiNumber`
-- [ ] Campo: `newPublisher.pro` (select)
-- [ ] Campo: `newPublisher.caeNumber`
-- [ ] Acción: botón `Añadir publisher`
+- [ ] [Reusable] `TrackEditShell`
+- [ ] [Reusable] `FormField`
+- [ ] [Reusable] `SaveStateBadge`
+- [ ] [Reusable] `EditableIconInput`
+- [ ] [Reusable] `NumericSelectInput`
+- [ ] [Reusable] `Button`
+- [ ] [Reusable] `Input`
+- [ ] [Reusable] `Textarea`
+- [ ] [Reusable] `Checkbox`
+- [ ] [Reusable] `Label`
+- [ ] [Reusable] `Dialog`
 
-###### B6.5 Lista de `MASTER` (`MasterTable` / `MasterCards`)
+#### F. Módulo `Metadata` (`/edit/metadata`)
 
-- [ ] Campo por item: `name` (`EditableIconInput`)
-- [ ] Campo por item: `sortOrder` (`NumericSelectInput`, mover por posición)
-- [ ] Acción por item: flecha arriba/abajo (click)
-- [ ] Acción por item: `Shift + Arrow` (salto 3)
-- [ ] Acción por item: long-press (`Ir al inicio / Ir al final`)
-- [ ] Campo por item: `sharePct` (`NumericSelectInput`, autosave blur/enter)
-- [ ] Campo por item: `contact` (`EditableIconInput`)
-- [ ] Campo por item: `notes` (`EditableIconInput`)
-- [ ] Acción por item: eliminar
+Componentes por módulo:
 
-###### B6.6 Form alta `MASTER` (`MasterNewForm`)
+- [ ] [No reusable] Página Metadata (`src/app/admin/tracks/[id]/edit/metadata/page.tsx`)
+- [ ] [No reusable][ R ] `MetadataModuleForm` (`src/components/admin/track/edit/MetadataModuleForm.tsx`)
+- [ ] [Reusable] `IdsForm`
+- [ ] [Reusable] `SyncMetaForm`
 
-- [ ] Campo: `newMaster.name` (requerido)
-- [ ] Campo: `newMaster.sharePct`
-- [ ] Campo: `newMaster.contact`
-- [ ] Campo: `newMaster.notes`
-- [ ] Acción: botón `Añadir master`
+Campos internos principales:
 
-###### B6.7 Submódulo `RightsToggles`
-
-- [ ] Toggle: `mfn`
-- [ ] Toggle: `oneStop`
-- [ ] Toggle: `clearedForSync`
-- [ ] Toggle: `contentIdEnrolled`
-- [ ] Input: `contentIdAdmin`
-- [ ] Textarea: `contentIdWhitelist`
-- [ ] Input: `master` (titular único)
+- [ ] Input: `isrc`
+- [ ] Input: `iswc`
+- [ ] Input: `upc`
+- [ ] Select+hidden: `licenseType`
+- [ ] Input: `exclusiveTermMonths`
+- [ ] Input: `mediaBuy`
+- [ ] Textarea: `exclusiveTerritories`
+- [ ] Textarea: `restrictedTerritories`
+- [ ] Textarea: `restrictedIndustries`
+- [ ] Textarea: `restrictedPlatforms`
+- [ ] Textarea: `restrictedBrands`
 - [ ] Textarea: `restrictions`
+- [ ] Select+hidden: `pricingTier`
+- [ ] Input: `budgetMin`
+- [ ] Input: `budgetMax`
+- [ ] Select+hidden: `budgetCurrency`
 
-###### B6.8 Modal de confirmación eliminación (`RightsFormClient`)
+Reutilizables usados:
 
-- [ ] Botón: `Cancelar`
-- [ ] Botón: `Eliminar`
+- [ ] [Reusable] `TrackEditShell`
+- [ ] [Reusable] `FormField`
+- [ ] [Reusable] `EditableIconInput`
+- [ ] [Reusable] `NumericSelectInput`
+- [ ] [Reusable] `Select`
+- [ ] [Reusable] `Input`
+- [ ] [Reusable] `Textarea`
+- [ ] [Reusable] `Button`
 
-#### C. Sección `Metadata sync & entregables`
+#### G. Módulo `Entregables` (`/edit/deliverables`)
 
-##### C1. Módulo `Metadata sync` (`SyncMetaForm`)
+Componentes por módulo:
 
-- [ ] [No reusable] Input: `bpm`
-- [ ] [No reusable] Input: `key` (con datalist)
-- [ ] [No reusable][ R ] Select + hidden: `trackType`
-- [ ] [No reusable] Textarea: `genres`
-- [ ] [No reusable] Textarea: `subgenres`
-- [ ] [No reusable][ R ] Select + hidden: `licenseType`
-- [ ] [No reusable] Input: `exclusiveTermMonths`
-- [ ] [No reusable] Input: `mediaBuy`
-- [ ] [No reusable] Textarea: `exclusiveTerritories`
-- [ ] [No reusable] Textarea: `restrictedTerritories`
-- [ ] [No reusable] Textarea: `restrictedIndustries`
-- [ ] [No reusable] Textarea: `restrictedPlatforms`
-- [ ] [No reusable] Textarea: `restrictedBrands`
-- [ ] [No reusable] Textarea: `restrictions`
-- [ ] [No reusable][ R ] Select + hidden: `pricingTier`
-- [ ] [No reusable] Input: `budgetMin`
-- [ ] [No reusable] Input: `budgetMax`
-- [ ] [No reusable][ R ] Select + hidden: `budgetCurrency`
+- [ ] [No reusable] Página Deliverables (`src/app/admin/tracks/[id]/edit/deliverables/page.tsx`)
+- [ ] [No reusable][ R ] `DeliverablesModuleForm` (`src/components/admin/track/edit/DeliverablesModuleForm.tsx`)
+- [ ] [Reusable] `DeliverablesForm`
 
-##### C2. Módulo `Entregables` (`DeliverablesForm`)
+Campos internos principales:
 
-- [ ] [No reusable] Textarea: `versions`
-- [ ] [No reusable] Textarea: `stems`
+- [ ] Textarea: `versions`
+- [ ] Textarea: `stems`
+
+Reutilizables usados:
+
+- [ ] [Reusable] `TrackEditShell`
+- [ ] [Reusable] `FormField`
+- [ ] [Reusable] `Textarea`
+- [ ] [Reusable] `Button`
+
+#### H. Módulo `Review` (`/edit/review`)
+
+Componentes por módulo:
+
+- [ ] [No reusable] Página Review (`src/app/admin/tracks/[id]/edit/review/page.tsx`)
+- [ ] [No reusable][ R ] Cards resumen locales (Creativo/Derechos/Metadata+Entrega)
+
+Reutilizables usados:
+
+- [ ] [Reusable] `TrackEditShell`
+- [ ] [Reusable] `TrackAnalyzeHeaderButtons`
+- [ ] [Reusable] `Button`
+
+#### I. Ruta de compatibilidad `full` (`/edit/full`)
+
+Componentes por módulo:
+
+- [ ] [No reusable] Página Full legacy (`src/app/admin/tracks/[id]/edit/full/page.tsx`)
+- [ ] [Reusable] `TrackEditForm` (orquestador legacy)
+- [ ] [Reusable] `AudioAnalysisSection`
+
+Alcance funcional de compatibilidad:
+
+- [ ] Guardado global `Guardar todo`
+- [ ] Edición integral en una sola vista (fallback)
+- [ ] Navegación modular con acceso a `Vista completa`
 
 ### 4) Plantilla de checklist para nuevas rutas
 

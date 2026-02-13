@@ -27,7 +27,7 @@ export function TrackEditShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-4 min-h-screen">
+    <div className="flex min-h-full flex-col gap-4">
       <header className="flex flex-col gap-3 border-b border-border pb-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-xl font-semibold text-foreground">Editar track</h1>
@@ -80,7 +80,7 @@ export function TrackEditShell({
         })}
       </nav>
 
-      <div className="space-y-4">{children}</div>
+      <div className="flex min-h-0 flex-1 flex-col gap-4">{children}</div>
     </div>
   );
 }

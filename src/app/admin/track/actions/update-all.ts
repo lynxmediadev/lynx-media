@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { PublishingRole, TagType } from "@prisma/client";
 
 import prisma from "@/lib/prisma";
+import { syncTrackTagsByTypeWithTx } from "@/server/tags/syncTrackTagsByType";
 import {
   creativeFormSchema,
   deliverablesFormSchema,
@@ -67,19 +68,6 @@ export async function updateTrackAll(
           .filter((v) => v.length > 0),
       ),
     );
-
-    // Asegura que los slugs estén creados como CATALOG (si venían como GENERIC, se promueven)
-    if (catalogTagSlugs.length) {
-      await prisma.$transaction(async (tx) => {
-        for (const slug of catalogTagSlugs) {
-          await tx.tag.upsert({
-            where: { slug },
-            update: { type: TagType.CATALOG, name: slug.toUpperCase() },
-            create: { slug, name: slug.toUpperCase(), type: TagType.CATALOG },
-          });
-        }
-      });
-    }
 
     const creativeParsed = creativeFormSchema.safeParse(rawObject);
     const idsParsed = idsFormSchema.safeParse(rawObject);
@@ -151,23 +139,15 @@ export async function updateTrackAll(
       };
     }
 
-    // Validar tags de catálogo contra BD (solo tipo CATALOG)
-    const validCatalogTags = await prisma.tag.findMany({
-      where: { type: TagType.CATALOG },
-      select: { id: true, slug: true },
-    });
-    const validSlugs = new Set(validCatalogTags.map((t) => t.slug));
-    const unknown = catalogTagSlugs.filter((slug) => !validSlugs.has(slug));
-    if (unknown.length > 0) {
-      return {
-        ok: false,
-        message: "Hay tags de catálogo no válidos.",
-        fieldErrors: { catalogTags: ["Selecciona tags de catálogo válidos."] },
-      };
-    }
-    const tagIdsToSet = validCatalogTags
-      .filter((t) => catalogTagSlugs.includes(t.slug))
-      .map((t) => t.id);
+    const existingCatalogTags = catalogTagSlugs.length
+      ? await prisma.tag.findMany({
+          where: { type: TagType.CATALOG, slug: { in: catalogTagSlugs } },
+          select: { slug: true, name: true },
+        })
+      : [];
+    const existingCatalogBySlug = new Map(
+      existingCatalogTags.map((tag) => [tag.slug, tag.name]),
+    );
 
     const sharesToCreate =
       rightsData.publishingShares?.map((s) => ({
@@ -284,18 +264,14 @@ export async function updateTrackAll(
 
       // Moods/Usos se gestionan vía autosave de chips → no tocar TrackTag aquí.
 
-      // Reemplazar tags de catálogo
-      await tx.trackTag.deleteMany({
-        where: { trackId, tag: { type: TagType.CATALOG } },
+      await syncTrackTagsByTypeWithTx(tx, {
+        trackId,
+        type: TagType.CATALOG,
+        inputs: catalogTagSlugs.map((slug) => ({
+          slug,
+          name: existingCatalogBySlug.get(slug) ?? slug.toUpperCase(),
+        })),
       });
-      if (tagIdsToSet.length > 0) {
-        await tx.trackTag.createMany({
-          data: tagIdsToSet.map((tagId) => ({
-            trackId,
-            tagId,
-          })),
-        });
-      }
 
       await tx.trackVersion.deleteMany({ where: { trackId } });
       await tx.trackStem.deleteMany({ where: { trackId } });

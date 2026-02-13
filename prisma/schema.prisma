@@ -110,14 +110,15 @@ model Track {
   analysisAt      DateTime?
 
   // Versiones y stems (relaciones)
-  versions TrackVersion[]
-  stems    TrackStem[]
-  tags     TrackTag[]
+  versions  TrackVersion[]
+  stems     TrackStem[]
+  tags      TrackTag[]
   moodLinks TrackMood[]
 
   @@index([artist])
   @@index([title])
   @@index([createdAt, id]) // ← nuevo
+  @@index([updatedAt, id])
 }
 
 enum TrackType {
@@ -209,6 +210,8 @@ model PublishingShare {
   sharePct  Int? // 0–100 (puede ser null mientras no se complete)
   sortOrder Int?
   // pro      String?      // (si quieres agregar luego la sociedad PRO)
+
+  @@index([trackId, role, sortOrder])
 }
 
 model MasterShare {
@@ -226,6 +229,7 @@ model MasterShare {
   sortOrder Int?
 
   @@index([trackId])
+  @@index([trackId, sortOrder])
 }
 
 // ───────────────────────────────────────────────────────────────────────────────
@@ -384,6 +388,7 @@ model Tag {
 
   @@index([slug])
   @@index([type])
+  @@index([type, name])
 }
 
 // ───────────────────────────────────────────────────────────────────────────────
@@ -395,8 +400,8 @@ model Mood {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  name String @unique @db.Citext
-  slug String @unique @db.Citext
+  name     String  @unique @db.Citext
+  slug     String  @unique @db.Citext
   category String?
 
   tracks TrackMood[]
@@ -408,8 +413,8 @@ model Mood {
 model TrackMood {
   trackId    String
   moodId     String
-  track      Track   @relation(fields: [trackId], references: [id], onDelete: Cascade)
-  mood       Mood    @relation(fields: [moodId], references: [id], onDelete: Cascade)
+  track      Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  mood       Mood     @relation(fields: [moodId], references: [id], onDelete: Cascade)
   assignedAt DateTime @default(now())
 
   @@id([trackId, moodId])
@@ -427,4 +432,6 @@ model TrackTag {
   @@id([trackId, tagId])
   @@index([tagId])
   @@index([trackId])
+  @@index([trackId, assignedAt])
+  @@index([tagId, assignedAt])
 }

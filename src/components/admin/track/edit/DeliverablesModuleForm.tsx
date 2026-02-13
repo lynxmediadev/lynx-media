@@ -4,7 +4,7 @@ import * as React from "react";
 
 import { updateDeliverables } from "@/app/admin/track/actions/metadata";
 import DeliverablesForm from "@/components/admin/track/DeliverablesForm";
-import { Button } from "@/components/ui/button";
+import { ModuleSaveBar } from "@/components/admin/track/edit/ModuleSaveBar";
 
 type UpdateDeliverablesResult = {
   ok: boolean;
@@ -64,7 +64,7 @@ export function DeliverablesModuleForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex min-h-[calc(100dvh-16rem)] flex-col gap-4"
+      className="flex min-h-0 flex-1 flex-col gap-4"
     >
       <input type="hidden" name="id" value={track.id} />
 
@@ -78,27 +78,12 @@ export function DeliverablesModuleForm({
         />
       </div>
 
-      <div className="sticky bottom-0 left-0 right-0 z-20 mt-auto -mx-4 md:-mx-12 w-auto flex flex-wrap items-center justify-between gap-3 border border-border bg-card/90 px-4 py-2 md:px-12 backdrop-blur">
-        <p className="text-xs text-muted-foreground">
-          {status ? (
-            <span className={status.ok ? "text-success" : "text-destructive"}>
-              {status.message}
-            </span>
-          ) : (
-            <span>Guarda versiones y stems del modulo de entregables.</span>
-          )}
-        </p>
-
-        <Button
-          type="submit"
-          variant="outline"
-          size="sm"
-          className="text-xs"
-          disabled={pending}
-        >
-          {pending ? "Guardando..." : "Guardar entregables"}
-        </Button>
-      </div>
+      <ModuleSaveBar
+        status={status}
+        hint="Guarda versiones y stems del modulo de entregables."
+        pending={pending}
+        submitLabel="Guardar entregables"
+      />
     </form>
   );
 }

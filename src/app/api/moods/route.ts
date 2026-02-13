@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/server/db";
+import type { Prisma } from "@prisma/client";
 import { TagType } from "@prisma/client";
 
 const createSchema = z.object({
@@ -49,6 +50,7 @@ export async function GET(req: Request) {
 
   const moods = await db.tag.findMany({
     where: { type: TagType.MOOD, ...where },
+    select: { id: true, name: true, slug: true },
     orderBy: { name: "asc" },
     take: 20,
   });
@@ -72,7 +74,6 @@ export async function POST(req: Request) {
 
   const name = parsed.data.name.trim();
   const nameUpper = name.toUpperCase();
-  const category = parsed.data.category?.trim() || null;
   const slug = slugify(nameUpper);
   if (!slug) {
     return NextResponse.json({ error: "Nombre inválido" }, { status: 400 });
@@ -86,6 +87,7 @@ export async function POST(req: Request) {
         { slug: { equals: slug, mode: "insensitive" } },
       ],
     },
+    select: { id: true, name: true, slug: true, type: true },
   });
 
   if (existing) {
@@ -101,6 +103,7 @@ export async function POST(req: Request) {
       type: TagType.MOOD,
       name: { startsWith: nameUpper.slice(0, 3), mode: "insensitive" },
     },
+    select: { id: true, name: true, slug: true, type: true },
     take: 15,
   });
   const similar = nearby.filter((m) => distance(m.name.toLowerCase(), nameUpper.toLowerCase()) <= 1);
@@ -112,7 +115,7 @@ export async function POST(req: Request) {
   }
 
   const mood = await db.tag.create({
-    data: { name: nameUpper, slug, type: TagType.MOOD, description: category ?? null },
+    data: { name: nameUpper, slug, type: TagType.MOOD },
   });
 
   return NextResponse.json({ item: mood }, { status: 201 });
@@ -123,16 +126,33 @@ export async function DELETE(req: Request) {
   const id = body?.id as string | undefined;
   const name = (body?.name as string | undefined)?.trim();
 
-  const where = id
-    ? { id, type: TagType.MOOD }
-    : name
-      ? { type: TagType.MOOD, name: { equals: name, mode: "insensitive" } }
-      : null;
+  let where: Prisma.TagWhereInput | null = null;
+  if (id) {
+    where = { id, type: TagType.MOOD };
+  } else if (name) {
+    where = {
+      type: TagType.MOOD,
+      name: { equals: name, mode: "insensitive" as const },
+    };
+  }
+
   if (!where) {
     return NextResponse.json({ error: "ID o name requerido" }, { status: 400 });
   }
 
-  await db.trackTag.deleteMany({ where: { tag: { id: id ?? undefined, type: TagType.MOOD } } });
+  if (id) {
+    await db.trackTag.deleteMany({ where: { tagId: id } });
+  } else if (name) {
+    await db.trackTag.deleteMany({
+      where: {
+        tag: {
+          type: TagType.MOOD,
+          name: { equals: name, mode: "insensitive" as const },
+        },
+      },
+    });
+  }
+
   const deleted = await db.tag.deleteMany({ where });
 
   if (deleted.count === 0) {

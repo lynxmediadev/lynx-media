@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/server/db";
 import { TagType } from "@prisma/client";
 import { slugify } from "@/lib/slugify";
+import { syncTrackTagsByType } from "@/server/tags/syncTrackTagsByType";
 
 const schema = z.object({ uses: z.array(z.string().min(1)).max(30) });
 
@@ -38,34 +39,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "Track no encontrado" }, { status: 404 });
   }
 
-  for (const name of uses) {
-    const slug = slugify(name);
-    await db.tag.upsert({
-      where: { slug },
-      update: { name, type: TagType.USE },
-      create: { name, slug, type: TagType.USE },
-    });
-  }
-
-  const tags = await db.tag.findMany({
-    where: { slug: { in: uses.map(slugify) }, type: TagType.USE },
-    select: { id: true },
-  });
-
-  await db.$transaction(async (tx) => {
-    await tx.trackTag.deleteMany({ where: { trackId, tag: { type: TagType.USE } } });
-    if (tags.length) {
-      await tx.trackTag.createMany({
-        data: tags.map((t) => ({ trackId, tagId: t.id })),
-        skipDuplicates: true,
-      });
-    }
-  });
-
-  const saved = await db.tag.findMany({
-    where: { id: { in: tags.map((t) => t.id) } },
-    select: { id: true, name: true, slug: true },
-    orderBy: { name: "asc" },
+  const saved = await syncTrackTagsByType({
+    trackId,
+    type: TagType.USE,
+    inputs: uses.map((name) => ({ slug: slugify(name), name })),
   });
 
   return NextResponse.json({

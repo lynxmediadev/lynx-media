@@ -258,15 +258,33 @@ Implementado:
 
 ## Fase 9 - Documentacion y cierre
 
-- [ ] Actualizar inventario en `docs/PROJECT_GENERAL_CONTEXT.md`:
-  - [ ] nueva estructura de rutas edit
-  - [ ] componentes por modulo
-  - [ ] reutilizables usados por modulo
-- [ ] Documentar decision final de eliminar o mantener `/edit/full`.
-- [ ] Cerrar checklist final y pendientes v2.
+- [x] Actualizar inventario en `docs/PROJECT_GENERAL_CONTEXT.md`:
+  - [x] nueva estructura de rutas edit
+  - [x] componentes por modulo
+  - [x] reutilizables usados por modulo
+- [x] Documentar decision final de eliminar o mantener `/edit/full`.
+- [x] Cerrar checklist final y pendientes v2.
+
+Decision registrada:
+
+- Se mantiene `/admin/tracks/[id]/edit/full` por ahora como fallback operativo.
+- Se conserva fuera del flujo principal (overview + modulos) y se revisa su retiro en v2.
+
+Pendientes v2 (backlog controlado):
+
+- [ ] Evaluar retiro definitivo de `/edit/full` tras 1 sprint estable de uso modular.
+- [ ] Extraer `ModuleCard`/`StatusChip` del overview a componente reusable si se reutiliza en otras rutas.
+- [ ] Homologar copy/estados de barras sticky de guardado entre todos los modulos.
+- [ ] Resolver deuda tsc legacy fuera de esta migracion (`seed.bulk`, rutas/api legacy, `SimilarTracks`).
+- [ ] Registrar comparativa final de performance before/after modular en `docs/debug/terminal.md`.
 
 Criterio de exito:
 - Estado arquitectonico documentado y mantenible para siguiente etapa.
+
+Implementado:
+- Inventario operativo actualizado con la arquitectura modular real de `/admin/tracks/[id]/edit`.
+- Mapeo por ruta/modulo incluyendo componentes internos y reutilizables usados por modulo.
+- Decision de compatibilidad documentada: `/edit/full` se mantiene temporalmente.
 
 ---
 

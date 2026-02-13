@@ -3,8 +3,8 @@
 import * as React from "react";
 
 import { updateCreative } from "@/app/admin/track/actions/update-creative";
-import { Button } from "@/components/ui/button";
 import CreativeForm from "@/components/admin/track/CreativeForm";
+import { ModuleSaveBar } from "@/components/admin/track/edit/ModuleSaveBar";
 
 type UpdateCreativeResult = {
   ok: boolean;
@@ -66,7 +66,7 @@ export function CreativeModuleForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex min-h-[calc(100dvh-16rem)] flex-col gap-4"
+      className="flex min-h-0 flex-1 flex-col gap-4"
     >
       <input type="hidden" name="id" value={track.id} />
 
@@ -81,27 +81,12 @@ export function CreativeModuleForm({
         />
       </div>
 
-      <div className="sticky bottom-0 left-0 right-0 z-20 mt-auto -mx-4 md:-mx-12 w-auto flex flex-wrap items-center justify-between gap-3 border border-border bg-card/90 px-4 py-2 md:px-12 backdrop-blur">
-        <p className="text-xs text-muted-foreground">
-          {status ? (
-            <span className={status.ok ? "text-success" : "text-destructive"}>
-              {status.message}
-            </span>
-          ) : (
-            <span>Guarda titulo, artista y metadata musical de este modulo.</span>
-          )}
-        </p>
-
-        <Button
-          type="submit"
-          variant="outline"
-          size="sm"
-          className="text-xs"
-          disabled={pending}
-        >
-          {pending ? "Guardando..." : "Guardar creativo"}
-        </Button>
-      </div>
+      <ModuleSaveBar
+        status={status}
+        hint="Guarda titulo, artista y metadata musical de este modulo."
+        pending={pending}
+        submitLabel="Guardar creativo"
+      />
     </form>
   );
 }
