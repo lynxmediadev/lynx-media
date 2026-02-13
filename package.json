@@ -21,6 +21,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "db:seed": "prisma db seed",
+    "db:bootstrap:auth": "tsx prisma/bootstrap.auth.ts",
+    "db:create:invite": "tsx prisma/create-invite.ts",
     "db:seed:reset": "cross-env RESET_CONFIRM=YES tsx prisma/seed.reset.ts",
     "db:seed:bulk": "tsx prisma/seed.bulk.ts",
     "test": "vitest run -c vitest.config.ts"

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { TrackType } from "@prisma/client";
 
 import prisma from "@/lib/prisma";
+import { requireAdminOrStaffAction } from "@/lib/account-auth/guards";
 
 type UpdateCreativeResult = {
   ok: boolean;
@@ -49,6 +50,12 @@ const ALLOWED_TRACK_TYPES = new Set<TrackType>([
 ]);
 
 export async function updateCreative(formData: FormData): Promise<UpdateCreativeResult> {
+  try {
+    await requireAdminOrStaffAction();
+  } catch {
+    return { ok: false, message: "No autorizado." };
+  }
+
   const id = normalizeText(formData.get("id"));
   const title = normalizeText(formData.get("title"));
   const artist = normalizeText(formData.get("artist"));

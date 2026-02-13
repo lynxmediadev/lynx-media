@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/server/db";
 import { TagType } from "@prisma/client";
 import { syncTrackTagsByType } from "@/server/tags/syncTrackTagsByType";
+import { canAccessTrackByRole, getRequestAuthUser } from "@/lib/account-auth/request-auth";
 
 const bodySchema = z.object({
   slugs: z.array(z.string()).default([]),
@@ -23,8 +24,17 @@ function labelFromSlug(slug: string) {
   return slug.replace(/-/g, " ").toUpperCase();
 }
 
-export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const user = await getRequestAuthUser(req);
+  if (!user) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+  const allowed = await canAccessTrackByRole(user, id);
+  if (!allowed) {
+    return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
+  }
+
   const json = await req.json().catch(() => ({}));
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
@@ -77,8 +87,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 }
 
-export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const user = await getRequestAuthUser(req);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const allowed = await canAccessTrackByRole(user, id);
+  if (!allowed) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   try {
     const rows = await db.trackTag.findMany({
       where: { trackId: id, tag: { type: TagType.CATALOG } },

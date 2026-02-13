@@ -96,6 +96,12 @@ export async function POST(req: NextRequest) {
     const trackTitle = clampText(String(body.trackTitle || ""), 400);
     const trackArtist = clampText(String(body.trackArtist || ""), 400);
     const trackDurationSec = Number.isFinite(Number(body.trackDurationSec)) ? Number(body.trackDurationSec) : null;
+    const trackOwner = trackId
+      ? await prisma.track.findUnique({
+          where: { id: trackId },
+          select: { ownerUserId: true },
+        })
+      : null;
 
     // f) Dedupe suave (email+track en ±1h)
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
@@ -116,6 +122,7 @@ export async function POST(req: NextRequest) {
         status: "NEW",
         priority: "MEDIUM",
         assignee: null,
+        ownerUserId: trackOwner?.ownerUserId ?? null,
 
         name, email, company,
         projectType, media, territories, term,

@@ -1,19 +1,12 @@
 // src/middleware.ts
 /**
- * ┌─────────────────────────────────────────────────────────────────────────────┐
- * │ middleware — Gateo /admin/** con token HMAC v1 (admin_session)              │
- * ├─────────────────────────────────────────────────────────────────────────────┤
- * │ Peras y manzanas:                                                           │
- * │ - Acepta /admin/login, /admin/login/submit, /admin/logout sin sesión.       │
- * │ - Valida admin_session: "v1.<payload>.<sig>" con ADMIN_SESSION_SECRET.      │
- * │ - Opcional: bind al User-Agent (ADMIN_BIND_UA=1) para endurecer la sesión.  │
- * │ - Legacy: por defecto DESACTIVADO; si pones ADMIN_ALLOW_LEGACY=1 se acepta  │
- * │   temporalmente la cookie antigua admin_key == (ADMIN_ACCESS_KEY || PASS).  │
- * └─────────────────────────────────────────────────────────────────────────────┘
+ * Middleware de auth/roles:
+ * - /admin/** => ADMIN o STAFF (fallback legacy temporal permitido).
+ * - /creator/** => CREATOR.
  */
 import { NextRequest, NextResponse } from "next/server";
 
-export const config = { matcher: ["/admin/:path*"] };
+export const config = { matcher: ["/admin/:path*", "/creator/:path*"] };
 
 function tenc(s: string) { return new TextEncoder().encode(s); }
 function b64uToU8(b64url: string): Uint8Array {
@@ -51,45 +44,84 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const SECRET  = (process.env.ADMIN_SESSION_SECRET ?? "").trim();
+  const AUTH_SECRET = ((process.env.AUTH_SESSION_SECRET ?? "").trim() || (process.env.ADMIN_SESSION_SECRET ?? "").trim());
+  const LEGACY_SECRET  = (process.env.ADMIN_SESSION_SECRET ?? "").trim();
   const BIND_UA = (process.env.ADMIN_BIND_UA ?? "") === "1";
   const ALLOW_LEGACY = (process.env.ADMIN_ALLOW_LEGACY ?? "") === "1";
   const EXPECTED_LEGACY = ((process.env.ADMIN_ACCESS_KEY ?? "").trim() || (process.env.ADMIN_PASS ?? "").trim());
+  const isAdminArea = pathname === "/admin" || pathname.startsWith("/admin/");
+  const isCreatorArea = pathname === "/creator" || pathname.startsWith("/creator/");
 
-  // 1) Validar token HMAC v1
-  const token = (req.cookies.get("admin_session")?.value ?? "").trim();
-  if (SECRET && token) {
+  // 1) Validar sesión nueva (app_session: v2.payload.sig)
+  const appToken = (req.cookies.get("app_session")?.value ?? "").trim();
+  if (AUTH_SECRET && appToken) {
     try {
-      const [v, payloadB64, sigB64] = token.split(".");
-      if (v === "v1" && payloadB64 && sigB64) {
-        const expSig = await hmacRaw(SECRET, payloadB64);
+      const [v, payloadB64, sigB64] = appToken.split(".");
+      if (v === "v2" && payloadB64 && sigB64) {
+        const expSig = await hmacRaw(AUTH_SECRET, payloadB64);
         const gotSig = b64uToU8(sigB64);
         if (tse(expSig, gotSig)) {
           const json = atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/"));
-          const p = JSON.parse(json) as { sub?: string; exp?: number; ua?: string };
-          if (p?.sub === "admin" && typeof p.exp === "number" && Date.now() < p.exp) {
-            if (BIND_UA && p.ua) {
-              const ua = req.headers.get("user-agent") || "";
-              const h = await sha256hex(ua);
-              if (h !== p.ua) return NextResponse.redirect(new URL("/admin/login", req.url), { status: 303 });
+          const p = JSON.parse(json) as { sub?: string; role?: string; exp?: number };
+          if (p?.sub && p?.role && typeof p.exp === "number" && Date.now() < p.exp) {
+            if (isAdminArea && (p.role === "ADMIN" || p.role === "STAFF")) {
+              return NextResponse.next();
             }
-            return NextResponse.next(); // ✅ token válido
+            if (isCreatorArea && p.role === "CREATOR") {
+              return NextResponse.next();
+            }
           }
         }
       }
     } catch {
-      // Ignoramos y probamos legacy si está permitido
+      // seguimos a fallback
     }
   }
 
-  // 2) (Opcional) Legacy cookie admin_key (por compatibilidad temporal)
-  if (ALLOW_LEGACY && EXPECTED_LEGACY) {
+  // 2) Legacy temporal solo para /admin
+  if (isAdminArea && LEGACY_SECRET) {
+    const token = (req.cookies.get("admin_session")?.value ?? "").trim();
+    if (token) {
+      try {
+        const [v, payloadB64, sigB64] = token.split(".");
+        if (v === "v1" && payloadB64 && sigB64) {
+          const expSig = await hmacRaw(LEGACY_SECRET, payloadB64);
+          const gotSig = b64uToU8(sigB64);
+          if (tse(expSig, gotSig)) {
+            const json = atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/"));
+            const p = JSON.parse(json) as { sub?: string; exp?: number; ua?: string };
+            if (p?.sub === "admin" && typeof p.exp === "number" && Date.now() < p.exp) {
+              if (BIND_UA && p.ua) {
+                const ua = req.headers.get("user-agent") || "";
+                const h = await sha256hex(ua);
+                if (h !== p.ua) {
+                  return NextResponse.redirect(new URL("/admin/login", req.url), { status: 303 });
+                }
+              }
+              return NextResponse.next();
+            }
+          }
+        }
+      } catch {
+        // no-op
+      }
+    }
+  }
+
+  // 3) Legacy cookie admin_key solo para /admin y solo si está permitido
+  if (isAdminArea && ALLOW_LEGACY && EXPECTED_LEGACY) {
     const legacy = (req.cookies.get("admin_key")?.value ?? "").trim();
     if (legacy === EXPECTED_LEGACY) {
-      return NextResponse.next(); // ✅ permitir mientras migras
+      return NextResponse.next();
     }
   }
 
-  // 3) No autenticado → login
+  // 4) No autenticado => redirigir a login correcto
+  if (isCreatorArea) {
+    const to = new URL("/auth/login", req.url);
+    to.searchParams.set("next", pathname);
+    return NextResponse.redirect(to, { status: 303 });
+  }
+
   return NextResponse.redirect(new URL("/admin/login", req.url), { status: 303 });
 }

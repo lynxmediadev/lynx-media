@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
+import { requireAdminOrStaffAction } from "@/lib/account-auth/guards";
 
 const masterShareSchema = z.object({
   name: z.string().min(1, "Nombre requerido"),
@@ -22,6 +23,12 @@ type Result =
   | { ok: false; message: string; fieldErrors?: Record<string, string[]> };
 
 export async function updateMasterShares(input: unknown): Promise<Result> {
+  try {
+    await requireAdminOrStaffAction();
+  } catch {
+    return { ok: false, message: "No autorizado." };
+  }
+
   const parsed = payloadSchema.safeParse(input);
   if (!parsed.success) {
     return {

@@ -99,6 +99,49 @@ export function DashboardShell({
     pathname.startsWith("/admin/tracks/") && pathname.includes("/edit");
   const dashboardContentClass = isTrackEditRoute ? "pb-0" : undefined;
 
+  const topbarActions = (
+    <>
+      <Button asChild variant="secondary" size="sm" className="hidden h-8 sm:inline-flex">
+        <Link href="/">Sitio publico</Link>
+      </Button>
+
+      <ThemeToggle />
+
+      <form method="POST" action="/admin/logout" className="hidden sm:block">
+        <Button
+          type="submit"
+          variant="outline"
+          size="sm"
+          className="border-border h-8 text-xs"
+        >
+          Cerrar sesion
+        </Button>
+      </form>
+    </>
+  );
+
+  const mobileSidebarActions = (
+    <div className="space-y-2">
+      <Button asChild variant="secondary" size="sm" className="h-9 w-full">
+        <Link href="/">Sitio publico</Link>
+      </Button>
+
+      <div className="flex items-center justify-between gap-2">
+        <ThemeToggle />
+        <form method="POST" action="/admin/logout" className="flex-1">
+          <Button
+            type="submit"
+            variant="outline"
+            size="sm"
+            className="border-border h-9 w-full text-xs"
+          >
+            Cerrar sesion
+          </Button>
+        </form>
+      </div>
+    </div>
+  );
+
   if (shouldHideShell(pathname, hiddenPaths)) {
     return (
       <div className="bg-background text-foreground min-h-screen">
@@ -123,26 +166,7 @@ export function DashboardShell({
             title={activeItem?.label ?? "Admin"}
             breadcrumbs={breadcrumbs}
             onOpenMobile={() => setMobileOpen(true)}
-            actions={
-              <>
-                <Button asChild variant="secondary" size="sm" className="h-8">
-                  <Link href="/">Sitio publico</Link>
-                </Button>
-
-                <ThemeToggle />
-
-                <form method="POST" action="/admin/logout">
-                  <Button
-                    type="submit"
-                    variant="outline"
-                    size="sm"
-                    className="border-border h-8 text-xs"
-                  >
-                    Cerrar sesion
-                  </Button>
-                </form>
-              </>
-            }
+            actions={topbarActions}
           />
 
           <DashboardContent className={dashboardContentClass}>
@@ -159,6 +183,7 @@ export function DashboardShell({
             brandTitle={brandTitle}
             brandSubtitle={brandSubtitle}
             onNavigate={() => setMobileOpen(false)}
+            footerActions={mobileSidebarActions}
           />
         </SheetContent>
       </Sheet>

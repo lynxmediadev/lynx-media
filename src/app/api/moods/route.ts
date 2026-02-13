@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/server/db";
 import type { Prisma } from "@prisma/client";
 import { TagType } from "@prisma/client";
+import { getRequestAuthUser } from "@/lib/account-auth/request-auth";
 
 const createSchema = z.object({
   name: z.string().min(1, "Nombre requerido"),
@@ -65,7 +66,12 @@ export async function GET(req: Request) {
   });
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const auth = await getRequestAuthUser(req);
+  if (!auth || (auth.role !== "ADMIN" && auth.role !== "STAFF")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const body = await req.json().catch(() => ({}));
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
@@ -121,7 +127,12 @@ export async function POST(req: Request) {
   return NextResponse.json({ item: mood }, { status: 201 });
 }
 
-export async function DELETE(req: Request) {
+export async function DELETE(req: NextRequest) {
+  const auth = await getRequestAuthUser(req);
+  if (!auth || (auth.role !== "ADMIN" && auth.role !== "STAFF")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const body = await req.json().catch(() => ({}));
   const id = body?.id as string | undefined;
   const name = (body?.name as string | undefined)?.trim();

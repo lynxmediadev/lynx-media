@@ -17,6 +17,94 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum UserRole {
+  ADMIN
+  STAFF
+  CREATOR
+}
+
+enum UserStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+}
+
+model User {
+  id              String     @id @default(cuid())
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  email           String     @unique @db.Citext
+  passwordHash    String
+  name            String?
+  role            UserRole   @default(CREATOR)
+  status          UserStatus @default(ACTIVE)
+  emailVerifiedAt DateTime?
+  lastLoginAt     DateTime?
+
+  sessions     UserSession[]
+  resetTokens  PasswordResetToken[]
+  inviteTokens InviteToken[]
+
+  ownedTracks    Track[]            @relation("TrackOwner")
+  ownedLicensing LicensingRequest[] @relation("LicensingOwner")
+}
+
+model UserSession {
+  id               String   @id @default(cuid())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionTokenHash String   @unique
+  expiresAt        DateTime
+  ip               String?
+  userAgent        String?
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  requestedIp String?
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+}
+
+model InviteToken {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  email     String    @db.Citext
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  @@index([email])
+  @@index([expiresAt])
+}
+
+model AuthRateLimit {
+  key          String    @id
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  action       String
+  windowStart  DateTime
+  count        Int       @default(0)
+  blockedUntil DateTime?
+
+  @@index([action, windowStart])
+  @@index([blockedUntil])
+}
+
 model Post {
   id        Int      @id @default(autoincrement())
   name      String
@@ -110,13 +198,16 @@ model Track {
   analysisAt      DateTime?
 
   // Versiones y stems (relaciones)
-  versions  TrackVersion[]
-  stems     TrackStem[]
-  tags      TrackTag[]
-  moodLinks TrackMood[]
+  versions    TrackVersion[]
+  stems       TrackStem[]
+  tags        TrackTag[]
+  moodLinks   TrackMood[]
+  ownerUserId String?
+  owner       User?          @relation("TrackOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
 
   @@index([artist])
   @@index([title])
+  @@index([ownerUserId, updatedAt, id])
   @@index([createdAt, id]) // ← nuevo
   @@index([updatedAt, id])
 }
@@ -263,7 +354,9 @@ model LicensingRequest {
   updatedAt DateTime @updatedAt
 
   // Responsable (owner) de la gestión comercial de esta solicitud
-  assignee String?
+  assignee    String?
+  ownerUserId String?
+  owner       User?   @relation("LicensingOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
 
   // Solicitante
   name    String
@@ -308,6 +401,7 @@ model LicensingRequest {
   nextFollowUpAt DateTime?
 
   @@index([createdAt, status])
+  @@index([ownerUserId, createdAt])
   @@index([assignee])
   @@index([priority])
   @@index([nextFollowUpAt])

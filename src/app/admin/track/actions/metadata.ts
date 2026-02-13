@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
+import { requireAdminOrStaffAction } from "@/lib/account-auth/guards";
 import {
   idsFormSchema,
   deliverablesFormSchema,
@@ -28,9 +29,22 @@ function mergeFieldErrors(
   }
 }
 
+async function ensureAdminOrStaff() {
+  try {
+    await requireAdminOrStaffAction();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function updateMetadataModule(
   formData: FormData,
 ): Promise<UpdateMetaResult> {
+  if (!(await ensureAdminOrStaff())) {
+    return { ok: false, message: "No autorizado." };
+  }
+
   try {
     const rawObject = Object.fromEntries(formData.entries());
 
@@ -113,6 +127,10 @@ export async function updateMetadataModule(
 export async function updateSyncMeta(
   formData: FormData,
 ): Promise<UpdateMetaResult> {
+  if (!(await ensureAdminOrStaff())) {
+    return { ok: false, message: "No autorizado." };
+  }
+
   try {
     const rawObject = Object.fromEntries(formData.entries());
     const parsed = syncMetaFormSchema.safeParse(rawObject);
@@ -171,6 +189,10 @@ export async function updateSyncMeta(
 export async function updateDeliverables(
   formData: FormData,
 ): Promise<UpdateMetaResult> {
+  if (!(await ensureAdminOrStaff())) {
+    return { ok: false, message: "No autorizado." };
+  }
+
   try {
     const rawObject = Object.fromEntries(formData.entries());
     const parsed = deliverablesFormSchema.safeParse(rawObject);

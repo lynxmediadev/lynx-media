@@ -13,6 +13,16 @@ const db = new PrismaClient();
 const MOODS = ["Epic","Emotional","Elegant","Atmospheric","Dark","Uplifting","Warm","Minimal","Intense"];
 const USES  = ["TV","Cine","Publicidad","Trailers","Series","Videojuegos","Documental","Streaming"];
 
+function slugify(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function pickSome<T>(arr: T[], min = 1, max = 3): T[] {
   const n = Math.floor(Math.random() * (max - min + 1)) + min;
   const shuffled = [...arr].sort(() => Math.random() - 0.5);
@@ -44,14 +54,12 @@ async function main() {
     const uses = pickSome(USES);
 
     // Nota: NO seteamos id -> Prisma generará cuid()
-    await db.track.create({
+    const track = await db.track.create({
       data: {
         title: t,
         artist: "Lynx Music Collective",
         audioUrl: AUDIO,
         coverUrl: COVER,
-        moods,
-        uses,
         master: "Lynx Media (One-Stop)",
         publishingSplit: "100% Lynx Music Collective",
         licenseType: "NON_EXCLUSIVE",
@@ -62,6 +70,50 @@ async function main() {
         assetSize: 0,
       },
     });
+
+    for (const mood of moods) {
+      const tag = await db.tag.upsert({
+        where: { slug: slugify(mood) },
+        update: {
+          name: mood.toUpperCase(),
+          type: "MOOD",
+        },
+        create: {
+          slug: slugify(mood),
+          name: mood.toUpperCase(),
+          type: "MOOD",
+        },
+        select: { id: true },
+      });
+      await db.trackTag.create({
+        data: {
+          trackId: track.id,
+          tagId: tag.id,
+        },
+      });
+    }
+
+    for (const use of uses) {
+      const tag = await db.tag.upsert({
+        where: { slug: slugify(use) },
+        update: {
+          name: use.toUpperCase(),
+          type: "USE",
+        },
+        create: {
+          slug: slugify(use),
+          name: use.toUpperCase(),
+          type: "USE",
+        },
+        select: { id: true },
+      });
+      await db.trackTag.create({
+        data: {
+          trackId: track.id,
+          tagId: tag.id,
+        },
+      });
+    }
   }
 
   console.log(`✅ Bulk seed completado. Insertadas ${COUNT} pistas.`);

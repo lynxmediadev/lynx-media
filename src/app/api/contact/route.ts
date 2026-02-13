@@ -48,10 +48,17 @@ export async function POST(req: NextRequest) {
 
   // Arrays
   const arr = (v: any) => (Array.isArray(v) ? (v as string[]).filter(Boolean) : ([] as string[]));
+  const trackId = String(track.id ?? "unknown").slice(0, 64);
+
+  const trackOwner = await prisma.track.findUnique({
+    where: { id: trackId },
+    select: { ownerUserId: true },
+  });
 
   // Guardado en BD
   const record = await prisma.licensingRequest.create({
     data: {
+      ownerUserId: trackOwner?.ownerUserId ?? null,
       name: String(applicant.name ?? "").slice(0, 255),
       email: String(applicant.email ?? "").slice(0, 255),
       company: applicant.company ? String(applicant.company).slice(0, 255) : null,
@@ -66,7 +73,7 @@ export async function POST(req: NextRequest) {
       needWhitelist: Boolean(project.needWhitelist),
       notes: project.notes ? String(project.notes) : null,
 
-      trackId: String(track.id ?? "unknown").slice(0, 64),
+      trackId,
       trackTitle: track.title ? String(track.title).slice(0, 255) : null,
       trackArtist: track.artist ? String(track.artist).slice(0, 255) : null,
       trackDurationSec:

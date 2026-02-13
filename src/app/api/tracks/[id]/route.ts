@@ -5,10 +5,11 @@
 // Qué hace: Garantiza que /player/api-demo no se rompa.
 // Peras y manzanas: “Si no está en la libreta, te muestro la muestra.”
 // ================================================
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/server/db";
 import { getTrackById as getDemo } from "@/mocks/track-store";
+import { canAccessTrackByRole, getRequestAuthUser } from "@/lib/account-auth/request-auth";
 
 const TRACK_TYPE_VALUES = ["INSTRUMENTAL", "VOCAL", "VOCAL_INSTRUMENTAL", "OTHER"] as const;
 const PRICING_TIER_VALUES = ["LOW", "MID", "HIGH", "BESPOKE"] as const;
@@ -244,8 +245,17 @@ function normalizePublishingShares(
     .filter((share) => share.name.length > 0);
 }
 
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const user = await getRequestAuthUser(req);
+  if (!user) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+  const allowed = await canAccessTrackByRole(user, id);
+  if (!allowed) {
+    return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
+  }
+
   try {
     const json = await req.json();
     const parsed = trackMetaUpdateSchema.safeParse(json);

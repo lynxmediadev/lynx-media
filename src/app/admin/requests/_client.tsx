@@ -451,84 +451,36 @@ export default function RequestsAdminClient(props: {
         </div>
       </section>
 
-      <section className="overflow-x-auto rounded-[2px] border border-border bg-card/80">
+      <section className="rounded-[2px] border border-border bg-card/80">
         <TooltipProvider delayDuration={200}>
-        <div className="min-w-[1080px]">
           {props.rows.length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-muted-foreground">
               Sin resultados para los filtros actuales.
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-[1.4fr_140px_1.4fr_140px_160px_120px_120px_120px_36px] items-stretch gap-0 divide-x divide-border/30 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground text-center">
-                <span className="px-2 flex h-full items-center justify-center">Cliente</span>
-                <span className="px-2 flex h-full items-center justify-center">Proyecto</span>
-                <span className="px-2 flex h-full items-center justify-center">Metadata</span>
-                <span className="px-2 flex h-full items-center justify-center">Total</span>
-                <span className="px-2 flex h-full items-center justify-center">Estado</span>
-                <span className="px-2 flex h-full items-center justify-center">Creado</span>
-                <span className="px-2 flex h-full items-center justify-center">Deadline</span>
-                <span className="px-2 flex h-full items-center justify-center">Acciones</span>
-                <span className="flex h-full items-center justify-center" />
-              </div>
-              <Separator className="bg-border" />
-              <div className="divide-y divide-border">
-                {props.rows.map((row) => (
-                  (() => {
-                    const mix = buildMixMeta(row);
-                    const typeLabel = mix?.projectType ?? "—";
-                    const metaLines = mix?.meta ?? [];
-                    const totalLabel = formatPrice(row);
-                    return (
-                  <Card key={row.id} className="border-0 bg-transparent shadow-none">
-                    <CardContent className="p-0">
-                      <div
-                        className={`grid grid-cols-[1.4fr_140px_1.4fr_140px_160px_120px_120px_120px_36px] items-stretch gap-0 divide-x divide-border/20 text-center ${rowHover} px-2 py-2 ${
-                          selectedIds.has(row.id) ? "bg-border/20" : ""
-                        }`}
-                      >
-                        <div className="flex h-full min-w-0 flex-col justify-center gap-1 px-2 text-left">
-                          <span className="text-xs font-semibold text-foreground truncate text-center">
-                            {row.name}
-                          </span>
-                          <CopyEmail email={row.email} />
-                        </div>
+              <div className="space-y-3 p-3 md:hidden">
+                {props.rows.map((row) => {
+                  const mix = buildMixMeta(row);
+                  const typeLabel = mix?.projectType ?? "—";
+                  const metaLines = mix?.meta ?? [];
+                  const totalLabel = formatPrice(row);
 
-                        <div className="px-2 text-xs font-semibold flex h-full items-center justify-center">
-                          <span className="text-foreground">
-                            {typeLabel}
-                          </span>
-                          <span className="text-muted-foreground">
-                            &nbsp;·&nbsp;{mix?.tracksCount ?? "—"}
-                          </span>
-                        </div>
-                        <div className="px-2 text-xs text-foreground flex h-full items-center justify-center">
-                          {metaLines.length ? metaLines.join(" · ") : "—"}
-                        </div>
-                        <div className="px-2 text-xs font-semibold flex h-full items-center justify-center">{totalLabel}</div>
-                        <div className="flex h-full items-center justify-center gap-2 px-2">
-                          <StatusPill value={row.status} />
-                          <UrgencyPill value={row.urgency} />
-                        </div>
-
-                        <div className="flex h-full items-center justify-center px-2 text-[10px] text-muted-foreground tabular-nums">
-                          {fmtDate(row.createdAt)}
-                        </div>
-                        <div className="flex h-full items-center justify-center px-2 text-xs text-muted-foreground tabular-nums">
-                          {fmtDate(row.deadlineAt)}
-                        </div>
-                        <div className="flex h-full items-center justify-center px-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            asChild
-                            className="h-8 rounded-[2px] border-border text-xs"
-                          >
-                            <Link href={`/admin/requests/${row.id}`}>Ver detalle</Link>
-                          </Button>
-                        </div>
-
-                        <div className="flex h-full items-center justify-center">
+                  return (
+                    <Card
+                      key={row.id}
+                      className={`border-border/60 bg-card/60 shadow-none ${
+                        selectedIds.has(row.id) ? "border-foreground/40" : ""
+                      }`}
+                    >
+                      <CardContent className="space-y-3 p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-foreground">
+                              {row.name}
+                            </p>
+                            <CopyEmail email={row.email} />
+                          </div>
                           <Checkbox
                             aria-label="Seleccionar solicitud"
                             checked={selectedIds.has(row.id)}
@@ -542,17 +494,156 @@ export default function RequestsAdminClient(props: {
                             }}
                           />
                         </div>
-                      </div>
 
-                    </CardContent>
-                  </Card>
-                    );
-                  })()
-                ))}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <StatusPill value={row.status} />
+                          <UrgencyPill value={row.urgency} />
+                        </div>
+
+                        <div className="space-y-1 text-xs text-muted-foreground">
+                          <p>
+                            Proyecto:{" "}
+                            <span className="text-foreground">
+                              {typeLabel}
+                              {mix?.tracksCount ? ` · ${mix.tracksCount}` : ""}
+                            </span>
+                          </p>
+                          <p>
+                            Metadata:{" "}
+                            <span className="text-foreground">
+                              {metaLines.length ? metaLines.join(" · ") : "—"}
+                            </span>
+                          </p>
+                          <p>
+                            Total:{" "}
+                            <span className="text-foreground">{totalLabel}</span>
+                          </p>
+                          <p>
+                            URL:{" "}
+                            <span className="text-foreground">{shortUrl(row.pageUrl)}</span>
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 border-t border-border/50 pt-2 text-xs text-muted-foreground">
+                          <div>
+                            <p className="text-[10px] uppercase tracking-wide">Creado</p>
+                            <p className="tabular-nums">{fmtDate(row.createdAt)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase tracking-wide">Deadline</p>
+                            <p className="tabular-nums">{fmtDate(row.deadlineAt)}</p>
+                          </div>
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                          className="h-8 w-full rounded-[2px] border-border text-xs"
+                        >
+                          <Link href={`/admin/requests/${row.id}`}>Ver detalle</Link>
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+
+              <div className="hidden overflow-x-auto md:block">
+                <div className="min-w-[1080px]">
+                  <div className="grid grid-cols-[1.4fr_140px_1.4fr_140px_160px_120px_120px_120px_36px] items-stretch gap-0 divide-x divide-border/30 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground text-center">
+                    <span className="px-2 flex h-full items-center justify-center">Cliente</span>
+                    <span className="px-2 flex h-full items-center justify-center">Proyecto</span>
+                    <span className="px-2 flex h-full items-center justify-center">Metadata</span>
+                    <span className="px-2 flex h-full items-center justify-center">Total</span>
+                    <span className="px-2 flex h-full items-center justify-center">Estado</span>
+                    <span className="px-2 flex h-full items-center justify-center">Creado</span>
+                    <span className="px-2 flex h-full items-center justify-center">Deadline</span>
+                    <span className="px-2 flex h-full items-center justify-center">Acciones</span>
+                    <span className="flex h-full items-center justify-center" />
+                  </div>
+                  <Separator className="bg-border" />
+                  <div className="divide-y divide-border">
+                    {props.rows.map((row) => (
+                      (() => {
+                        const mix = buildMixMeta(row);
+                        const typeLabel = mix?.projectType ?? "—";
+                        const metaLines = mix?.meta ?? [];
+                        const totalLabel = formatPrice(row);
+                        return (
+                          <Card key={row.id} className="border-0 bg-transparent shadow-none">
+                            <CardContent className="p-0">
+                              <div
+                                className={`grid grid-cols-[1.4fr_140px_1.4fr_140px_160px_120px_120px_120px_36px] items-stretch gap-0 divide-x divide-border/20 text-center ${rowHover} px-2 py-2 ${
+                                  selectedIds.has(row.id) ? "bg-border/20" : ""
+                                }`}
+                              >
+                                <div className="flex h-full min-w-0 flex-col justify-center gap-1 px-2 text-left">
+                                  <span className="text-xs font-semibold text-foreground truncate text-center">
+                                    {row.name}
+                                  </span>
+                                  <CopyEmail email={row.email} />
+                                </div>
+
+                                <div className="px-2 text-xs font-semibold flex h-full items-center justify-center">
+                                  <span className="text-foreground">
+                                    {typeLabel}
+                                  </span>
+                                  <span className="text-muted-foreground">
+                                    &nbsp;·&nbsp;{mix?.tracksCount ?? "—"}
+                                  </span>
+                                </div>
+                                <div className="px-2 text-xs text-foreground flex h-full items-center justify-center">
+                                  {metaLines.length ? metaLines.join(" · ") : "—"}
+                                </div>
+                                <div className="px-2 text-xs font-semibold flex h-full items-center justify-center">{totalLabel}</div>
+                                <div className="flex h-full items-center justify-center gap-2 px-2">
+                                  <StatusPill value={row.status} />
+                                  <UrgencyPill value={row.urgency} />
+                                </div>
+
+                                <div className="flex h-full items-center justify-center px-2 text-[10px] text-muted-foreground tabular-nums">
+                                  {fmtDate(row.createdAt)}
+                                </div>
+                                <div className="flex h-full items-center justify-center px-2 text-xs text-muted-foreground tabular-nums">
+                                  {fmtDate(row.deadlineAt)}
+                                </div>
+                                <div className="flex h-full items-center justify-center px-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    asChild
+                                    className="h-8 rounded-[2px] border-border text-xs"
+                                  >
+                                    <Link href={`/admin/requests/${row.id}`}>Ver detalle</Link>
+                                  </Button>
+                                </div>
+
+                                <div className="flex h-full items-center justify-center">
+                                  <Checkbox
+                                    aria-label="Seleccionar solicitud"
+                                    checked={selectedIds.has(row.id)}
+                                    onCheckedChange={(checked) => {
+                                      setSelectedIds((prev) => {
+                                        const next = new Set(prev);
+                                        if (checked) next.add(row.id);
+                                        else next.delete(row.id);
+                                        return next;
+                                      });
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })()
+                    ))}
+                  </div>
+                </div>
               </div>
             </>
           )}
-        </div>
         </TooltipProvider>
       </section>
 

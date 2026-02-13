@@ -1,7 +1,8 @@
 // src/app/api/tracks/[id]/audio-check/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { getAudioCheckStatus } from "@/lib/audio/audio-check";
+import { canAccessTrackByRole, getRequestAuthUser } from "@/lib/account-auth/request-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -10,10 +11,18 @@ type AudioCheckParams = {
 };
 
 export async function GET(
-  _req: Request,
+  req: NextRequest,
   { params }: { params: Promise<AudioCheckParams> },
 ) {
   const { id } = await params;
+  const user = await getRequestAuthUser(req);
+  if (!user) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+  const allowed = await canAccessTrackByRole(user, id);
+  if (!allowed) {
+    return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
+  }
 
   if (!id) {
     return NextResponse.json({ ok: false, error: "Falta id en la ruta" }, { status: 400 });

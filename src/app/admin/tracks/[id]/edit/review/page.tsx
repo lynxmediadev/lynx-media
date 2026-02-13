@@ -57,13 +57,13 @@ export default async function AdminTrackEditReviewPage({
             id={trackOverview.id}
             audioUrl={trackOverview.audioUrl}
           />
-          <Button asChild variant="outline" size="sm" className="text-xs">
+          <Button asChild variant="outline" size="sm" className="hidden text-xs md:inline-flex">
             <Link href={`/admin/tracks/${trackOverview.id}/edit/full`}>Vista completa</Link>
           </Button>
-          <Button asChild variant="outline" size="sm" className="text-xs">
+          <Button asChild variant="outline" size="sm" className="hidden text-xs md:inline-flex">
             <Link href={`/admin/tracks/${trackOverview.id}/edit`}>Overview</Link>
           </Button>
-          <Button asChild variant="outline" size="sm" className="text-xs">
+          <Button asChild variant="outline" size="sm" className="w-full text-xs sm:w-auto">
             <Link href="/admin/tracks">Volver al listado</Link>
           </Button>
         </>

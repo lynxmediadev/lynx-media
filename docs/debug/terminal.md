@@ -89,3 +89,149 @@ AdminDashboardLayoutClient
 src/components/admin/AdminDashboardLayoutClient.tsx (12:5)
 AdminLayout
 src/app/admin/layout.tsx (14:10)
+
+## 2026-02-13 - Account system phase 1 (WIP)
+
+Comandos ejecutados:
+
+- `npx prisma format` ✅
+- `npx prisma generate` ✅
+- `npx prisma migrate dev --name account_system_phase1` ✅
+  - Migración aplicada: `prisma/migrations/20260213053053_account_system_phase1/migration.sql`
+- `npm run db:bootstrap:auth` ✅
+  - admin bootstrap creado: `admin@lynx.local`
+  - backfill ownership: tracks/licensing requests con `ownerUserId`
+- `npm run typecheck` ❌ (fallas preexistentes + drift legacy moods/uses)
+
+Errores visibles en `typecheck`:
+
+- `moods/uses` legacy en:
+  - `src/app/api/tracks/route.ts`
+  - `prisma/seed.bulk.ts`
+  - `src/components/public/SimilarTracks.tsx`
+- import faltante:
+  - `src/components/admin/track/CatalogTagsForm.tsx` -> `@/app/admin/track/actions/update-catalog-tags`
+- tipado Next params legacy:
+  - `.next/types/app/track/[id]/page.ts`
+
+Nota:
+- Se dejó implementado auth base + ownership inicial.
+- Falta limpiar deuda legacy de `moods/uses` para volver a `tsc --noEmit` limpio.
+
+## 2026-02-13 - Account system phase 1.1 (admin users panel)
+
+Implementado:
+- `/admin/users` con:
+  - listado de usuarios
+  - filtros por q/role/status
+  - edición de perfil (name)
+  - cambio de rol
+  - cambio de estado
+  - creación de invitaciones
+  - listado de invitaciones activas + revocar
+- rutas admin-only:
+  - `POST /admin/users/invite`
+  - `POST /admin/users/[id]/profile`
+  - `POST /admin/users/[id]/role`
+  - `POST /admin/users/[id]/status`
+  - `POST /admin/users/invites/[inviteId]/revoke`
+- navegación dashboard:
+  - agregado item `Users` en sidebar
+
+Validación:
+- `typecheck` global sigue con deuda legacy previa (moods/uses),
+  pero no aparecieron errores nuevos en archivos de account/users panel.
+
+## 2026-02-13 - Account system phase 1.2 (auth lifecycle + ownership hardening)
+
+Implementado:
+- Forgot/reset password:
+  - `/auth/forgot-password`
+  - `POST /auth/forgot-password/submit`
+  - `/auth/reset-password`
+  - `POST /auth/reset-password/submit`
+- Rate limiting persistente en DB (`AuthRateLimit`) para login/register/forgot/reset.
+- Seguridad:
+  - al resetear password se invalidan sesiones previas del usuario.
+  - al suspender usuario desde `/admin/users` se invalidan sesiones.
+- Sidebar por rol:
+  - STAFF ya no ve `Users` ni `Roles` en navegación.
+- Ownership/API:
+  - hardening en `/api/tracks/[id]/moods|uses|categories|analyze|audio-check`
+  - sólo ADMIN/STAFF o CREATOR owner del track.
+- Compatibilidad de datos:
+  - se resolvió deuda legacy moods/uses en:
+    - `src/app/api/tracks/route.ts`
+    - `prisma/seed.bulk.ts`
+    - `src/components/public/SimilarTracks.tsx`
+  - se creó `src/app/admin/track/actions/update-catalog-tags.ts`
+
+Migración aplicada:
+- `prisma/migrations/20260213144331_account_system_phase2_rate_limit/migration.sql`
+
+Validación:
+- `npm run typecheck` ✅ (sin errores)
+
+## 2026-02-13 - Account system phase 1.3 (hardening final antes de smoke)
+
+Implementado:
+- Guardas explícitas `ADMIN|STAFF` en server actions de edit avanzado:
+  - `update-creative`, `update-all`, `update-rights`, `update-metadata`, `update-deliverables`,
+  - `update-publishing-shares`, `update-master-shares`,
+  - `create/delete/update catalog tags`.
+- Cambio de password autenticado:
+  - nueva ruta `POST /auth/change-password/submit`
+  - valida password actual + nueva password
+  - invalida **todas** las sesiones del usuario
+  - crea nueva sesión activa al terminar.
+- UI de account en `/admin/account`:
+  - datos de cuenta
+  - formulario de cambio de password con feedback (`ok/err`).
+- Hardening de cookie de sesión:
+  - cookie `app_session` con `priority=high`
+  - `maxAge` explícito derivado de expiración.
+- Auditoría ownership adicional:
+  - `GET /api/tracks` ahora filtra por `ownerUserId` cuando el requester es `CREATOR`.
+  - `POST /api/tracks` resuelve owner explícito (incluye fallback temporal para sesión legacy admin).
+  - `POST/DELETE` de `/api/moods`, `/api/uses`, `/api/categories` restringidos a `ADMIN|STAFF`.
+- Navegación:
+  - `Users` y `Roles` con `exact` en sidebar para evitar estados activos ambiguos.
+
+Validación:
+- `npm run typecheck -- --pretty false` ✅
+
+Bloqueos pendientes para cierre total de plan:
+- Proveedor real para verify-email (pendiente de credenciales/config).
+- Definir fecha oficial para retiro de fallback legacy `admin_session`.
+
+## 2026-02-13 - Smoke checklist Fase 8 (account system)
+
+Resultado:
+- `SMOKE_RESULT=PASS`
+- Track de prueba creado: `cmll1qywy000huqbp3ss55rdp`
+- Usuarios de prueba creados:
+  - `smoke_creator_a_1770996755@example.com`
+  - `smoke_creator_b_1770996755@example.com`
+  - `smoke_staff_1770996755@example.com`
+  - `smoke_admin_1770996755@example.com`
+
+Validaciones ejecutadas (automáticas):
+- Registro por invitación para CREATOR/STAFF/ADMIN ✅
+- Login por `/auth/login` (creator) ✅
+- Login por `/admin/login` (staff/admin) ✅
+- Ownership:
+  - CREATOR A crea track ✅
+  - CREATOR A ve su track en `/creator/tracks` ✅
+  - CREATOR B recibe `404` en `/creator/tracks/[id de A]` ✅
+  - CREATOR B recibe `403` en mutación tags (`/api/tracks/[id]/moods`) ✅
+  - `GET /api/tracks?view=list` filtra por owner para CREATOR ✅
+- Admin:
+  - ADMIN abre `/admin/tracks/[id]/edit` ✅
+- Staff:
+  - STAFF abre `/admin/tracks` ✅
+  - STAFF no accede a `/admin/users` (redirect) ✅
+- Logout:
+  - `/auth/logout` invalida acceso a `/creator/tracks` (redirect a login) ✅
+
+Pendiente manual:
+- Verificación visual mobile de overflow en flujo creator.

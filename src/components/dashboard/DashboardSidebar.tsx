@@ -14,6 +14,22 @@ function isItemActive(pathname: string, item: DashboardNavItem): boolean {
   return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
+function getActiveItemId(pathname: string, sections: DashboardSection[]) {
+  let winner: { id: string; hrefLen: number } | null = null;
+
+  for (const section of sections) {
+    for (const item of section.items) {
+      if (!isItemActive(pathname, item)) continue;
+      const hrefLen = item.href.length;
+      if (!winner || hrefLen > winner.hrefLen) {
+        winner = { id: item.id, hrefLen };
+      }
+    }
+  }
+
+  return winner?.id ?? null;
+}
+
 function DashboardNavList({
   sections,
   collapsed,
@@ -24,6 +40,7 @@ function DashboardNavList({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
+  const activeItemId = getActiveItemId(pathname, sections);
 
   return (
     <div className="space-y-5">
@@ -41,7 +58,7 @@ function DashboardNavList({
           <ul className="space-y-1">
             {section.items.map((item) => {
               const Icon = item.icon;
-              const active = isItemActive(pathname, item);
+              const active = item.id === activeItemId;
               const commonClass = cn(
                 "flex items-center gap-2 rounded-md border border-transparent px-2.5 py-2 text-sm transition-colors duration-150",
                 active
@@ -149,11 +166,13 @@ export function DashboardMobileSidebar({
   brandTitle,
   brandSubtitle,
   onNavigate,
+  footerActions,
 }: {
   sections: DashboardSection[];
   brandTitle: string;
   brandSubtitle?: string;
   onNavigate?: () => void;
+  footerActions?: React.ReactNode;
 }) {
   return (
     <div className="bg-background flex h-full flex-col">
@@ -171,6 +190,12 @@ export function DashboardMobileSidebar({
           onNavigate={onNavigate}
         />
       </nav>
+
+      {footerActions ? (
+        <div className="border-border border-t p-4">
+          {footerActions}
+        </div>
+      ) : null}
     </div>
   );
 }

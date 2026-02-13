@@ -42,12 +42,18 @@ export function TrackEditShell({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">{headerActions}</div>
+        {headerActions ? (
+          <div className="w-full md:w-auto">
+            <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:justify-end">
+              {headerActions}
+            </div>
+          </div>
+        ) : null}
       </header>
 
       <nav
         aria-label="Navegacion de modulos de edicion"
-        className="flex flex-wrap gap-2"
+        className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:gap-2"
       >
         {modules.map((item) => {
           const active = item.id === activeModuleId;
@@ -57,6 +63,7 @@ export function TrackEditShell({
               aria-disabled="true"
               className={cn(
                 "inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium",
+                "w-full justify-center md:w-auto",
                 "border-border bg-muted/30 text-muted-foreground opacity-70",
               )}
             >
@@ -68,6 +75,7 @@ export function TrackEditShell({
               href={item.href}
               className={cn(
                 "inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium transition-colors",
+                "w-full justify-center md:w-auto",
                 active
                   ? "border-foreground bg-foreground text-background"
                   : "border-border text-foreground hover:bg-muted/40",

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import type { DashboardSection } from "./types";
+import type { UserRole } from "@prisma/client";
 
 export const adminDashboardSections: DashboardSection[] = [
   {
@@ -84,7 +85,7 @@ export const adminDashboardSections: DashboardSection[] = [
     items: [
       {
         id: "licensing-requests",
-        label: "Requests",
+        label: "Licensing",
         href: "/admin/licensing",
         icon: ClipboardList,
         section: "licensing",
@@ -104,7 +105,7 @@ export const adminDashboardSections: DashboardSection[] = [
     items: [
       {
         id: "inbound-requests",
-        label: "Contact Inbox",
+        label: "Requests",
         href: "/admin/requests",
         icon: ScrollText,
         section: "system",
@@ -123,6 +124,38 @@ export const adminDashboardSections: DashboardSection[] = [
         icon: Settings,
         section: "system",
       },
+      {
+        id: "users",
+        label: "Users",
+        href: "/admin/users",
+        icon: UserCircle2,
+        section: "system",
+        exact: true,
+      },
+      {
+        id: "roles",
+        label: "Roles",
+        href: "/admin/users/roles",
+        icon: UserCircle2,
+        section: "system",
+        exact: true,
+      },
     ],
   },
 ];
+
+export function getAdminDashboardSectionsForRole(role: UserRole | null | undefined) {
+  if (role === "ADMIN") return adminDashboardSections;
+
+  if (role === "STAFF") {
+    return adminDashboardSections.map((section) => ({
+      ...section,
+      items: section.items.filter((item) => item.id !== "users" && item.id !== "roles"),
+    }));
+  }
+
+  return adminDashboardSections.map((section) => ({
+    ...section,
+    items: [],
+  }));
+}

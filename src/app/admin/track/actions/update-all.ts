@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { PublishingRole, TagType } from "@prisma/client";
 
 import prisma from "@/lib/prisma";
+import { requireAdminOrStaffAction } from "@/lib/account-auth/guards";
 import { syncTrackTagsByTypeWithTx } from "@/server/tags/syncTrackTagsByType";
 import {
   creativeFormSchema,
@@ -52,6 +53,12 @@ function slugify(input: string) {
 export async function updateTrackAll(
   formData: FormData,
 ): Promise<UpdateAllResult> {
+  try {
+    await requireAdminOrStaffAction();
+  } catch {
+    return { ok: false, message: "No autorizado." };
+  }
+
   try {
     const rawObject = Object.fromEntries(formData.entries());
     const catalogTagSlugs = Array.from(

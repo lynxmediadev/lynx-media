@@ -4,6 +4,12 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export type DashboardCrumb = {
   label: string;
@@ -12,6 +18,11 @@ export type DashboardCrumb = {
 
 function isLikelyTrackId(segment: string): boolean {
   return /^[a-z0-9]{10,}$/i.test(segment);
+}
+
+function compactTrackId(trackId: string): string {
+  if (trackId.length <= 14) return trackId;
+  return `${trackId.slice(0, 6)}…${trackId.slice(-4)}`;
 }
 
 async function copyText(text: string): Promise<boolean> {
@@ -76,55 +87,63 @@ export function DashboardBreadcrumbs({
   if (!items.length) return null;
 
   return (
-    <nav
-      aria-label="Breadcrumb"
-      className={cn("flex items-center gap-1 text-xs", className)}
-    >
-      {items.map((item, index) => {
-        const isLast = index === items.length - 1;
+    <TooltipProvider delayDuration={120}>
+      <nav
+        aria-label="Breadcrumb"
+        className={cn("flex min-w-0 flex-wrap items-center gap-1 text-xs", className)}
+      >
+        {items.map((item, index) => {
+          const isLast = index === items.length - 1;
 
-        return (
-          <span
-            key={`${item.label}-${index}`}
-            className="flex items-center gap-1"
-          >
-            {item.href && !isLast ? (
-              <Link
-                href={item.href}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {item.label}
-              </Link>
-            ) : isLikelyTrackId(item.label) ? (
-              <button
-                type="button"
-                onClick={() => {
-                  void handleCopyPublicTrackUrl(item.label);
-                }}
-                className="text-muted-foreground hover:text-foreground relative cursor-copy rounded-sm underline underline-offset-1 transition-colors"
-                title="Copiar URL pública del track"
-                aria-label={`Copiar URL pública del track ${item.label}`}
-              >
-                {item.label}
-                {copiedId === item.label ? (
-                  <span className="bg-foreground text-background pointer-events-none absolute top-[-1.20rem] left-1/2 z-10 -translate-x-1/2 rounded px-1.5 py-0.5 text-[10px] font-medium whitespace-nowrap">
-                    Copiado
-                  </span>
-                ) : null}
-              </button>
-            ) : (
-              <span
-                className={isLast ? "text-foreground" : "text-muted-foreground"}
-              >
-                {item.label}
-              </span>
-            )}
-            {!isLast ? (
-              <span className="text-muted-foreground/60">/</span>
-            ) : null}
-          </span>
-        );
-      })}
-    </nav>
+          return (
+            <span
+              key={`${item.label}-${index}`}
+              className="flex min-w-0 items-center gap-1"
+            >
+              {item.href && !isLast ? (
+                <Link
+                  href={item.href}
+                  className="text-muted-foreground hover:text-foreground max-w-[44vw] truncate transition-colors md:max-w-none"
+                >
+                  {item.label}
+                </Link>
+              ) : isLikelyTrackId(item.label) ? (
+                <Tooltip open={copiedId === item.label}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleCopyPublicTrackUrl(item.label);
+                      }}
+                      className="text-muted-foreground hover:text-foreground inline-flex max-w-[52vw] cursor-copy rounded-sm underline underline-offset-1 transition-colors md:max-w-none"
+                      title="Copiar URL pública del track"
+                      aria-label={`Copiar URL pública del track ${item.label}`}
+                    >
+                      <span className="truncate md:hidden">{compactTrackId(item.label)}</span>
+                      <span className="hidden md:inline">{item.label}</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-[10px]">
+                    Copied
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <span
+                  className={cn(
+                    isLast ? "text-foreground" : "text-muted-foreground",
+                    "max-w-[44vw] truncate md:max-w-none",
+                  )}
+                >
+                  {item.label}
+                </span>
+              )}
+              {!isLast ? (
+                <span className="text-muted-foreground/60">/</span>
+              ) : null}
+            </span>
+          );
+        })}
+      </nav>
+    </TooltipProvider>
   );
 }

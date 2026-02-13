@@ -12,6 +12,19 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import {
+  APP_SESSION_COOKIE,
+  clearSessionCookie,
+  destroyUserSessionByCookie,
+} from "@/lib/account-auth/session";
+
+function redirectUrl(req: NextRequest, path: string) {
+  const url = new URL(path, req.url);
+  if (url.hostname === "0.0.0.0") {
+    url.hostname = "localhost";
+  }
+  return url;
+}
 
 // GET: mini HTML que auto-postea (y con <noscript> para fallback)
 export async function GET() {
@@ -55,8 +68,12 @@ export async function GET() {
 
 // POST: borra cookies y redirige al login
 export async function POST(req: NextRequest) {
-  const res = NextResponse.redirect(new URL("/admin/login", req.url), { status: 303 });
+  const res = NextResponse.redirect(redirectUrl(req, "/admin/login"), { status: 303 });
   const c = await cookies();
+  const rawSession = c.get(APP_SESSION_COOKIE)?.value;
+
+  await destroyUserSessionByCookie(rawSession);
+  await clearSessionCookie();
 
   // Token firmado (HMAC)
   c.set("admin_session", "", {

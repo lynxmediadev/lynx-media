@@ -15,6 +15,8 @@
 
 import { db } from "@/server/db";
 import Link from "next/link";
+import { TagType } from "@prisma/client";
+import { slugify } from "@/lib/slugify";
 
 function formatDuration(sec: number | null) {
   if (!sec && sec !== 0) return "—:—";
@@ -51,8 +53,36 @@ export default async function SimilarTracks({
 }) {
   // 1) Intentamos por similitud (moods/uses)
   const or: any[] = [];
-  if (moods && moods.length) or.push({ moods: { hasSome: moods } });
-  if (uses && uses.length) or.push({ uses: { hasSome: uses } });
+  if (moods && moods.length) {
+    const moodSlugs = moods.map((m) => slugify(m)).filter(Boolean);
+    if (moodSlugs.length) {
+      or.push({
+        tags: {
+          some: {
+            tag: {
+              type: TagType.MOOD,
+              slug: { in: moodSlugs },
+            },
+          },
+        },
+      });
+    }
+  }
+  if (uses && uses.length) {
+    const useSlugs = uses.map((u) => slugify(u)).filter(Boolean);
+    if (useSlugs.length) {
+      or.push({
+        tags: {
+          some: {
+            tag: {
+              type: TagType.USE,
+              slug: { in: useSlugs },
+            },
+          },
+        },
+      });
+    }
+  }
 
   let items = await db.track.findMany({
     where: {
@@ -66,8 +96,10 @@ export default async function SimilarTracks({
       title: true,
       artist: true,
       durationSec: true,
-      moods: true,
-      uses: true,
+      tags: {
+        where: { tag: { type: { in: [TagType.MOOD, TagType.USE] } } },
+        select: { tag: { select: { name: true, type: true } } },
+      },
     },
   });
 
@@ -82,8 +114,10 @@ export default async function SimilarTracks({
         title: true,
         artist: true,
         durationSec: true,
-        moods: true,
-        uses: true,
+        tags: {
+          where: { tag: { type: { in: [TagType.MOOD, TagType.USE] } } },
+          select: { tag: { select: { name: true, type: true } } },
+        },
       },
     });
   }
@@ -108,7 +142,12 @@ export default async function SimilarTracks({
             <div className="mt-1 text-xs text-zinc-500">
               {formatDuration(t.durationSec)}
             </div>
-            <Chips items={(t.moods as string[] | null) ?? (t.uses as string[] | null) ?? []} />
+            <Chips
+              items={[
+                ...t.tags.filter((entry) => entry.tag.type === TagType.MOOD).map((entry) => entry.tag.name),
+                ...t.tags.filter((entry) => entry.tag.type === TagType.USE).map((entry) => entry.tag.name),
+              ]}
+            />
           </Link>
         ))}
       </div>

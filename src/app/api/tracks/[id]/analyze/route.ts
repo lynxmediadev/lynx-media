@@ -21,8 +21,9 @@
  * └─────────────────────────────────────────────────────────────────────────────┘
  */
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { analyzeTrackById } from "@/lib/audio/analyze";
+import { canAccessTrackByRole, getRequestAuthUser } from "@/lib/account-auth/request-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -31,11 +32,19 @@ type AnalyzeParams = {
 };
 
 export async function POST(
-  _req: Request,
+  req: NextRequest,
   { params }: { params: Promise<AnalyzeParams> }
 ) {
   // Next 15: params es un Promise; hay que hacer await
   const { id } = await params;
+  const user = await getRequestAuthUser(req);
+  if (!user) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+  const allowed = await canAccessTrackByRole(user, id);
+  if (!allowed) {
+    return NextResponse.json({ ok: false, error: "Forbidden" }, { status: 403 });
+  }
 
   if (!id) {
     const payload = { ok: false, error: "Falta id en la ruta" };

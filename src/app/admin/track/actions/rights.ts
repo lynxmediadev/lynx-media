@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
+import { requireAdminOrStaffAction } from "@/lib/account-auth/guards";
 import {
   rightsFormSchema,
   type RightsFormValues,
@@ -23,6 +24,12 @@ type UpdateRightsResult = {
 export async function updateRights(
   formData: FormData,
 ): Promise<UpdateRightsResult> {
+  try {
+    await requireAdminOrStaffAction();
+  } catch {
+    return { ok: false, message: "No autorizado." };
+  }
+
   try {
     const rawObject = Object.fromEntries(formData.entries());
 

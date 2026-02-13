@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
+import { requireAdminOrStaffAction } from "@/lib/account-auth/guards";
 
 type Result = { ok: true } | { ok: false; message: string };
 
@@ -12,6 +13,12 @@ export async function deleteCatalogTag({
   id: string;
   trackId: string;
 }): Promise<Result> {
+  try {
+    await requireAdminOrStaffAction();
+  } catch {
+    return { ok: false, message: "No autorizado" };
+  }
+
   if (!id) return { ok: false, message: "ID requerido" };
   try {
     await prisma.tag.delete({ where: { id } });

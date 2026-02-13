@@ -182,7 +182,7 @@ export default async function AdminTrackEditPage({
             asChild
             variant="outline"
             size="sm"
-            className="text-xs"
+            className="w-full text-xs sm:w-auto"
           >
             <Link href="/admin/tracks">Volver al listado</Link>
           </Button>

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { PublishingRole } from "@prisma/client";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
+import { requireAdminOrStaffAction } from "@/lib/account-auth/guards";
 
 const shareSchema = z.object({
   role: z.enum(["WRITER", "PUBLISHER"]),
@@ -26,6 +27,12 @@ type Result =
   | { ok: false; message: string; fieldErrors?: Record<string, string[]> };
 
 export async function updatePublishingShares(input: unknown): Promise<Result> {
+  try {
+    await requireAdminOrStaffAction();
+  } catch {
+    return { ok: false, message: "No autorizado." };
+  }
+
   const parsed = payloadSchema.safeParse(input);
   if (!parsed.success) {
     return {

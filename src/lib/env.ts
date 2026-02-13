@@ -33,6 +33,15 @@ export const ENV = {
     return expected;
   },
 
+  // Nueva auth por cuentas
+  AUTH_SESSION_SECRET: () =>
+    opt("AUTH_SESSION_SECRET", process.env.AUTH_SESSION_SECRET) ||
+    opt("ADMIN_SESSION_SECRET", process.env.ADMIN_SESSION_SECRET),
+  AUTH_BOOTSTRAP_ADMIN_EMAIL: () =>
+    opt("AUTH_BOOTSTRAP_ADMIN_EMAIL", process.env.AUTH_BOOTSTRAP_ADMIN_EMAIL),
+  AUTH_BOOTSTRAP_ADMIN_PASSWORD: () =>
+    opt("AUTH_BOOTSTRAP_ADMIN_PASSWORD", process.env.AUTH_BOOTSTRAP_ADMIN_PASSWORD),
+
   // Integración Google Apps Script/Sheets (si la estás usando)
   GOOGLE_SCRIPT_URL: () => opt("GOOGLE_SCRIPT_URL", process.env.GOOGLE_SCRIPT_URL),
   GOOGLE_SCRIPT_TOKEN: () => opt("GOOGLE_SCRIPT_TOKEN", process.env.GOOGLE_SCRIPT_TOKEN),

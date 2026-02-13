@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
+import { requireAdminOrStaffAction } from "@/lib/account-auth/guards";
 
 type Result =
   | { ok: true; tag: { id: string; slug: string; name: string } }
@@ -24,6 +25,12 @@ export async function createCatalogTag({
   name: string;
   trackId: string;
 }): Promise<Result> {
+  try {
+    await requireAdminOrStaffAction();
+  } catch {
+    return { ok: false, message: "No autorizado" };
+  }
+
   const cleanName = name.trim();
   if (!cleanName) return { ok: false, message: "Nombre requerido" };
 

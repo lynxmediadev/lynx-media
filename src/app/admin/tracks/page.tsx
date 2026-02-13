@@ -206,93 +206,141 @@ export default async function Page(props: {
         </div>
       </header>
 
-      <section className="relative overflow-hidden rounded-xl border border-border bg-card/80 backdrop-blur">
+      <section className="relative overflow-hidden rounded-xl border border-border bg-muted/30 backdrop-blur">
         <div className="border-b border-border px-4 py-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
           {tracks.length} track{tracks.length === 1 ? "" : "s"} en esta página
         </div>
 
-        <div className="table-scroll">
-        <table className="w-full table-auto text-sm min-w-[1100px]">
-          <thead className="bg-muted/60 text-xs tracking-wide text-muted-foreground uppercase">
-            <tr>
-              <th className="px-4 py-3 text-left align-middle">Track</th>
-              <th className="px-4 py-3 text-left align-middle">Metadata</th>
-              <th className="px-4 py-3 text-left align-middle">Estado</th>
-              <th className="px-4 py-3 text-left align-middle">Audio</th>
-              <th className="px-4 py-3 text-left align-middle">Analizado</th>
-              <th className="px-4 py-3 text-right align-middle">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tracks.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={6}
-                  className="px-4 py-6 text-center text-xs text-muted-foreground"
+        {tracks.length === 0 ? (
+          <div className="px-4 py-6 text-center text-xs text-muted-foreground">
+            No hay tracks registrados todavía.
+          </div>
+        ) : (
+          <>
+            <div className="space-y-3 p-3 md:hidden">
+              {tracks.map((track) => (
+                <article
+                  key={track.id}
+                  className="space-y-3 rounded-lg border border-border/70 bg-card p-3"
                 >
-                  No hay tracks registrados todavía.
-                </td>
-              </tr>
-            ) : (
-              tracks.map((t) => {
-                return (
-                  <tr
-                    key={t.id}
-                    className="border-t border-border/70 hover:bg-muted/60"
-                  >
-                  <td className="px-4 py-3 align-top">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-foreground">
-                        {t.title || "(sin título)"}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {t.artist || "(sin artista)"}
-                      </span>
-                      <span className="mt-1 font-mono text-[10px] break-words text-muted-foreground">
-                        ID: {t.id}
-                      </span>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-foreground">
+                        {track.title || "(sin título)"}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {track.artist || "(sin artista)"}
+                      </p>
+                      <p className="mt-1 font-mono text-[10px] break-all text-muted-foreground">
+                        ID: {track.id}
+                      </p>
                     </div>
-                  </td>
 
-                  <td className="px-4 py-3 align-top">
-                    <MetadataSummary row={t} />
-                  </td>
-
-                  <td className="px-4 py-3 align-top">
-                    <EstadoChip row={t} />
-                  </td>
-
-                  <td className="px-4 py-3 align-top">
-                    <AudioInfo row={t} />
-                  </td>
-
-                  <td className="px-4 py-3 align-top">
-                    <div className="flex flex-col text-xs text-muted-foreground">
-                      {t.analysisAt ? (
-                        <>
-                          <span className="text-success">Analizado</span>
-                          <span>{formatDateTime(t.analysisAt)}</span>
-                        </>
-                      ) : (
-                        <span className="text-warning">Sin análisis</span>
-                      )}
+                    <div className="shrink-0">
+                      <EstadoChip row={track} />
                     </div>
-                  </td>
+                  </div>
 
-                  <td className="px-4 py-3 align-top">
+                  <div className="space-y-2 border-t border-border/60 pt-2">
+                    <MetadataSummary row={track} />
+                    <AudioInfo row={track} />
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-border/60 pt-2 text-xs text-muted-foreground">
+                    {track.analysisAt ? (
+                      <>
+                        <span className="text-success">Analizado</span>
+                        <span>{formatDateTime(track.analysisAt)}</span>
+                      </>
+                    ) : (
+                      <span className="text-warning">Sin análisis</span>
+                    )}
+                  </div>
+
+                  <div className="border-t border-border/60 pt-2">
                     <AnalyzeActions
-                      id={t.id}
-                      audioUrl={t.audioUrl}
-                      className="justify-end"
+                      id={track.id}
+                      audioUrl={track.audioUrl}
+                      className="w-full justify-between"
                     />
-                  </td>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="table-scroll hidden md:block">
+              <table className="w-full table-auto text-sm min-w-[1100px]">
+                <thead className="bg-muted/60 text-xs tracking-wide text-muted-foreground uppercase">
+                  <tr>
+                    <th className="px-4 py-3 text-left align-middle">Track</th>
+                    <th className="px-4 py-3 text-left align-middle">Metadata</th>
+                    <th className="px-4 py-3 text-left align-middle">Estado</th>
+                    <th className="px-4 py-3 text-left align-middle">Audio</th>
+                    <th className="px-4 py-3 text-left align-middle">Analizado</th>
+                    <th className="px-4 py-3 text-right align-middle">Acciones</th>
                   </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-        </div>
+                </thead>
+                <tbody>
+                  {tracks.map((t) => {
+                    return (
+                      <tr
+                        key={t.id}
+                        className="border-t border-border/70 hover:bg-muted/60"
+                      >
+                        <td className="px-4 py-3 align-top">
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-foreground">
+                              {t.title || "(sin título)"}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {t.artist || "(sin artista)"}
+                            </span>
+                            <span className="mt-1 font-mono text-[10px] break-words text-muted-foreground">
+                              ID: {t.id}
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3 align-top">
+                          <MetadataSummary row={t} />
+                        </td>
+
+                        <td className="px-4 py-3 align-top">
+                          <EstadoChip row={t} />
+                        </td>
+
+                        <td className="px-4 py-3 align-top">
+                          <AudioInfo row={t} />
+                        </td>
+
+                        <td className="px-4 py-3 align-top">
+                          <div className="flex flex-col text-xs text-muted-foreground">
+                            {t.analysisAt ? (
+                              <>
+                                <span className="text-success">Analizado</span>
+                                <span>{formatDateTime(t.analysisAt)}</span>
+                              </>
+                            ) : (
+                              <span className="text-warning">Sin análisis</span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3 align-top">
+                          <AnalyzeActions
+                            id={t.id}
+                            audioUrl={t.audioUrl}
+                            className="justify-end"
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </section>
     </section>
   );

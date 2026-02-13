@@ -26,6 +26,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type BaseProps = {
   id: string;
@@ -244,7 +245,7 @@ export default function AnalyzeActions({
 
   return (
     <>
-      <div className={`inline-flex items-center gap-2 ${className}`}>
+      <div className={cn("inline-flex items-center gap-2", className)}>
         <Button
           type="button"
           onClick={handleAnalyze}
@@ -320,14 +321,14 @@ export function TrackAnalyzeHeaderButtons({
 
   return (
     <>
-      <div className={`inline-flex items-center gap-2 ${className}`}>
+      <div className={cn("flex w-full flex-wrap items-center gap-2 sm:w-auto", className)}>
         <Button
           type="button"
           onClick={handleAnalyze}
           disabled={busy || !canAnalyze}
           variant="outline"
           size="sm"
-          className="h-8 w-24 text-xs"
+          className="h-8 w-full text-xs sm:w-24"
         >
           {busy ? "Analizando…" : !canAnalyze ? "Sin audio" : "Analizar"}
         </Button>
@@ -337,7 +338,7 @@ export function TrackAnalyzeHeaderButtons({
           onClick={handleOpenPayload}
           variant="outline"
           size="sm"
-          className="h-8 w-24 text-xs"
+          className="h-8 w-full text-xs sm:w-24"
         >
           Payload
         </Button>

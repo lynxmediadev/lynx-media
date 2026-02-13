@@ -19,8 +19,14 @@
  *     • Borrar físicamente el asset en R2 usando assetKey.
  */
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { z } from "zod";
+import { TagType } from "@prisma/client";
+import { APP_SESSION_COOKIE, getSessionUserFromCookie } from "@/lib/account-auth/session";
+import { getRequestAuthUser } from "@/lib/account-auth/request-auth";
+import { slugify } from "@/lib/slugify";
+import { syncTrackTagsByType } from "@/server/tags/syncTrackTagsByType";
 import { db } from "@/server/db";
 
 const TRACK_TYPE_VALUES = ["INSTRUMENTAL", "VOCAL", "VOCAL_INSTRUMENTAL", "OTHER"] as const;
@@ -311,12 +317,56 @@ function normalizeIncoming(input: z.infer<typeof incomingTrackSchema>) {
   };
 }
 
+async function resolveOwnerUserIdForCreate(params: {
+  authUser: Awaited<ReturnType<typeof getRequestAuthUser>>;
+  sessionUserId: string | undefined;
+}) {
+  if (params.sessionUserId) return params.sessionUserId;
+  if (!params.authUser) return null;
+  if (params.authUser.id) return params.authUser.id;
+
+  // Fallback temporal para sesiones legacy admin.
+  if (params.authUser.role === "ADMIN" || params.authUser.role === "STAFF") {
+    const bootstrapEmail = (process.env.AUTH_BOOTSTRAP_ADMIN_EMAIL ?? "admin@lynx.local")
+      .trim()
+      .toLowerCase();
+    if (!bootstrapEmail) return null;
+    const bootstrapAdmin = await db.user.findUnique({
+      where: { email: bootstrapEmail },
+      select: { id: true },
+    });
+    return bootstrapAdmin?.id ?? null;
+  }
+
+  return null;
+}
+
 /**
  * POST /api/tracks
  * Crea un track nuevo.
  */
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const authUser = await getRequestAuthUser(req);
+    if (!authUser) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const cookieStore = await cookies();
+    const sessionUser = await getSessionUserFromCookie(
+      cookieStore.get(APP_SESSION_COOKIE)?.value,
+    );
+    const ownerUserId = await resolveOwnerUserIdForCreate({
+      authUser,
+      sessionUserId: sessionUser?.id,
+    });
+    if (!ownerUserId) {
+      return NextResponse.json(
+        { ok: false, error: "No owner available for track creation" },
+        { status: 500 },
+      );
+    }
+
     const json = await req.json();
     const parsed = incomingTrackSchema.safeParse(json);
 
@@ -336,12 +386,11 @@ export async function POST(req: Request) {
 
     const created = await db.track.create({
       data: {
+        ownerUserId,
         title: data.title,
         artist: data.artist,
         audioUrl: data.audioUrl ?? "",
         coverUrl: data.coverUrl ?? "",
-        moods: data.moods,
-        uses: data.uses,
         durationSec: data.durationSec ?? undefined,
         restrictions: data.restrictions,
         waveform: data.waveform as any,
@@ -378,6 +427,28 @@ export async function POST(req: Request) {
       },
     });
 
+    if (data.moods.length) {
+      await syncTrackTagsByType({
+        trackId: created.id,
+        type: TagType.MOOD,
+        inputs: data.moods.map((name) => ({
+          slug: slugify(name),
+          name: name.toUpperCase(),
+        })),
+      });
+    }
+
+    if (data.uses.length) {
+      await syncTrackTagsByType({
+        trackId: created.id,
+        type: TagType.USE,
+        inputs: data.uses.map((name) => ({
+          slug: slugify(name),
+          name: name.toUpperCase(),
+        })),
+      });
+    }
+
     return NextResponse.json(
       {
         ok: true,
@@ -402,8 +473,9 @@ export async function POST(req: Request) {
  * GET /api/tracks
  * Listado simple de tracks (puede servir para debugging o vistas futuras).
  */
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
+    const authUser = await getRequestAuthUser(req);
     const { searchParams } = new URL(req.url);
     const view = searchParams.get("view");
 
@@ -432,8 +504,39 @@ export async function GET(req: Request) {
     const dir = dirParam === "asc" || dirParam === "desc" ? dirParam : "desc";
 
     const filters: any[] = [];
-    if (moods.length) filters.push({ moods: { hasSome: moods } });
-    if (uses.length) filters.push({ uses: { hasSome: uses } });
+    if (authUser?.role === "CREATOR" && authUser.id) {
+      filters.push({ ownerUserId: authUser.id });
+    }
+    if (moods.length) {
+      const moodSlugs = moods.map((m) => slugify(m)).filter(Boolean);
+      if (moodSlugs.length) {
+        filters.push({
+          tags: {
+            some: {
+              tag: {
+                type: TagType.MOOD,
+                slug: { in: moodSlugs },
+              },
+            },
+          },
+        });
+      }
+    }
+    if (uses.length) {
+      const useSlugs = uses.map((u) => slugify(u)).filter(Boolean);
+      if (useSlugs.length) {
+        filters.push({
+          tags: {
+            some: {
+              tag: {
+                type: TagType.USE,
+                slug: { in: useSlugs },
+              },
+            },
+          },
+        });
+      }
+    }
     if (artist) filters.push({ artist: { contains: artist, mode: "insensitive" as const } });
     if (q) {
       filters.push({
@@ -458,8 +561,17 @@ export async function GET(req: Request) {
             title: true,
             artist: true,
             coverUrl: true,
-            moods: true,
-            uses: true,
+            tags: {
+              where: { tag: { type: { in: [TagType.MOOD, TagType.USE] } } },
+              select: {
+                tag: {
+                  select: {
+                    name: true,
+                    type: true,
+                  },
+                },
+              },
+            },
           },
         }),
         db.track.count({ where }),
@@ -468,8 +580,21 @@ export async function GET(req: Request) {
       const nextOffset = offset + items.length;
       const nextCursor = nextOffset < totalCount ? String(nextOffset) : null;
 
+      const mappedItems = items.map((item) => {
+        const moods = item.tags.filter((t) => t.tag.type === TagType.MOOD).map((t) => t.tag.name);
+        const uses = item.tags.filter((t) => t.tag.type === TagType.USE).map((t) => t.tag.name);
+        return {
+          id: item.id,
+          title: item.title,
+          artist: item.artist,
+          coverUrl: item.coverUrl,
+          moods,
+          uses,
+        };
+      });
+
       return NextResponse.json(
-        { items, nextCursor, totalCount },
+        { items: mappedItems, nextCursor, totalCount },
         { headers: { "Cache-Control": "no-store" } },
       );
     }
