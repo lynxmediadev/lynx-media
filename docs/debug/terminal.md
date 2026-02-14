@@ -235,3 +235,60 @@ Validaciones ejecutadas (automáticas):
 
 Pendiente manual:
 - Verificación visual mobile de overflow en flujo creator.
+
+## 2026-02-13 - Account email provider (027) smoke técnico local
+
+Config usada:
+- `AUTH_EMAIL_PROVIDER=console`
+- `AUTH_EMAIL_DEBUG_LINKS=1`
+- `TURNSTILE_ENABLED=0`
+- Base local: `http://127.0.0.1:3001`
+
+Validaciones ejecutadas:
+- Registro por invitación (`POST /auth/register/submit`) -> `303` a `/auth/verify-email?ok=sent&debugLink=...` ✅
+- Confirmación verify-email (`GET /auth/verify-email/confirm?token=...`) -> `303` a `/auth/verify-email?ok=verified` ✅
+- Forgot-password (`POST /auth/forgot-password/submit`) -> `303` con `ok=sent` (+ debugLink local) ✅
+- Reset-password (`POST /auth/reset-password/submit`) con `passwordConfirm` -> `303` a `/auth/login?ok=password_reset` ✅
+- Reenvío verify-email rate-limit (`POST /auth/verify-email/send` x7)
+  - intentos 1..6 -> `ok=verify_sent`
+  - intento 7 -> `err=rate_limited` ✅
+
+Notas:
+- No se reprodujo 500 en `/auth/register/submit` durante este smoke.
+- Logs console del provider ahora redacted para `token=`.
+
+## 2026-02-13 - Auth preflight (email/captcha env)
+
+Comando:
+- `npm run auth:preflight`
+
+Resultado:
+- `exit 0` ✅
+- provider detectado: `console`
+- warnings esperados en local: `AUTH_EMAIL_FROM` y `APP_BASE_URL` no definidos en entorno de shell directo.
+
+Nota:
+- El script ahora carga `.env.local` + `.env` automáticamente y valida configuración base de auth/email.
+
+## 2026-02-13 - Admin users table (bulk + delete + detail page)
+
+Implementado:
+- `POST /admin/users/bulk` para acciones masivas:
+  - `set_role`
+  - `set_status`
+  - `delete`
+- `POST /admin/users/[id]/delete` para eliminación por fila.
+- Protecciones server-side:
+  - bloquea self-delete/self-bulk sobre cuenta admin actual,
+  - protege último admin activo (`last_admin_protected`),
+  - valida selección y acción bulk.
+- Nueva página detalle admin-only:
+  - `/admin/users/[id]`
+  - resumen de cuenta + ownership (tracks/requests) + acciones.
+- Mejora UI `/admin/users`:
+  - tabla con checkboxes, select-all y barra de acciones bulk,
+  - botón `Abrir` por fila hacia detalle,
+  - mejora visual general (badges/hover/layout).
+
+Validación:
+- `npm run typecheck -- --pretty false` ✅

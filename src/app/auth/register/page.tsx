@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import prisma from "@/lib/prisma";
+import { AuthTurnstileField } from "@/components/auth/AuthTurnstileField";
 
 type RegisterPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -17,6 +18,7 @@ function getErrorMessage(err: string) {
   if (err === "exists") return "Ya existe una cuenta con ese email.";
   if (err === "email") return "El email no coincide con la invitación.";
   if (err === "rate_limited") return "Demasiados intentos. Espera unos minutos.";
+  if (err === "captcha") return "Valida el captcha para continuar.";
   return "";
 }
 
@@ -113,6 +115,7 @@ export default async function AuthRegisterPage({ searchParams }: RegisterPagePro
           />
         </div>
         {err ? <p className="text-xs text-destructive">{getErrorMessage(err)}</p> : null}
+        <AuthTurnstileField />
         <button
           disabled={token.length > 0 && !hasValidInvite}
           className="w-full rounded-lg border border-border bg-muted px-3 py-2.5 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"

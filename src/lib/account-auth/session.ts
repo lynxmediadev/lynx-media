@@ -182,6 +182,7 @@ export async function getSessionUserFromCookie(rawCookie: string | undefined) {
           name: true,
           role: true,
           status: true,
+          emailVerifiedAt: true,
         },
       },
     },

@@ -15,6 +15,7 @@ function errorMessage(err: string) {
   if (err === "mismatch") return "La confirmación de password no coincide.";
   if (err === "invalid_current") return "La password actual no es correcta.";
   if (err === "rate_limited") return "Demasiados intentos. Espera unos minutos.";
+  if (err === "verify_send_failed") return "No se pudo enviar el correo de verificación.";
   return err ? "No se pudo actualizar la password." : "";
 }
 
@@ -25,6 +26,7 @@ export default async function AdminAccountPage({ searchParams }: AdminAccountPag
   const params = (await searchParams) ?? {};
   const ok = firstValue(params.ok).trim();
   const err = firstValue(params.err).trim();
+  const debugLink = firstValue(params.debugLink).trim();
   const errMsg = errorMessage(err);
 
   return (
@@ -41,11 +43,29 @@ export default async function AdminAccountPage({ searchParams }: AdminAccountPag
           Password actualizada. Se cerraron sesiones anteriores.
         </p>
       ) : null}
+      {ok === "verify_sent" ? (
+        <p className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+          Correo de verificación enviado.
+        </p>
+      ) : null}
+      {ok === "email_verified" ? (
+        <p className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+          Email verificado correctamente.
+        </p>
+      ) : null}
 
       {errMsg ? (
         <p className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
           {errMsg}
         </p>
+      ) : null}
+      {debugLink ? (
+        <div className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
+          <p className="mb-1 font-medium">Modo desarrollo (provider console):</p>
+          <a href={debugLink} className="break-all underline">
+            {debugLink}
+          </a>
+        </div>
       ) : null}
 
       <div className="rounded-xl border border-border p-4">
@@ -65,7 +85,18 @@ export default async function AdminAccountPage({ searchParams }: AdminAccountPag
             <dt className="text-xs uppercase text-muted-foreground">Nombre</dt>
             <dd>{user.name ?? "-"}</dd>
           </div>
+          <div>
+            <dt className="text-xs uppercase text-muted-foreground">Email verificado</dt>
+            <dd>{user.emailVerifiedAt ? "Sí" : "Pendiente"}</dd>
+          </div>
         </dl>
+        {!user.emailVerifiedAt ? (
+          <form method="POST" action="/auth/verify-email/send" className="mt-3">
+            <button className="rounded-md border border-border px-3 py-2 text-sm hover:bg-accent">
+              Enviar correo de verificación
+            </button>
+          </form>
+        ) : null}
       </div>
 
       <div className="rounded-xl border border-border p-4">
@@ -125,4 +156,3 @@ export default async function AdminAccountPage({ searchParams }: AdminAccountPag
     </section>
   );
 }
-

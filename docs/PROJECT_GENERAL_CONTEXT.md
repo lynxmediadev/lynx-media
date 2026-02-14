@@ -36,6 +36,33 @@ Referencia única para `/admin/tracks/[id]/edit`:
 
 /_ MANTENER SIEMPRE EL INVENTARIO DE COMPONENTES REUTILIZABLES AL FINAL DE ESTE DOCUMENTO _/
 
+## STAGING (pendiente obligatorio antes de producción)
+
+Estado actual:
+
+- Proyecto en etapa de ajustes funcionales/visuales => **continuar en local**.
+- No hacer corte de producción todavía.
+
+Checklist mínimo a validar en staging antes de producción:
+
+- [ ] Cookies/sesión en HTTPS real (`secure`, expiración, logout, invalidación).
+- [ ] Flujos auth completos: invite/register/login/forgot/reset/verify-email.
+- [ ] Turnstile en entorno público (dominio real permitido).
+- [ ] Entregabilidad de correos con dominio real (SPF/DKIM/DMARC).
+- [ ] Validación de roles/ownership en rutas protegidas (`ADMIN/STAFF/CREATOR`).
+- [ ] Smoke mobile/desktop final sin overflow/regresiones.
+- [ ] Monitoreo de errores server y logs de eventos auth/email.
+- [ ] Retiro del fallback legacy `admin_session` según plan.
+
+Regla para el asistente (futuro):
+
+- Cuando se cumplan estos gatillos:
+  1) auth/email/roles sin bugs bloqueantes por al menos 1 ciclo de smoke,
+  2) UI principal de admin estable,
+  3) se inicie preparación de release,
+  debes emitir una alerta explícita en el chat con este formato:
+  `🚨 ALERTA STAGING: es momento de levantar staging antes de producción.`
+
 ## Inventario de componentes reutilizables (proyecto)
 
 ### 1) UI base global (`src/components/ui`)

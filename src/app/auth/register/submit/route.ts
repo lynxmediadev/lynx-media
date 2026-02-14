@@ -1,8 +1,13 @@
 import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthEmailProviderName, shouldExposeEmailDebugLinks } from "@/lib/account-auth/email";
+import { sendVerifyEmail } from "@/lib/account-auth/email/service";
+import { normalizeBaseUrl } from "@/lib/account-auth/invite";
 import { hashPassword } from "@/lib/account-auth/password";
 import { consumeRateLimit } from "@/lib/account-auth/rate-limit";
 import { createUserSession } from "@/lib/account-auth/session";
+import { verifyTurnstile } from "@/lib/account-auth/turnstile";
+import { createEmailVerificationTokenForUser } from "@/lib/account-auth/verify-email";
 import { prisma } from "@/lib/prisma";
 
 function hashToken(rawToken: string) {
@@ -36,12 +41,26 @@ function redirectUrl(req: NextRequest, path: string) {
   return url;
 }
 
+function postRegisterDestination(role: "ADMIN" | "STAFF" | "CREATOR") {
+  if (role === "CREATOR") return "/creator/tracks";
+  return "/admin/tracks";
+}
+
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const name = (formData.get("name")?.toString() ?? "").trim();
   const emailInput = (formData.get("email")?.toString() ?? "").trim().toLowerCase();
   const password = (formData.get("password")?.toString() ?? "").trim();
   const inviteTokenRaw = parseInviteToken(formData.get("token")?.toString() ?? "");
+  const turnstileToken = (formData.get("cf-turnstile-response")?.toString() ?? "").trim();
+
+  const captcha = await verifyTurnstile({
+    token: turnstileToken,
+    remoteIp: req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "",
+  });
+  if (!captcha.ok) {
+    return NextResponse.redirect(registerErrorUrl(req.url, "captcha", inviteTokenRaw), { status: 303 });
+  }
 
   if (!name || !password || !inviteTokenRaw) {
     return NextResponse.redirect(registerErrorUrl(req.url, "missing", inviteTokenRaw), { status: 303 });
@@ -105,7 +124,7 @@ export async function POST(req: NextRequest) {
       name,
       passwordHash,
       status: "ACTIVE",
-      emailVerifiedAt: new Date(),
+      emailVerifiedAt: null,
     },
     select: { id: true, role: true },
   });
@@ -122,5 +141,49 @@ export async function POST(req: NextRequest) {
     userAgent: req.headers.get("user-agent") ?? undefined,
   });
 
-  return NextResponse.redirect(redirectUrl(req, "/creator/tracks"), { status: 303 });
+  const verifyToken = await createEmailVerificationTokenForUser({
+    userId: user.id,
+    requestedIp: req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip"),
+  });
+  let verifySent = Boolean(verifyToken);
+  if (verifyToken) {
+    const baseUrl = normalizeBaseUrl(process.env.APP_BASE_URL || req.nextUrl.origin);
+    const verifyUrl = `${baseUrl}/auth/verify-email/confirm?token=${encodeURIComponent(
+      verifyToken.rawToken,
+    )}`;
+    try {
+      await sendVerifyEmail({
+        to: verifyToken.email,
+        verifyUrl,
+        expiresAt: verifyToken.expiresAt,
+      });
+    } catch (error) {
+      verifySent = false;
+      console.error("[auth:register] verify_email_send_failed", {
+        provider: getAuthEmailProviderName(),
+        userId: user.id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  if (verifyToken) {
+    const verifyDebug =
+      shouldExposeEmailDebugLinks() && getAuthEmailProviderName() === "console"
+        ? `&debugLink=${encodeURIComponent(
+            `${normalizeBaseUrl(process.env.APP_BASE_URL || req.nextUrl.origin)}/auth/verify-email/confirm?token=${encodeURIComponent(
+              verifyToken.rawToken,
+            )}`,
+          )}`
+        : "";
+    const resultQuery = verifySent ? "ok=sent" : "err=send_failed";
+    return NextResponse.redirect(
+      redirectUrl(req, `/auth/verify-email?${resultQuery}${verifyDebug}`),
+      { status: 303 },
+    );
+  }
+
+  return NextResponse.redirect(redirectUrl(req, postRegisterDestination(user.role)), {
+    status: 303,
+  });
 }

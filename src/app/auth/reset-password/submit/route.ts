@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { hashPassword } from "@/lib/account-auth/password";
 import { consumeRateLimit } from "@/lib/account-auth/rate-limit";
+import { verifyTurnstile } from "@/lib/account-auth/turnstile";
 import { consumePasswordResetToken, findValidPasswordResetToken } from "@/lib/account-auth/reset";
 import { prisma } from "@/lib/prisma";
 
@@ -33,6 +34,18 @@ export async function POST(req: NextRequest) {
   const token = (formData.get("token")?.toString() ?? "").trim();
   const password = (formData.get("password")?.toString() ?? "").trim();
   const passwordConfirm = (formData.get("passwordConfirm")?.toString() ?? "").trim();
+  const turnstileToken = (formData.get("cf-turnstile-response")?.toString() ?? "").trim();
+
+  const captcha = await verifyTurnstile({
+    token: turnstileToken,
+    remoteIp: req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "",
+  });
+  if (!captcha.ok) {
+    return NextResponse.redirect(
+      redirectUrl(req, withToken("/auth/reset-password", token, "err=captcha")),
+      { status: 303 },
+    );
+  }
 
   const throttle = await consumeRateLimit({
     action: "reset",
@@ -90,4 +103,3 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.redirect(redirectUrl(req, "/auth/login?ok=password_reset"), { status: 303 });
 }
-

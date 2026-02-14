@@ -8,7 +8,9 @@ import { cookies, headers } from "next/headers";
 import { createUserSession } from "@/lib/account-auth/session";
 import { verifyPassword } from "@/lib/account-auth/password";
 import { consumeRateLimit } from "@/lib/account-auth/rate-limit";
+import { verifyTurnstile } from "@/lib/account-auth/turnstile";
 import { signAdminTokenV1, sha256Hex } from "@/lib/auth";
+import { ENV } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 import crypto from "node:crypto";
 
@@ -35,6 +37,15 @@ export async function POST(req: NextRequest) {
   const email = parseField(formData, "email").toLowerCase();
   const password = parseField(formData, "password");
   const legacyKey = parseField(formData, "legacy_key");
+  const turnstileToken = parseField(formData, "cf-turnstile-response");
+
+  const captcha = await verifyTurnstile({
+    token: turnstileToken,
+    remoteIp: req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "",
+  });
+  if (!captcha.ok) {
+    return NextResponse.redirect(redirectUrl(req, "/admin/login?err=captcha"), { status: 303 });
+  }
 
   const throttle = await consumeRateLimit({
     action: "login",
@@ -56,6 +67,7 @@ export async function POST(req: NextRequest) {
         role: true,
         status: true,
         passwordHash: true,
+        emailVerifiedAt: true,
       },
     });
 
@@ -63,6 +75,11 @@ export async function POST(req: NextRequest) {
     if (user && user.status === "ACTIVE" && allowedRole) {
       const ok = await verifyPassword(password, user.passwordHash);
       if (ok) {
+        if (ENV.AUTH_ENFORCE_VERIFIED_EMAIL() && !user.emailVerifiedAt) {
+          return NextResponse.redirect(redirectUrl(req, "/admin/login?err=unverified"), {
+            status: 303,
+          });
+        }
         await createUserSession({
           userId: user.id,
           role: user.role,

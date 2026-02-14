@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAuthEmailProviderName, shouldExposeEmailDebugLinks } from "@/lib/account-auth/email";
+import { sendResetPasswordEmail } from "@/lib/account-auth/email/service";
 import { createPasswordResetToken } from "@/lib/account-auth/reset";
 import { consumeRateLimit } from "@/lib/account-auth/rate-limit";
+import { verifyTurnstile } from "@/lib/account-auth/turnstile";
 
 function redirectUrl(req: NextRequest, path: string) {
   const url = new URL(path, req.url);
@@ -19,6 +22,17 @@ function fingerprintFromRequest(req: NextRequest, email: string) {
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const email = (formData.get("email")?.toString() ?? "").trim().toLowerCase();
+  const turnstileToken = (formData.get("cf-turnstile-response")?.toString() ?? "").trim();
+
+  const captcha = await verifyTurnstile({
+    token: turnstileToken,
+    remoteIp: req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "",
+  });
+  if (!captcha.ok) {
+    return NextResponse.redirect(redirectUrl(req, "/auth/forgot-password?err=captcha"), {
+      status: 303,
+    });
+  }
 
   const throttle = await consumeRateLimit({
     action: "forgot",
@@ -46,15 +60,26 @@ export async function POST(req: NextRequest) {
   const baseUrl = new URL(req.url);
   if (baseUrl.hostname === "0.0.0.0") baseUrl.hostname = "localhost";
   const resetLink = `${baseUrl.origin}/auth/reset-password?token=${encodeURIComponent(reset.rawToken)}`;
+  try {
+    await sendResetPasswordEmail({
+      to: reset.email,
+      resetUrl: resetLink,
+      expiresAt: reset.expiresAt,
+    });
+  } catch (error) {
+    console.error("[auth:forgot-password] email_send_failed", {
+      provider: getAuthEmailProviderName(),
+      to: reset.email,
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
 
-  if (process.env.NODE_ENV !== "production") {
+  if (shouldExposeEmailDebugLinks() && getAuthEmailProviderName() === "console") {
     return NextResponse.redirect(
       redirectUrl(req, `/auth/forgot-password?ok=sent&debugLink=${encodeURIComponent(resetLink)}`),
       { status: 303 },
     );
   }
 
-  // TODO(v2): enviar resetLink por proveedor de email.
   return NextResponse.redirect(redirectUrl(req, "/auth/forgot-password?ok=sent"), { status: 303 });
 }
-

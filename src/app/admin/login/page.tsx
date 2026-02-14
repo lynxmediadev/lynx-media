@@ -3,6 +3,7 @@
  * /admin/login — GET: login principal por cuenta (email/password),
  * con fallback legacy por clave admin mientras dura la migración.
  */
+import { AuthTurnstileField } from "@/components/auth/AuthTurnstileField";
 export const dynamic = "force-dynamic";
 
 type AdminLoginPageProps = {
@@ -22,6 +23,8 @@ export default async function Page({ searchParams }: AdminLoginPageProps) {
       ? "Credenciales inválidas."
       : err === "missing"
         ? "Completa email y password."
+        : err === "unverified"
+          ? "Debes verificar tu email antes de ingresar al panel."
         : err === "rate_limited"
           ? "Demasiados intentos. Espera un momento e inténtalo nuevamente."
         : undefined;
@@ -61,6 +64,15 @@ export default async function Page({ searchParams }: AdminLoginPageProps) {
           />
         </div>
         {message ? <p className="text-xs text-destructive">{message}</p> : null}
+        {err === "unverified" ? (
+          <a href="/auth/verify-email" className="text-xs underline">
+            Reenviar verificación
+          </a>
+        ) : null}
+        {err === "captcha" ? (
+          <p className="text-xs text-destructive">Valida el captcha para continuar.</p>
+        ) : null}
+        <AuthTurnstileField />
         <button className="w-full rounded-lg border border-border bg-muted px-3 py-2.5 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring">
           Entrar
         </button>

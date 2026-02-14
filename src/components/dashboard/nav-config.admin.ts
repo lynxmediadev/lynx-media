@@ -130,7 +130,6 @@ export const adminDashboardSections: DashboardSection[] = [
         href: "/admin/users",
         icon: UserCircle2,
         section: "system",
-        exact: true,
       },
       {
         id: "roles",

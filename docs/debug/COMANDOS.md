@@ -153,3 +153,44 @@ const db = new PrismaClient();
 })();
 NODE
 ```
+
+## Auth email provider (local)
+
+Config mínima para probar en local sin producción:
+
+```bash
+# .env.local (o .env)
+AUTH_EMAIL_PROVIDER=console
+AUTH_EMAIL_FROM=noreply@lynx.local
+AUTH_EMAIL_DEBUG_LINKS=1
+AUTH_ENFORCE_VERIFIED_EMAIL=0
+TURNSTILE_ENABLED=0
+```
+
+Preflight rápido de configuración auth/email:
+
+```bash
+npm run auth:preflight
+```
+
+Para probar provider real Brevo en local:
+
+```bash
+AUTH_EMAIL_PROVIDER=brevo \
+AUTH_EMAIL_FROM=noreply@tu-dominio.com \
+BREVO_API_KEY=TU_API_KEY \
+APP_BASE_URL=http://localhost:3000 \
+npm run auth:preflight
+```
+
+Probar creación de invitación:
+
+```bash
+INVITE_EMAIL=test_creator@example.com INVITE_ROLE=CREATOR APP_BASE_URL=http://localhost:3000 npm run db:create:invite
+```
+
+Bootstrap admin auth:
+
+```bash
+AUTH_BOOTSTRAP_ADMIN_EMAIL=admin@lynx.local AUTH_BOOTSTRAP_ADMIN_PASSWORD=TuClaveSegura123! npm run db:bootstrap:auth
+```

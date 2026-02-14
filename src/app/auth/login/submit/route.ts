@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyPassword } from "@/lib/account-auth/password";
 import { consumeRateLimit } from "@/lib/account-auth/rate-limit";
 import { createUserSession } from "@/lib/account-auth/session";
+import { verifyTurnstile } from "@/lib/account-auth/turnstile";
+import { ENV } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 
 function getSafeRedirectByRole(role: "ADMIN" | "STAFF" | "CREATOR", requestedNext: string | null) {
@@ -33,6 +35,15 @@ export async function POST(req: NextRequest) {
   const email = (formData.get("email")?.toString() ?? "").trim().toLowerCase();
   const password = (formData.get("password")?.toString() ?? "").trim();
   const next = (formData.get("next")?.toString() ?? "").trim();
+  const turnstileToken = (formData.get("cf-turnstile-response")?.toString() ?? "").trim();
+
+  const captcha = await verifyTurnstile({
+    token: turnstileToken,
+    remoteIp: req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "",
+  });
+  if (!captcha.ok) {
+    return NextResponse.redirect(redirectUrl(req, "/auth/login?err=captcha"), { status: 303 });
+  }
 
   const throttle = await consumeRateLimit({
     action: "login",
@@ -57,6 +68,7 @@ export async function POST(req: NextRequest) {
       passwordHash: true,
       role: true,
       status: true,
+      emailVerifiedAt: true,
     },
   });
 
@@ -67,6 +79,9 @@ export async function POST(req: NextRequest) {
   const ok = await verifyPassword(password, user.passwordHash);
   if (!ok) {
     return NextResponse.redirect(redirectUrl(req, "/auth/login?err=invalid"), { status: 303 });
+  }
+  if (ENV.AUTH_ENFORCE_VERIFIED_EMAIL() && !user.emailVerifiedAt) {
+    return NextResponse.redirect(redirectUrl(req, "/auth/login?err=unverified"), { status: 303 });
   }
 
   await createUserSession({

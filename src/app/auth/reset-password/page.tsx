@@ -1,4 +1,5 @@
 import { findValidPasswordResetToken } from "@/lib/account-auth/reset";
+import { AuthTurnstileField } from "@/components/auth/AuthTurnstileField";
 
 type ResetPasswordPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -77,7 +78,11 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
             Demasiados intentos. Espera unos minutos antes de volver a intentar.
           </p>
         ) : null}
+        {err === "captcha" ? (
+          <p className="text-xs text-destructive">Valida el captcha para continuar.</p>
+        ) : null}
 
+        <AuthTurnstileField />
         <button
           disabled={!canReset}
           className="w-full rounded-lg border border-border bg-muted px-3 py-2.5 text-sm hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
@@ -88,4 +93,3 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
     </main>
   );
 }
-

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createInvite, normalizeBaseUrl } from "@/lib/account-auth/invite";
+import { getAuthEmailProviderName, shouldExposeEmailDebugLinks } from "@/lib/account-auth/email";
+import { sendInviteEmail } from "@/lib/account-auth/email/service";
 import { requireRouteAdmin, safeRouteRedirect } from "@/lib/account-auth/route-guards";
 
 function parseRole(value: string) {
@@ -29,10 +31,20 @@ export async function POST(req: NextRequest) {
     const invite = await createInvite({ email, role, expiresDays });
     const baseUrl = normalizeBaseUrl(process.env.APP_BASE_URL || req.nextUrl.origin);
     const link = `${baseUrl}/auth/register?token=${invite.token}`;
+    await sendInviteEmail({
+      to: invite.email,
+      registerUrl: link,
+      role: invite.role,
+      expiresAt: invite.expiresAt,
+    });
     const separator = returnTo.includes("?") ? "&" : "?";
+    const debugLink =
+      shouldExposeEmailDebugLinks() && getAuthEmailProviderName() === "console" ? link : "";
     const to = safeRouteRedirect(
       req,
-      `${returnTo}${separator}ok=invite_created&email=${encodeURIComponent(invite.email)}&link=${encodeURIComponent(link)}`,
+      `${returnTo}${separator}ok=invite_created&email=${encodeURIComponent(invite.email)}${
+        debugLink ? `&link=${encodeURIComponent(debugLink)}` : ""
+      }`,
     );
     return NextResponse.redirect(to, { status: 303 });
   } catch (error) {

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createInvite, normalizeBaseUrl } from "@/lib/account-auth/invite";
+import { getAuthEmailProviderName, shouldExposeEmailDebugLinks } from "@/lib/account-auth/email";
+import { sendInviteEmail } from "@/lib/account-auth/email/service";
 import { requireRouteAdmin } from "@/lib/account-auth/route-guards";
 
 export async function POST(req: NextRequest) {
@@ -33,6 +35,14 @@ export async function POST(req: NextRequest) {
     process.env.APP_BASE_URL || `${req.nextUrl.protocol}//${req.nextUrl.host}`,
   );
   const registerUrl = `${baseUrl}/auth/register?token=${invite.token}`;
+  await sendInviteEmail({
+    to: invite.email,
+    registerUrl,
+    role: invite.role,
+    expiresAt: invite.expiresAt,
+  });
+  const exposeLink =
+    shouldExposeEmailDebugLinks() && getAuthEmailProviderName() === "console";
 
   return NextResponse.json({
     ok: true,
@@ -40,8 +50,12 @@ export async function POST(req: NextRequest) {
       email: invite.email,
       role: invite.role,
       expiresAt: invite.expiresAt.toISOString(),
-      token: invite.token,
-      registerUrl,
+      ...(exposeLink
+        ? {
+            token: invite.token,
+            registerUrl,
+          }
+        : {}),
     },
   });
 }

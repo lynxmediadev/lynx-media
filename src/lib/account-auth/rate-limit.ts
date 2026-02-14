@@ -3,7 +3,13 @@ import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
 
 type ConsumeRateLimitInput = {
-  action: "login" | "register" | "forgot" | "reset" | "change_password";
+  action:
+    | "login"
+    | "register"
+    | "forgot"
+    | "reset"
+    | "change_password"
+    | "verify_email_send";
   fingerprint: string;
   maxAttempts: number;
   windowMs: number;
