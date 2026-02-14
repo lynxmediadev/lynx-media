@@ -3,12 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -17,16 +13,37 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { RefreshCw, Trash2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
+  Ban,
+  Check,
+  Clock3,
+  FileText,
+  RefreshCw,
+  RefreshCcw,
+  Search,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
+import {
+  allSelected as computeAllSelected,
+  AdminBulkPanel,
+  AdminControlsRow,
+  AdminDataTable,
   AdminFilterPanel,
+  AdminIconBadge,
+  AdminListEmptyState,
   AdminListHeader,
   AdminListShell,
   AdminStatusBadge,
   buildFilterQueryString,
   countActiveFilters,
+  selectAllOrNone,
+  toggleSelection,
+  type AdminColumnDef,
 } from "@/components/admin/list-kit";
 import { LabeledSelect } from "@/components/admin/ui/LabeledSelect";
+import { cn } from "@/lib/utils";
 
 type Row = {
   id: string;
@@ -40,16 +57,8 @@ type Row = {
   createdAt: number | null;
   updatedAt: number | null;
   deadlineAt: number | null;
-  rawPayload: any;
+  rawPayload: unknown;
 };
-
-function StatusPill({ value }: { value: string }) {
-  return (
-    <Badge variant="secondary" className="uppercase tracking-wide text-xs">
-      {value.replaceAll("_", " ")}
-    </Badge>
-  );
-}
 
 function fmtDate(ts: number | null) {
   if (!ts) return "—";
@@ -61,15 +70,6 @@ function fmtDate(ts: number | null) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(ts));
-}
-
-function UrgencyPill({ value }: { value: number }) {
-  const label = Number.isFinite(value) ? `U${value}` : "—";
-  return (
-    <Badge variant="outline" className="text-xs font-semibold">
-      {label}
-    </Badge>
-  );
 }
 
 function shortUrl(url?: string | null) {
@@ -112,7 +112,9 @@ function CopyEmail({ email }: { email: string }) {
       <TooltipTrigger asChild>
         <button
           type="button"
-          onClick={copy}
+          onClick={() => {
+            void copy();
+          }}
           className="text-xs text-muted-foreground break-all"
           aria-live="polite"
         >
@@ -125,7 +127,7 @@ function CopyEmail({ email }: { email: string }) {
 }
 
 function buildMixMeta(row: Row) {
-  const payload = row.rawPayload as any;
+  const payload = row.rawPayload as Record<string, any> | null;
   if (!payload) return null;
   const projectType = payload.projectType === "album" ? "Álbum" : "Single";
   let tracksCount: string | null = null;
@@ -155,7 +157,7 @@ function buildMixMeta(row: Row) {
 }
 
 function formatPrice(row: Row) {
-  const payload = row.rawPayload as any;
+  const payload = row.rawPayload as Record<string, any> | null;
   if (!payload || !payload.single || payload.projectType !== "single") return "—";
   const totalClp = payload.single.pricingClp;
   if (typeof totalClp !== "number") return "—";
@@ -166,6 +168,50 @@ function formatPrice(row: Row) {
     maximumFractionDigits: 0,
   });
   return formatter.format(totalClp);
+}
+
+function statusTone(status: string): "neutral" | "success" | "warning" | "danger" {
+  if (status === "NEW") return "warning";
+  if (status === "CLOSED_WON") return "success";
+  if (status === "CLOSED_LOST") return "danger";
+  return "neutral";
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const label = status.replaceAll("_", " ");
+  if (status === "NEW") {
+    return <AdminIconBadge tone="warning" icon={<Clock3 aria-hidden="true" />} label={label} />;
+  }
+  if (status === "IN_REVIEW") {
+    return <AdminIconBadge tone="neutral" icon={<Search aria-hidden="true" />} label={label} />;
+  }
+  if (status === "QUOTED") {
+    return <AdminIconBadge tone="neutral" icon={<FileText aria-hidden="true" />} label={label} />;
+  }
+  if (status === "CLOSED_WON") {
+    return <AdminIconBadge tone="success" icon={<ShieldCheck aria-hidden="true" />} label={label} />;
+  }
+  if (status === "CLOSED_LOST") {
+    return <AdminIconBadge tone="danger" icon={<Ban aria-hidden="true" />} label={label} />;
+  }
+  return <AdminIconBadge tone={statusTone(status)} icon={<FileText aria-hidden="true" />} label={label} />;
+}
+
+function UrgencyBadge({ value }: { value: number }) {
+  const tone = value >= 4 ? "danger" : value >= 3 ? "warning" : "neutral";
+  return <AdminStatusBadge tone={tone}>U{Number.isFinite(value) ? value : "—"}</AdminStatusBadge>;
+}
+
+function projectSummary(row: Row) {
+  const mix = buildMixMeta(row);
+  if (!mix) return "—";
+  return `${mix.projectType} · ${mix.tracksCount ?? "—"}`;
+}
+
+function metadataSummary(row: Row) {
+  const mix = buildMixMeta(row);
+  const meta = mix?.meta?.length ? mix.meta.join(" · ") : "—";
+  return `${meta} · ${shortUrl(row.pageUrl)}`;
 }
 
 export default function RequestsAdminClient(props: {
@@ -189,10 +235,14 @@ export default function RequestsAdminClient(props: {
   const [status, setStatus] = React.useState(props.initialQS.status ?? "");
   const [serviceType, setServiceType] = React.useState(props.initialQS.serviceType ?? "");
   const [projectType, setProjectType] = React.useState(props.initialQS.projectType ?? "");
-  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [isCreatingDummy, setIsCreatingDummy] = React.useState(false);
+
+  const selectableIds = React.useMemo(() => props.rows.map((row) => row.id), [props.rows]);
+  const selectedSet = React.useMemo(() => new Set(selectedIds), [selectedIds]);
+  const allSelected = computeAllSelected(selectedIds, selectableIds);
 
   function applyFilters(nextPage = 1) {
     const query = buildFilterQueryString({
@@ -221,8 +271,7 @@ export default function RequestsAdminClient(props: {
   const per = props.initialQS.per || 20;
   const canPrev = page > 1;
   const canNext = props.total > page * per;
-  const rowHover = "transition-colors hover:bg-border/10";
-  const selectedCount = selectedIds.size;
+  const selectedCount = selectedIds.length;
   const activeFilters = countActiveFilters([q, status, serviceType, projectType]);
 
   function pick<T>(arr: T[]) {
@@ -342,6 +391,89 @@ export default function RequestsAdminClient(props: {
     }
   }
 
+  const desktopColumns: AdminColumnDef<Row>[] = [
+    {
+      key: "select",
+      label: (
+        <input
+          type="checkbox"
+          checked={allSelected}
+          onChange={(event) => setSelectedIds(selectAllOrNone(selectableIds, event.target.checked))}
+          className="h-4 w-4 rounded border-border bg-background"
+          aria-label="Seleccionar todas las solicitudes"
+        />
+      ),
+      widthClassName: "w-12",
+      render: (row) => (
+        <input
+          type="checkbox"
+          checked={selectedSet.has(row.id)}
+          onChange={() => setSelectedIds((current) => toggleSelection(current, row.id))}
+          className="h-4 w-4 rounded border-border bg-background"
+          aria-label={`Seleccionar solicitud ${row.id}`}
+        />
+      ),
+    },
+    {
+      key: "cliente",
+      label: "Cliente",
+      render: (row) => (
+        <div className="flex flex-col">
+          <span className="text-sm font-medium text-foreground">{row.name}</span>
+          <CopyEmail email={row.email} />
+        </div>
+      ),
+    },
+    {
+      key: "proyecto",
+      label: "Proyecto",
+      render: (row) => <span className="text-xs text-foreground">{projectSummary(row)}</span>,
+    },
+    {
+      key: "metadata",
+      label: "Metadata",
+      render: (row) => <span className="text-xs text-muted-foreground">{metadataSummary(row)}</span>,
+    },
+    {
+      key: "total",
+      label: "Total",
+      render: (row) => <span className="text-xs font-semibold">{formatPrice(row)}</span>,
+    },
+    {
+      key: "estado",
+      label: "Estado",
+      render: (row) => (
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge status={row.status} />
+          <UrgencyBadge value={row.urgency} />
+        </div>
+      ),
+    },
+    {
+      key: "creado",
+      label: "Creado",
+      render: (row) => <span className="text-xs text-muted-foreground tabular-nums">{fmtDate(row.createdAt)}</span>,
+    },
+    {
+      key: "deadline",
+      label: "Deadline",
+      render: (row) => <span className="text-xs text-muted-foreground tabular-nums">{fmtDate(row.deadlineAt)}</span>,
+    },
+    {
+      key: "acciones",
+      label: "Acciones",
+      align: "right",
+      render: (row) => (
+        <Link
+          href={`/admin/requests/${row.id}`}
+          className="inline-flex h-8 items-center rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-muted/45"
+        >
+          Ver detalle
+        </Link>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-4">
       <AdminListShell className="rounded-[2px] bg-card/80">
@@ -349,51 +481,39 @@ export default function RequestsAdminClient(props: {
           title="Solicitudes"
           subtitle="Bandeja única"
           count={<AdminStatusBadge>Total {props.total}</AdminStatusBadge>}
-          statusBadge={<AdminStatusBadge>{selectedCount} selección</AdminStatusBadge>}
+          statusBadge={<AdminStatusBadge className="capitalize">{selectedCount > 0 ? `${selectedCount} seleccionados` : "sin selección"}</AdminStatusBadge>}
           actionSlot={
             <div className="flex flex-wrap gap-2">
               <Link
                 href="/admin/requests/mix"
-                className="rounded-[2px] border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="rounded-[2px] border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted/45"
               >
                 Ver solo Mix/Master
               </Link>
-              <Button
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
                 disabled={isCreatingDummy}
-                className="h-8 rounded-[2px] text-xs full-sm"
-                onClick={() => createDummy("single")}
+                className="inline-flex h-8 items-center rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-muted/45 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => {
+                  void createDummy("single");
+                }}
               >
                 Dummy Single
-              </Button>
-              <Button
+              </button>
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
                 disabled={isCreatingDummy}
-                className="h-8 rounded-[2px] text-xs full-sm"
-                onClick={() => createDummy("album")}
+                className="inline-flex h-8 items-center rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-muted/45 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => {
+                  void createDummy("album");
+                }}
               >
                 Dummy Álbum
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                disabled={selectedCount === 0 || isDeleting}
-                onClick={() => setConfirmOpen(true)}
-                className="h-8 rounded-[2px] text-xs"
-                aria-label="Eliminar seleccionados"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Eliminar
-              </Button>
+              </button>
               <button
                 type="button"
                 onClick={() => router.refresh()}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-[2px] border border-border bg-card text-foreground transition-colors hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border transition-colors hover:bg-muted/45"
                 aria-label="Refrescar"
               >
                 <RefreshCw className="h-4 w-4" />
@@ -403,273 +523,230 @@ export default function RequestsAdminClient(props: {
         />
 
         <div className="border-b border-border px-3 py-2 sm:px-4">
-          <AdminFilterPanel
-            title="Filtros de lista"
-            statusSlot={
-              <>
-                <span className="text-[11px] text-muted-foreground">·</span>
-                <AdminStatusBadge>{activeFilters === 0 ? "Sin filtros" : `${activeFilters} filtros activos`}</AdminStatusBadge>
-              </>
-            }
-            actionSlot={
-              <>
-                <button
-                  type="button"
-                  onClick={() => applyFilters(1)}
-                  className="inline-flex items-center justify-center gap-2 rounded-[2px] border border-border bg-foreground px-3 py-2 text-xs font-semibold text-background transition hover:bg-foreground/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                >
-                  Aplicar
-                </button>
-                <button
-                  type="button"
-                  onClick={resetFilters}
-                  className="inline-flex items-center justify-center gap-2 rounded-[2px] border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                >
-                  Limpiar
-                </button>
-              </>
-            }
-          >
-            <div className="grid grid-cols-1 gap-2 md:grid-cols-6">
-              <input
-                className="rounded-[2px] border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:col-span-2"
-                placeholder="Buscar nombre/email/detalle"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-              />
-              <LabeledSelect
-                label="TIPO"
-                labelPosition="top"
-                value={projectType}
-                onChange={(e) => setProjectType(e.target.value)}
-                className="h-9 w-full"
-                options={[
-                  { value: "", label: "TODOS" },
-                  { value: "single", label: "SINGLE" },
-                  { value: "album", label: "ÁLBUM / EP" },
-                ]}
-              />
-              <LabeledSelect
-                label="SERVICIO"
-                labelPosition="top"
-                value={serviceType}
-                onChange={(e) => setServiceType(e.target.value)}
-                className="h-9 w-full"
-                options={[
-                  { value: "", label: "TODOS" },
-                  ...props.serviceOptions.map((value) => ({ value, label: value.toUpperCase() })),
-                ]}
-              />
-              <LabeledSelect
-                label="STATUS"
-                labelPosition="top"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="h-9 w-full"
-                options={[
-                  { value: "", label: "TODOS" },
-                  ...props.statusOptions.map((value) => ({ value, label: value.replaceAll("_", " ") })),
-                ]}
-              />
-            </div>
-          </AdminFilterPanel>
+          <div className="grid gap-2 xl:grid-cols-2">
+            <form method="GET" action="/admin/requests" className="min-w-0" onSubmit={(event) => event.preventDefault()}>
+              <AdminFilterPanel
+                title="Filtros de lista"
+                statusSlot={
+                  <>
+                    <span className="text-[11px] text-muted-foreground">·</span>
+                    <AdminStatusBadge>
+                      {activeFilters === 0 ? "Sin filtros" : `${activeFilters} filtros activos`}
+                    </AdminStatusBadge>
+                  </>
+                }
+                actionSlot={
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => applyFilters(1)}
+                      className="inline-flex h-8 items-center justify-center rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-muted/45"
+                    >
+                      Aplicar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={resetFilters}
+                      className="inline-flex h-8 items-center justify-center rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-muted/45"
+                    >
+                      Limpiar
+                    </button>
+                  </>
+                }
+              >
+                <AdminControlsRow innerClassName="w-full">
+                  <div className="grid min-w-[260px] flex-1 gap-1">
+                    <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">Campo</span>
+                    <input
+                      className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
+                      placeholder="Buscar nombre/email/detalle"
+                      value={q}
+                      onChange={(e) => setQ(e.target.value)}
+                    />
+                  </div>
+
+                  <LabeledSelect
+                    rootClassName="w-[128px]"
+                    label="TIPO"
+                    labelPosition="top"
+                    value={projectType}
+                    onChange={(e) => setProjectType(e.target.value)}
+                    className="h-9 w-full"
+                    options={[
+                      { value: "", label: "TODOS" },
+                      { value: "single", label: "SINGLE" },
+                      { value: "album", label: "ÁLBUM / EP" },
+                    ]}
+                  />
+
+                  <LabeledSelect
+                    rootClassName="w-[150px]"
+                    label="SERVICIO"
+                    labelPosition="top"
+                    value={serviceType}
+                    onChange={(e) => setServiceType(e.target.value)}
+                    className="h-9 w-full"
+                    options={[
+                      { value: "", label: "TODOS" },
+                      ...props.serviceOptions.map((value) => ({ value, label: value.toUpperCase() })),
+                    ]}
+                  />
+
+                  <LabeledSelect
+                    rootClassName="w-[148px]"
+                    label="STATUS"
+                    labelPosition="top"
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                    className="h-9 w-full"
+                    options={[
+                      { value: "", label: "TODOS" },
+                      ...props.statusOptions.map((value) => ({ value, label: value.replaceAll("_", " ") })),
+                    ]}
+                  />
+                </AdminControlsRow>
+              </AdminFilterPanel>
+            </form>
+
+            <AdminBulkPanel
+              title={
+                <>
+                  <Check className="h-3.5 w-3.5" />
+                  Acciones masivas
+                </>
+              }
+              statusSlot={<AdminStatusBadge className="capitalize">{selectedCount > 0 ? `${selectedCount} seleccionados` : "sin selección"}</AdminStatusBadge>}
+              className="bg-background/30"
+            >
+              <AdminControlsRow>
+                <div className="grid gap-1">
+                  <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">Campo</span>
+                  <label className="inline-flex h-8 items-center gap-2 rounded-md border border-border px-2 py-1 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={(event) => setSelectedIds(selectAllOrNone(selectableIds, event.target.checked))}
+                      className="h-4 w-4 rounded border-border bg-background"
+                    />
+                    Todo
+                  </label>
+                </div>
+
+                <div className="grid gap-1">
+                  <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">Campo</span>
+                  <button
+                    type="button"
+                    disabled={selectedCount === 0 || isDeleting}
+                    onClick={() => setConfirmOpen(true)}
+                    className="inline-flex h-8 items-center gap-1 rounded-md border border-destructive/60 bg-destructive/10 px-2.5 text-xs text-destructive transition-colors hover:bg-destructive/20 disabled:cursor-not-allowed disabled:opacity-50"
+                    aria-label="Eliminar seleccionados"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Eliminar
+                  </button>
+                </div>
+
+                <div className="grid gap-1">
+                  <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">Campo</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedIds([])}
+                    disabled={selectedCount === 0}
+                    className="inline-flex h-8 items-center rounded-md border border-border px-2 text-xs transition-colors hover:bg-muted/45 disabled:cursor-not-allowed disabled:opacity-50"
+                    title="Limpiar selección"
+                    aria-label="Limpiar selección"
+                  >
+                    <RefreshCcw className="h-4 w-4" />
+                  </button>
+                </div>
+              </AdminControlsRow>
+            </AdminBulkPanel>
+          </div>
         </div>
 
-        <section className="rounded-[2px] border-0 bg-card/80">
-        <TooltipProvider delayDuration={200}>
-          {props.rows.length === 0 ? (
-            <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-              Sin resultados para los filtros actuales.
+        {props.rows.length === 0 ? (
+          <AdminListEmptyState message="Sin resultados para los filtros actuales." />
+        ) : (
+          <TooltipProvider delayDuration={200}>
+            <div className="space-y-3 p-3 md:hidden">
+              {props.rows.map((row) => (
+                <article
+                  key={row.id}
+                  className={cn(
+                    "space-y-3 rounded-lg border border-border/70 bg-card p-3 transition-colors",
+                    selectedSet.has(row.id) && "bg-accent/20",
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-foreground">{row.name}</p>
+                      <CopyEmail email={row.email} />
+                    </div>
+                    <Checkbox
+                      aria-label="Seleccionar solicitud"
+                      checked={selectedSet.has(row.id)}
+                      onCheckedChange={(checked) => {
+                        const isChecked = checked === true;
+                        setSelectedIds((current) => (isChecked ? toggleSelection(current, row.id) : current.filter((id) => id !== row.id)));
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <StatusBadge status={row.status} />
+                    <UrgencyBadge value={row.urgency} />
+                  </div>
+
+                  <div className="space-y-1 text-xs text-muted-foreground">
+                    <p>
+                      Proyecto: <span className="text-foreground">{projectSummary(row)}</span>
+                    </p>
+                    <p>
+                      Metadata: <span className="text-foreground">{metadataSummary(row)}</span>
+                    </p>
+                    <p>
+                      Total: <span className="text-foreground">{formatPrice(row)}</span>
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 border-t border-border/50 pt-2 text-xs text-muted-foreground">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide">Creado</p>
+                      <p className="tabular-nums">{fmtDate(row.createdAt)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wide">Deadline</p>
+                      <p className="tabular-nums">{fmtDate(row.deadlineAt)}</p>
+                    </div>
+                  </div>
+
+                  <Link
+                    href={`/admin/requests/${row.id}`}
+                    className="inline-flex h-8 w-full items-center justify-center rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-muted/45"
+                  >
+                    Ver detalle
+                  </Link>
+                </article>
+              ))}
             </div>
-          ) : (
-            <>
-              <div className="space-y-3 p-3 md:hidden">
-                {props.rows.map((row) => {
-                  const mix = buildMixMeta(row);
-                  const typeLabel = mix?.projectType ?? "—";
-                  const metaLines = mix?.meta ?? [];
-                  const totalLabel = formatPrice(row);
 
-                  return (
-                    <Card
-                      key={row.id}
-                      className={`border-border/60 bg-card/60 shadow-none ${
-                        selectedIds.has(row.id) ? "border-foreground/40" : ""
-                      }`}
-                    >
-                      <CardContent className="space-y-3 p-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-foreground">
-                              {row.name}
-                            </p>
-                            <CopyEmail email={row.email} />
-                          </div>
-                          <Checkbox
-                            aria-label="Seleccionar solicitud"
-                            checked={selectedIds.has(row.id)}
-                            onCheckedChange={(checked) => {
-                              setSelectedIds((prev) => {
-                                const next = new Set(prev);
-                                if (checked) next.add(row.id);
-                                else next.delete(row.id);
-                                return next;
-                              });
-                            }}
-                          />
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2">
-                          <StatusPill value={row.status} />
-                          <UrgencyPill value={row.urgency} />
-                        </div>
-
-                        <div className="space-y-1 text-xs text-muted-foreground">
-                          <p>
-                            Proyecto:{" "}
-                            <span className="text-foreground">
-                              {typeLabel}
-                              {mix?.tracksCount ? ` · ${mix.tracksCount}` : ""}
-                            </span>
-                          </p>
-                          <p>
-                            Metadata:{" "}
-                            <span className="text-foreground">
-                              {metaLines.length ? metaLines.join(" · ") : "—"}
-                            </span>
-                          </p>
-                          <p>
-                            Total:{" "}
-                            <span className="text-foreground">{totalLabel}</span>
-                          </p>
-                          <p>
-                            URL:{" "}
-                            <span className="text-foreground">{shortUrl(row.pageUrl)}</span>
-                          </p>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2 border-t border-border/50 pt-2 text-xs text-muted-foreground">
-                          <div>
-                            <p className="text-[10px] uppercase tracking-wide">Creado</p>
-                            <p className="tabular-nums">{fmtDate(row.createdAt)}</p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] uppercase tracking-wide">Deadline</p>
-                            <p className="tabular-nums">{fmtDate(row.deadlineAt)}</p>
-                          </div>
-                        </div>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          asChild
-                          className="h-8 w-full rounded-[2px] border-border text-xs"
-                        >
-                          <Link href={`/admin/requests/${row.id}`}>Ver detalle</Link>
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-
-              <div className="hidden overflow-x-auto md:block">
-                <div className="min-w-[1080px]">
-                  <div className="grid grid-cols-[1.4fr_140px_1.4fr_140px_160px_120px_120px_120px_36px] items-stretch gap-0 divide-x divide-border/30 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground text-center">
-                    <span className="px-2 flex h-full items-center justify-center">Cliente</span>
-                    <span className="px-2 flex h-full items-center justify-center">Proyecto</span>
-                    <span className="px-2 flex h-full items-center justify-center">Metadata</span>
-                    <span className="px-2 flex h-full items-center justify-center">Total</span>
-                    <span className="px-2 flex h-full items-center justify-center">Estado</span>
-                    <span className="px-2 flex h-full items-center justify-center">Creado</span>
-                    <span className="px-2 flex h-full items-center justify-center">Deadline</span>
-                    <span className="px-2 flex h-full items-center justify-center">Acciones</span>
-                    <span className="flex h-full items-center justify-center" />
-                  </div>
-                  <Separator className="bg-border" />
-                  <div className="divide-y divide-border">
-                    {props.rows.map((row) => (
-                      (() => {
-                        const mix = buildMixMeta(row);
-                        const typeLabel = mix?.projectType ?? "—";
-                        const metaLines = mix?.meta ?? [];
-                        const totalLabel = formatPrice(row);
-                        return (
-                          <Card key={row.id} className="border-0 bg-transparent shadow-none">
-                            <CardContent className="p-0">
-                              <div
-                                className={`grid grid-cols-[1.4fr_140px_1.4fr_140px_160px_120px_120px_120px_36px] items-stretch gap-0 divide-x divide-border/20 text-center ${rowHover} px-2 py-2 ${
-                                  selectedIds.has(row.id) ? "bg-border/20" : ""
-                                }`}
-                              >
-                                <div className="flex h-full min-w-0 flex-col justify-center gap-1 px-2 text-left">
-                                  <span className="text-xs font-semibold text-foreground truncate text-center">
-                                    {row.name}
-                                  </span>
-                                  <CopyEmail email={row.email} />
-                                </div>
-
-                                <div className="px-2 text-xs font-semibold flex h-full items-center justify-center">
-                                  <span className="text-foreground">
-                                    {typeLabel}
-                                  </span>
-                                  <span className="text-muted-foreground">
-                                    &nbsp;·&nbsp;{mix?.tracksCount ?? "—"}
-                                  </span>
-                                </div>
-                                <div className="px-2 text-xs text-foreground flex h-full items-center justify-center">
-                                  {metaLines.length ? metaLines.join(" · ") : "—"}
-                                </div>
-                                <div className="px-2 text-xs font-semibold flex h-full items-center justify-center">{totalLabel}</div>
-                                <div className="flex h-full items-center justify-center gap-2 px-2">
-                                  <StatusPill value={row.status} />
-                                  <UrgencyPill value={row.urgency} />
-                                </div>
-
-                                <div className="flex h-full items-center justify-center px-2 text-[10px] text-muted-foreground tabular-nums">
-                                  {fmtDate(row.createdAt)}
-                                </div>
-                                <div className="flex h-full items-center justify-center px-2 text-xs text-muted-foreground tabular-nums">
-                                  {fmtDate(row.deadlineAt)}
-                                </div>
-                                <div className="flex h-full items-center justify-center px-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    asChild
-                                    className="h-8 rounded-[2px] border-border text-xs"
-                                  >
-                                    <Link href={`/admin/requests/${row.id}`}>Ver detalle</Link>
-                                  </Button>
-                                </div>
-
-                                <div className="flex h-full items-center justify-center">
-                                  <Checkbox
-                                    aria-label="Seleccionar solicitud"
-                                    checked={selectedIds.has(row.id)}
-                                    onCheckedChange={(checked) => {
-                                      setSelectedIds((prev) => {
-                                        const next = new Set(prev);
-                                        if (checked) next.add(row.id);
-                                        else next.delete(row.id);
-                                        return next;
-                                      });
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      })()
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </TooltipProvider>
-        </section>
+            <div className="table-scroll hidden md:block">
+              <AdminDataTable
+                rows={props.rows}
+                columns={desktopColumns}
+                rowKey={(row) => row.id}
+                rowClassName={(row) =>
+                  cn(
+                    "border-t border-border/70 hover:bg-muted/60",
+                    selectedSet.has(row.id) && "bg-accent/20 hover:bg-accent/25",
+                  )
+                }
+                tableClassName="w-full table-auto min-w-[1320px]"
+                headerClassName="bg-muted/60"
+              />
+            </div>
+          </TooltipProvider>
+        )}
 
         <footer className="flex items-center justify-between gap-3 border-t border-border px-3 py-3 text-sm text-muted-foreground sm:px-4">
           <span>
@@ -680,7 +757,7 @@ export default function RequestsAdminClient(props: {
               type="button"
               disabled={!canPrev}
               onClick={() => applyFilters(page - 1)}
-              className="inline-flex items-center justify-center rounded-[2px] border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center justify-center rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-muted/45 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Anterior
             </button>
@@ -688,7 +765,7 @@ export default function RequestsAdminClient(props: {
               type="button"
               disabled={!canNext}
               onClick={() => applyFilters(page + 1)}
-              className="inline-flex items-center justify-center rounded-[2px] border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center justify-center rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-muted/45 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Siguiente
             </button>
@@ -727,10 +804,10 @@ export default function RequestsAdminClient(props: {
                   const res = await fetch("/api/admin/requests/bulk-delete", {
                     method: "POST",
                     headers: { "content-type": "application/json" },
-                    body: JSON.stringify({ ids: Array.from(selectedIds) }),
+                    body: JSON.stringify({ ids: selectedIds }),
                   });
                   if (!res.ok) throw new Error("Failed");
-                  setSelectedIds(new Set());
+                  setSelectedIds([]);
                   setConfirmOpen(false);
                   router.refresh();
                 } catch {
@@ -745,7 +822,6 @@ export default function RequestsAdminClient(props: {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }
