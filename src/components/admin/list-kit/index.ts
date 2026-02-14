@@ -1,6 +1,7 @@
 export { AdminListShell } from "./AdminListShell";
 export { AdminListHeader } from "./AdminListHeader";
 export { AdminListPanel } from "./AdminListPanel";
+export { AdminControlsRow } from "./AdminControlsRow";
 export { AdminFilterPanel } from "./AdminFilterPanel";
 export { AdminBulkPanel } from "./AdminBulkPanel";
 export { AdminStatusBadge, AdminIconBadge, AdminRoleBadge } from "./AdminStatusBadge";

@@ -11,7 +11,7 @@ type AdminBulkPanelProps = {
 export function AdminBulkPanel({ title, statusSlot, children, className }: AdminBulkPanelProps) {
   return (
     <AdminListPanel className={className}>
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+      <div className="mb-2 flex min-h-8 flex-wrap items-center justify-between gap-2">
         <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-wide uppercase text-muted-foreground">
           {title}
         </span>
@@ -21,4 +21,3 @@ export function AdminBulkPanel({ title, statusSlot, children, className }: Admin
     </AdminListPanel>
   );
 }
-

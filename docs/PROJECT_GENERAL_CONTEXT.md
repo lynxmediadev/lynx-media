@@ -214,6 +214,7 @@ Regla para el asistente (futuro):
 | AdminListShell      | `src/components/admin/list-kit/AdminListShell.tsx`           | Contenedor base de listas admin (borde/fondo/sombra)              | Activo |
 | AdminListHeader     | `src/components/admin/list-kit/AdminListHeader.tsx`          | Header estándar (título/subtítulo/contador/acciones)              | Activo |
 | AdminListPanel      | `src/components/admin/list-kit/AdminListPanel.tsx`           | Panel interno reutilizable para filtros/bulk/secciones auxiliares  | Activo |
+| AdminControlsRow    | `src/components/admin/list-kit/AdminControlsRow.tsx`         | Fila horizontal reutilizable de controles con alineación al bottom | Activo |
 | AdminFilterPanel    | `src/components/admin/list-kit/AdminFilterPanel.tsx`         | Estructura de filtros con título, estado y acciones               | Activo |
 | AdminBulkPanel      | `src/components/admin/list-kit/AdminBulkPanel.tsx`           | Estructura de acciones masivas con estado de selección            | Activo |
 | AdminDataTable      | `src/components/admin/list-kit/AdminDataTable.tsx`           | Tabla tipada por columnas (`AdminColumnDef<T>`)                   | Activo |
@@ -406,6 +407,8 @@ Estado de ruta:
 #### E. Overview + Placeholders de rutas
 
 - [ ] [No reusable][ R ] Overview page (`src/app/admin/page.tsx`)
+- [ ] [No reusable][ R ] Tracks list page (`src/app/admin/tracks/page.tsx`)
+- [ ] [No reusable][ R ] Tracks table client (`src/components/admin/tracks/TracksTableClient.tsx`)
 - [ ] [No reusable][ R ] `PlaceholderPage` (`src/components/admin/PlaceholderPage.tsx`)
 - [ ] [No reusable][ R ] Placeholder `Account` (`src/app/admin/account/page.tsx`)
 - [ ] [No reusable][ R ] Placeholder `Playlists` (`src/app/admin/playlists/page.tsx`)

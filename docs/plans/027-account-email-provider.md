@@ -229,90 +229,211 @@ con observabilidad y fallback controlado.
 
 ## Checklist manual E2E (026 -> 027)
 
-> Objetivo: validar cuentas, roles, ownership, sesiones, invitaciones, verify email, reset password, captcha y provider de correos.
-> Peras y manzanas: cada check dice **qué probar** y al final “**Esperado:**” te dice qué debería pasar si está bien.
+> Objetivo: validar de punta a punta cuentas, roles, ownership, sesiones, invitaciones, verify-email, reset-password, captcha y provider de correo.
+> Cómo usar esta guía: ejecutar cada check en orden. Cada check trae una explicación breve y un resultado esperado en línea separada.
 
 ### A) Preparación base
-- [ ] `npm run auth:preflight` sin errores críticos. **Esperado:** termina en OK (warnings de local pueden existir).
-Auth preflight
-- AUTH_EMAIL_PROVIDER=console
-- TURNSTILE_ENABLED=0
-- AUTH_ENFORCE_VERIFIED_EMAIL=0
+- [ ] A1. Ejecutar `npm run auth:preflight`.
+  - Peras y manzanas: valida que las variables mínimas de auth/email/captcha estén coherentes antes de probar.
+  - Esperado: termina en `OK`; puede mostrar warnings de entorno local (ej. `AUTH_EMAIL_FROM` o `APP_BASE_URL`).
 
-Warnings:
-- AUTH_EMAIL_FROM está vacío. En modo console funciona, pero debes definirlo para provider real.
-- APP_BASE_URL no está definido. Se usará el origin de la request.
+- [ ] A2. Levantar app con `npm run dev -- --hostname 0.0.0.0 --port 3000` y abrir `http://localhost:3000`.
+  - Peras y manzanas: confirma que estás usando la URL correcta para navegador local (no `0.0.0.0` como URL de navegación).
+  - Esperado: carga normal sin `ERR_ADDRESS_INVALID`.
 
-OK: configuración mínima válida.
+- [ ] A3. Verificar que existen `AUTH_BOOTSTRAP_ADMIN_EMAIL` y `AUTH_BOOTSTRAP_ADMIN_PASSWORD` en `.env`.
+  - Peras y manzanas: esto asegura que puedes entrar como admin para ejecutar las pruebas de gestión.
+  - Esperado: login admin posible en `/admin/login`.
 
-- [ OK ] Servidor local arriba (`npm run dev -- --hostname 0.0.0.0 --port 3000`) y acceso por `http://localhost:3000`. **Esperado:** carga normal, sin `ERR_ADDRESS_INVALID`.
-
-
-- [ OK ] `AUTH_BOOTSTRAP_ADMIN_EMAIL` y `AUTH_BOOTSTRAP_ADMIN_PASSWORD` definidos para poder entrar como admin. **Esperado:** login admin posible.
-- [ NO ENTENDÍ ESTA PRUEBA ] Si faltan cuentas base, ejecutar bootstrap admin. **Esperado:** se crea/actualiza admin activo.
+- [ ] A4. Si no puedes entrar como admin, ejecutar bootstrap (`npm run db:bootstrap:auth` con envs del admin).
+  - Peras y manzanas: crea o actualiza la cuenta admin base sin tocar cuentas de prueba existentes.
+  - Esperado: admin activo y credenciales funcionales.
 
 ### B) Invitaciones y registro por rol
-- [ ] Crear invitación `CREATOR` (admin panel o script) y verificar `ok=invite_created`. **Esperado:** invitación creada y visible como activa.
-- [ ] Crear invitación `STAFF`. **Esperado:** invitación activa con rol STAFF.
-- [ ] Crear invitación `ADMIN`. **Esperado:** invitación activa con rol ADMIN.
-- [ ] Abrir link de registro CREATOR y completar formulario (password valida). **Esperado:** cuenta creada y redirección a verify-email.
-- [ ] Abrir link de registro STAFF y completar formulario. **Esperado:** cuenta STAFF creada.
-- [ ] Abrir link de registro ADMIN y completar formulario. **Esperado:** cuenta ADMIN creada.
-- [ ] Verificar que token de invitación no pueda reusarse. **Esperado:** segundo intento bloqueado.
-- [ ] Verificar manejo de token inválido/expirado (`err=invite` o equivalente). **Esperado:** mensaje de token inválido/expirado.
+- [ ] B1. Crear invitación `CREATOR` desde `/admin/users`.
+  - Peras y manzanas: valida el flujo de alta de cuentas no-admin.
+  - Esperado: mensaje `ok=invite_created` e invitación activa en lista.
+
+- [ ] B2. Crear invitación `STAFF`.
+  - Peras y manzanas: prueba el rol operativo intermedio.
+  - Esperado: invitación activa con rol `STAFF`.
+
+- [ ] B3. Crear invitación `ADMIN`.
+  - Peras y manzanas: prueba el alta de cuentas con permisos máximos.
+  - Esperado: invitación activa con rol `ADMIN`.
+
+- [ ] B4. Abrir cada link de invitación y completar registro.
+  - Peras y manzanas: confirma que el token de invitación realmente habilita el seteo de password y activación de cuenta.
+  - Esperado: cuenta creada y redirección a flujo de verificación de email.
+
+- [ ] B5. Reusar un link ya usado.
+  - Peras y manzanas: evita que un mismo token pueda registrar múltiples cuentas.
+  - Esperado: segundo uso bloqueado.
+
+- [ ] B6. Probar token inválido o expirado manualmente (`?token=xxx`).
+  - Peras y manzanas: valida hardening del flujo de invitación.
+  - Esperado: error claro de token inválido/expirado.
 
 ### C) Verify email
-- [ ] Tras registro, confirmar redirección a `/auth/verify-email`. **Esperado:** pantalla de verificación visible.
-- [ ] En modo `console`, usar `debugLink` y confirmar email (`ok=verified`). **Esperado:** cuenta queda con `emailVerifiedAt`.
-- [ ] Reenviar verify email desde `/auth/verify-email/send` y confirmar `ok=verify_sent`. **Esperado:** reenvío exitoso.
-- [ ] Forzar varios reenvíos y verificar rate-limit (`err=rate_limited`). **Esperado:** bloqueo temporal después del umbral.
-- [ ] Con `AUTH_ENFORCE_VERIFIED_EMAIL=1`, validar bloqueo de login sin verificación (`err=unverified`). **Esperado:** no deja iniciar sesión si no verifica.
+- [ ] C1. Confirmar redirección a `/auth/verify-email` después del registro.
+  - Peras y manzanas: comprueba que el sistema no asume email validado por defecto.
+  - Esperado: pantalla de verificación visible.
+
+- [ ] C2. En provider `console`, usar `debugLink` para confirmar email.
+  - Peras y manzanas: simula clic de correo sin depender aún de proveedor real.
+  - Esperado: `ok=verified` y `emailVerifiedAt` seteado.
+
+- [ ] C3. Reenviar verify email desde `/auth/verify-email/send`.
+  - Peras y manzanas: comprueba recuperación cuando el usuario no recibe el primer correo.
+  - Esperado: `ok=verify_sent`.
+
+- [ ] C4. Forzar varios reenvíos seguidos.
+  - Peras y manzanas: valida rate-limit anti abuso.
+  - Esperado: error `err=rate_limited` al superar el umbral.
+
+- [ ] C5. Activar `AUTH_ENFORCE_VERIFIED_EMAIL=1` y probar login sin verificar.
+  - Peras y manzanas: confirma que el gate de verificación funciona cuando se habilita.
+  - Esperado: bloqueo con `err=unverified`.
 
 ### D) Login / Logout por rol
-- [ ] Login CREATOR por `/auth/login` -> redirección a `/creator/tracks`. **Esperado:** entra sólo a área creator.
-- [ ] Login STAFF por `/admin/login` -> acceso a `/admin/tracks`. **Esperado:** entra a admin limitado.
-- [ ] Login ADMIN por `/admin/login` -> acceso completo admin. **Esperado:** acceso a rutas de usuarios/roles.
-- [ ] Logout en cada rol y verificar que rutas protegidas redirigen a login. **Esperado:** sesión cerrada correctamente.
-- [ ] Verificar error de credenciales inválidas (`err=invalid`). **Esperado:** no inicia sesión y muestra error.
+- [ ] D1. Login CREATOR por `/auth/login`.
+  - Peras y manzanas: valida ruta de entrada de usuario de catálogo.
+  - Esperado: redirección a `/creator/tracks`.
+
+- [ ] D2. Login STAFF por `/admin/login`.
+  - Peras y manzanas: valida acceso admin limitado.
+  - Esperado: entra a área admin permitida.
+
+- [ ] D3. Login ADMIN por `/admin/login`.
+  - Peras y manzanas: valida permisos completos.
+  - Esperado: acceso a `/admin/users` y `/admin/users/roles`.
+
+- [ ] D4. Logout en cada rol y volver a abrir una ruta protegida.
+  - Peras y manzanas: asegura cierre de sesión real, no solo visual.
+  - Esperado: redirección a login.
+
+- [ ] D5. Probar credenciales inválidas.
+  - Peras y manzanas: valida manejo de error de autenticación.
+  - Esperado: `err=invalid` sin iniciar sesión.
 
 ### E) Autorización y ownership (026)
-- [ ] CREATOR A crea track y lo ve en `/creator/tracks`. **Esperado:** sólo aparecen sus propios tracks.
-- [ ] CREATOR B no puede abrir track de A por URL (bloqueo/404/403 esperado). **Esperado:** acceso denegado.
-- [ ] CREATOR B no puede mutar tags del track de A (403). **Esperado:** backend responde prohibido.
-- [ ] ADMIN sí puede abrir/editar tracks de cualquier owner. **Esperado:** acceso total administrativo.
-- [ ] STAFF no accede a `/admin/users` ni `/admin/users/roles`. **Esperado:** redirección/bloqueo.
+- [ ] E1. CREATOR A crea track y lo ve en su listado.
+  - Peras y manzanas: valida ownership básico por usuario.
+  - Esperado: solo ve sus tracks.
+
+- [ ] E2. CREATOR B intenta abrir track de A por URL.
+  - Peras y manzanas: prueba aislamiento entre cuentas.
+  - Esperado: bloqueo (`403/404` o redirección según guard actual).
+
+- [ ] E3. CREATOR B intenta mutar tags del track de A.
+  - Peras y manzanas: valida permisos en backend, no solo en UI.
+  - Esperado: respuesta `403`.
+
+- [ ] E4. ADMIN abre y edita tracks de distintos owners.
+  - Peras y manzanas: confirma visibilidad/edición global administrativa.
+  - Esperado: permitido.
+
+- [ ] E5. STAFF intenta abrir `/admin/users` y `/admin/users/roles`.
+  - Peras y manzanas: verifica límite de permisos staff.
+  - Esperado: acceso denegado.
 
 ### F) Gestión de usuarios admin
-- [ ] En `/admin/users`, editar nombre/rol/estado por fila funciona. **Esperado:** cambios persisten al recargar.
-- [ ] Bulk `set_role` funciona con selección múltiple. **Esperado:** todos los seleccionados cambian rol.
-- [ ] Bulk `set_status` funciona con selección múltiple. **Esperado:** todos los seleccionados cambian estado.
-- [ ] Bulk `delete` funciona con confirmación. **Esperado:** elimina seleccionados y actualiza lista.
-- [ ] Delete individual funciona. **Esperado:** elimina ese usuario puntual.
-- [ ] Probar protección de self-delete y self-bulk (debe bloquear). **Esperado:** no permite tocar tu propia cuenta admin.
-- [ ] Probar protección de último admin activo (`last_admin_protected`). **Esperado:** no deja dejar sistema sin admin.
-- [ ] Probar página detalle `/admin/users/[id]` (solo admin). **Esperado:** admin entra, staff no.
+- [ ] F1. Editar nombre/rol/estado por fila en `/admin/users`.
+  - Peras y manzanas: valida mutaciones puntuales en UI de tabla.
+  - Esperado: cambios persisten al recargar.
+
+- [ ] F2. Ejecutar bulk `set_role`.
+  - Peras y manzanas: valida acciones masivas con selección múltiple.
+  - Esperado: todos los seleccionados cambian rol.
+
+- [ ] F3. Ejecutar bulk `set_status`.
+  - Peras y manzanas: valida suspensión/activación masiva.
+  - Esperado: estados actualizados para todos los seleccionados.
+
+- [ ] F4. Ejecutar bulk `delete` con confirmación.
+  - Peras y manzanas: valida flujo destructivo masivo.
+  - Esperado: usuarios eliminados y lista actualizada.
+
+- [ ] F5. Ejecutar delete individual por fila.
+  - Peras y manzanas: valida operación destructiva puntual.
+  - Esperado: usuario eliminado.
+
+- [ ] F6. Probar self-delete y self-bulk.
+  - Peras y manzanas: evita borrar/modificar tu propia cuenta admin por error.
+  - Esperado: bloqueado.
+
+- [ ] F7. Intentar dejar sistema sin admin activo.
+  - Peras y manzanas: prueba guard crítico de seguridad.
+  - Esperado: `last_admin_protected`.
+
+- [ ] F8. Revisar detalle `/admin/users/[id]` con admin y staff.
+  - Peras y manzanas: valida protección de ruta de detalle.
+  - Esperado: admin entra, staff no.
 
 ### G) Forgot / Reset / Cambio de password
-- [ ] Forgot password (`/auth/forgot-password`) responde `ok=sent` sin filtrar existencia de cuenta. **Esperado:** mismo mensaje exista o no el email.
-- [ ] En modo `console`, usar `debugLink` para abrir reset. **Esperado:** abre formulario de nueva password.
-- [ ] Reset password exitoso redirige a `/auth/login?ok=password_reset`. **Esperado:** login con nueva clave funciona.
-- [ ] Verificar que sesiones previas se invalidan tras reset. **Esperado:** sesiones antiguas quedan fuera.
-- [ ] En `/admin/account`, cambiar password y verificar invalidación global de sesiones. **Esperado:** seguridad aplicada en todas las sesiones.
+- [ ] G1. Enviar forgot-password para email existente y no existente.
+  - Peras y manzanas: evita filtración de existencia de cuentas.
+  - Esperado: misma respuesta UX (`ok=sent`) en ambos casos.
+
+- [ ] G2. En modo `console`, abrir `debugLink` de reset.
+  - Peras y manzanas: prueba el flujo completo sin correo real.
+  - Esperado: abre form de nueva password.
+
+- [ ] G3. Completar reset exitoso.
+  - Peras y manzanas: confirma que la contraseña realmente cambia.
+  - Esperado: redirección a `/auth/login?ok=password_reset` y login con clave nueva.
+
+- [ ] G4. Verificar invalidación de sesiones previas después de reset.
+  - Peras y manzanas: requisito de seguridad para cuentas comprometidas.
+  - Esperado: sesiones antiguas quedan inválidas.
+
+- [ ] G5. Cambiar password desde `/admin/account`.
+  - Peras y manzanas: prueba cambio de credenciales desde panel interno.
+  - Esperado: cambio aplicado + invalidación global de sesiones.
 
 ### H) Turnstile (027)
-- [ ] Con `TURNSTILE_ENABLED=0`, login/register/reset funcionan sin captcha. **Esperado:** flujo normal.
-- [ ] Con `TURNSTILE_ENABLED=1` y claves válidas, submit sin token falla (`err=captcha`). **Esperado:** bloqueo anti-bot.
-- [ ] Con token válido, submit exitoso. **Esperado:** formulario continúa.
-- [ ] Validar formularios con Turnstile: login, register, forgot, reset, admin login. **Esperado:** comportamiento consistente en todos.
+- [ ] H1. Con `TURNSTILE_ENABLED=0`, probar login/register/forgot/reset/admin-login.
+  - Peras y manzanas: baseline sin captcha.
+  - Esperado: flujos operan normal.
+
+- [ ] H2. Con `TURNSTILE_ENABLED=1`, enviar forms sin token válido.
+  - Peras y manzanas: valida protección anti-bot efectiva.
+  - Esperado: `err=captcha` o equivalente.
+
+- [ ] H3. Con token válido, reenviar los mismos forms.
+  - Peras y manzanas: asegura que captcha no rompe usuarios reales.
+  - Esperado: submit exitoso.
 
 ### I) Provider de correo
-- [ ] Modo `console`: invite/reset/verify funcionan y exponen links debug solo cuando corresponde. **Esperado:** puedes probar sin proveedor real.
-- [ ] Verificar que logs no muestran token crudo (token redacted). **Esperado:** seguridad de logs.
-- [ ] Modo `brevo` con API key real: llegan correos de invite/reset/verify. **Esperado:** entregabilidad real.
-- [ ] Verificar remitente `AUTH_EMAIL_FROM` correcto. **Esperado:** correos salen con remitente oficial.
-- [ ] Verificar fallback esperado en dev cuando falta config de Brevo. **Esperado:** no rompe flujo, usa console en dev.
+- [ ] I1. Modo `console`: probar invite/reset/verify.
+  - Peras y manzanas: valida entorno local completo sin depender de terceros.
+  - Esperado: todo funciona y aparece `debugLink` cuando corresponde.
+
+- [ ] I2. Revisar logs de consola/terminal para tokens.
+  - Peras y manzanas: controla que no haya fuga de secretos en logs.
+  - Esperado: token redacted (no token crudo).
+
+- [ ] I3. Modo `brevo` con API key real: enviar invite/reset/verify.
+  - Peras y manzanas: prueba entregabilidad real.
+  - Esperado: correos llegan en bandeja.
+
+- [ ] I4. Validar remitente.
+  - Peras y manzanas: consistencia de marca y compliance técnica.
+  - Esperado: `AUTH_EMAIL_FROM` correcto en correos salientes.
+
+- [ ] I5. Quitar config de Brevo en dev y reintentar.
+  - Peras y manzanas: prueba fallback seguro para no bloquear QA local.
+  - Esperado: flujo sigue funcional vía `console`.
 
 ### J) Cierre de smoke
-- [ ] Registrar resultados en `docs/debug/terminal.md`. **Esperado:** evidencia reproducible del test.
-- [ ] Marcar checks de Fase 8 en este archivo si todo está verde. **Esperado:** estado del plan actualizado.
-- [ ] Listar bloqueos reales (si los hay) con pasos para reproducir. **Esperado:** backlog claro para resolver.
+- [ ] J1. Registrar resultados en `docs/debug/terminal.md`.
+  - Peras y manzanas: deja evidencia reproducible y evita “funciona en mi máquina”.
+  - Esperado: comando, resultado y error (si aplica) documentados.
+
+- [ ] J2. Marcar checks de Fase 8 en este plan.
+  - Peras y manzanas: cierra estado del plan con trazabilidad.
+  - Esperado: Fase 8 reflejada según resultados reales.
+
+- [ ] J3. Documentar bloqueos pendientes (si los hay).
+  - Peras y manzanas: convierte problemas abiertos en backlog accionable.
+  - Esperado: cada bloqueo con pasos para reproducir + impacto.

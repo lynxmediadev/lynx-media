@@ -22,6 +22,7 @@ import { LabeledSelect } from "@/components/admin/ui/LabeledSelect";
 import {
   allSelected as computeAllSelected,
   AdminBulkPanel,
+  AdminControlsRow,
   AdminFilterPanel,
   AdminIconBadge,
   AdminListHeader,
@@ -300,8 +301,7 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
               }
             >
 
-              <div className="overflow-x-auto">
-                <div className="flex min-w-max items-start gap-2 w-full">
+              <AdminControlsRow innerClassName="w-full">
                   <div className="grid min-w-[260px] flex-1 gap-1">
                     <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">
                       Campo
@@ -377,8 +377,7 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
                       <RefreshCcw className="h-4 w-4" />
                     </button>
                   </div>
-                </div>
-              </div>
+              </AdminControlsRow>
             </AdminFilterPanel>
           </form>
 
@@ -404,8 +403,7 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
               }
             >
 
-              <div className="overflow-x-auto">
-                <div className="flex min-w-max items-start gap-2">
+              <AdminControlsRow>
                   <div className="grid gap-1">
                     <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">
                       Campo
@@ -505,8 +503,7 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
                       <X className="h-4 w-4" />
                     </button>
                   </div>
-                </div>
-              </div>
+              </AdminControlsRow>
             </AdminBulkPanel>
 
             {selectedIds.map((id) => (
