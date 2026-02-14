@@ -40,7 +40,7 @@ const matrix = [
 ];
 
 export default async function RoleMatrixPage() {
-  const user = await requireRole(["ADMIN"], { redirectTo: "/admin/tracks" });
+  const user = await requireRole(["ADMIN"], { redirectTo: "/admin/login?err=forbidden" });
   if (!user) return null;
 
   return (
@@ -77,4 +77,3 @@ export default async function RoleMatrixPage() {
     </section>
   );
 }
-

@@ -5,7 +5,6 @@ import {
   Ban,
   Check,
   Clock3,
-  Copy,
   Eye,
   Filter,
   RefreshCcw,
@@ -20,6 +19,19 @@ import {
 import { cn } from "@/lib/utils";
 import { UsersInviteDialog } from "@/components/admin/users/UsersInviteDialog";
 import { LabeledSelect } from "@/components/admin/ui/LabeledSelect";
+import {
+  allSelected as computeAllSelected,
+  AdminBulkPanel,
+  AdminFilterPanel,
+  AdminIconBadge,
+  AdminListHeader,
+  AdminListShell,
+  AdminRoleBadge,
+  AdminStatusBadge,
+  countActiveFilters,
+  selectAllOrNone,
+  toggleSelection,
+} from "@/components/admin/list-kit";
 
 type UserRow = {
   id: string;
@@ -56,18 +68,6 @@ function formatDate(value: string | null) {
   return new Date(value).toLocaleString("es-CL");
 }
 
-function roleBadgeClass(role: UserRow["role"]) {
-  if (role === "ADMIN") return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
-  if (role === "STAFF") return "border-sky-500/40 bg-sky-500/10 text-sky-300";
-  return "border-zinc-500/40 bg-zinc-500/10 text-zinc-300";
-}
-
-function statusBadgeClass(status: UserRow["status"]) {
-  if (status === "ACTIVE") return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
-  if (status === "INVITED") return "border-amber-500/40 bg-amber-500/10 text-amber-300";
-  return "border-destructive/40 bg-destructive/10 text-destructive";
-}
-
 function roleIconClass(role: UserRow["role"]) {
   if (role === "ADMIN") return "text-emerald-300";
   if (role === "STAFF") return "text-sky-300";
@@ -90,6 +90,12 @@ function roleLabel(role: UserRow["role"]) {
   return "Creator";
 }
 
+function userStatusTone(status: UserRow["status"]): "success" | "warning" | "danger" {
+  if (status === "ACTIVE") return "success";
+  if (status === "INVITED") return "warning";
+  return "danger";
+}
+
 export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTableClientProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [actionType, setActionType] = useState<BulkActionType>("set_status");
@@ -106,7 +112,7 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
     [users],
   );
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
-  const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedSet.has(id));
+  const allSelected = computeAllSelected(selectedIds, selectableIds);
   const normalizedQuery = localQuery.trim().toLowerCase();
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
@@ -119,7 +125,7 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
       return matchesQuery && matchesRole && matchesStatus;
     });
   }, [users, normalizedQuery, localRoleFilter, localStatusFilter]);
-  const localActiveCount = [normalizedQuery, localRoleFilter, localStatusFilter].filter(Boolean).length;
+  const localActiveCount = countActiveFilters([normalizedQuery, localRoleFilter, localStatusFilter]);
   const filterStateLabel =
     localActiveCount === 0
       ? "Sin filtros"
@@ -128,6 +134,12 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
     selectedIds.length > 0
       ? `${selectedIds.length} ${selectedIds.length === 1 ? "seleccionado" : "seleccionados"}`
       : "Sin selección";
+  const bulkAppliedMessage = alerts.successMessages.find((message) =>
+    message.startsWith("Acción masiva aplicada"),
+  );
+  const stackedSuccessMessages = alerts.successMessages.filter(
+    (message) => !message.startsWith("Acción masiva aplicada"),
+  );
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -174,14 +186,11 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
   }
 
   function toggleRow(id: string) {
-    setSelectedIds((current) => {
-      if (current.includes(id)) return current.filter((value) => value !== id);
-      return [...current, id];
-    });
+    setSelectedIds((current) => toggleSelection(current, id));
   }
 
   function toggleAll(checked: boolean) {
-    setSelectedIds(checked ? selectableIds : []);
+    setSelectedIds(selectAllOrNone(selectableIds, checked));
   }
 
   function handleBulkSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -201,32 +210,26 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-muted/10 shadow-sm">
-      <div className="border-b border-border px-3 py-3 sm:px-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <UsersIcon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-            <h1 className="text-lg font-semibold">Usuarios</h1>
-            <span className="text-sm text-muted-foreground">Gestión de usuarios</span>
-            <span className="inline-flex items-center rounded-full border border-border bg-background px-2 py-0.5 text-[11px] text-muted-foreground">
-              {filteredUsers.length}
-            </span>
-          </div>
-          <UsersInviteDialog returnTo={returnTo} />
-        </div>
+    <AdminListShell>
+      <AdminListHeader
+        icon={<UsersIcon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
+        title="Usuarios"
+        subtitle="Gestión de usuarios"
+        count={<AdminStatusBadge>{filteredUsers.length}</AdminStatusBadge>}
+        statusBadge={bulkAppliedMessage ? <AdminStatusBadge tone="success">{bulkAppliedMessage}</AdminStatusBadge> : null}
+        actionSlot={<UsersInviteDialog returnTo={returnTo} />}
+      />
 
-        {alerts.successMessages.length > 0 ? (
+      <div className="px-3 pb-2 sm:px-4">
+        {stackedSuccessMessages.length > 0 ? (
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-emerald-300">
-            {alerts.successMessages.map((message) => (
-              <span key={message} className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5">
+            {stackedSuccessMessages.map((message) => (
+              <AdminStatusBadge key={message} tone="success">
                 {message}
-              </span>
+              </AdminStatusBadge>
             ))}
             {alerts.inviteLink && alerts.showInviteInfo ? (
-              <a
-                className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 underline"
-                href={alerts.inviteLink}
-              >
+              <a className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 underline" href={alerts.inviteLink}>
                 Link de registro
               </a>
             ) : null}
@@ -249,13 +252,15 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
             onSubmit={(event) => event.preventDefault()}
             className="min-w-0"
           >
-            <div className="h-full rounded-lg border border-border/70 bg-background/40 px-2.5 py-2">
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <div className="inline-flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-wide uppercase text-muted-foreground">
-                    <Filter className="h-3.5 w-3.5" />
-                    Filtros de lista
-                  </span>
+            <AdminFilterPanel
+              title={
+                <>
+                  <Filter className="h-3.5 w-3.5" />
+                  Filtros de lista
+                </>
+              }
+              statusSlot={
+                <>
                   <span className="text-[11px] text-muted-foreground">·</span>
                   <span className="rounded-full border border-border bg-background px-2 py-1 text-[11px] capitalize text-muted-foreground">
                     {filterStateLabel}
@@ -275,9 +280,10 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
                       </span>
                     </>
                   ) : null}
-                </div>
-
-                <div className="inline-flex items-center gap-2">
+                </>
+              }
+              actionSlot={
+                <>
                   <button
                     type="button"
                     onClick={handleCopyFilter}
@@ -290,8 +296,9 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
                   >
                     {copyState === "copied" ? "Copiado" : copyState === "error" ? "Error" : "Copiar filtro"}
                   </button>
-                </div>
-              </div>
+                </>
+              }
+            >
 
               <div className="overflow-x-auto">
                 <div className="flex min-w-max items-start gap-2 w-full">
@@ -372,7 +379,7 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
                   </div>
                 </div>
               </div>
-            </div>
+            </AdminFilterPanel>
           </form>
 
           <form
@@ -382,16 +389,20 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
             className="min-w-0"
           >
             <input type="hidden" name="returnTo" value={returnTo} />
-            <div className="h-full rounded-lg border border-border/70 bg-background/30 px-2.5 py-2">
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-wide uppercase text-muted-foreground">
+            <AdminBulkPanel
+              className="bg-background/30"
+              title={
+                <>
                   <Check className="h-3.5 w-3.5" />
                   Acciones masivas
-                </span>
+                </>
+              }
+              statusSlot={
                 <span className="rounded-full border border-border bg-background px-2 py-1 text-[11px] capitalize text-muted-foreground">
                   {selectionStateLabel}
                 </span>
-              </div>
+              }
+            >
 
               <div className="overflow-x-auto">
                 <div className="flex min-w-max items-start gap-2">
@@ -496,7 +507,7 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
                   </div>
                 </div>
               </div>
-            </div>
+            </AdminBulkPanel>
 
             {selectedIds.map((id) => (
               <input key={id} type="hidden" name="userIds" value={id} />
@@ -546,26 +557,22 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
                   <p className="text-[11px] text-muted-foreground">Creado: {formatDate(user.createdAtIso)}</p>
                 </td>
                 <td className="px-3 py-3 sm:px-4">
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs ${roleBadgeClass(user.role)}`}
-                  >
-                    <RoleIcon role={user.role} size="h-3.5 w-3.5" />
-                    {roleLabel(user.role)}
-                  </span>
+                  <AdminRoleBadge role={user.role} label={roleLabel(user.role)} />
                 </td>
                 <td className="px-3 py-3 sm:px-4">
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs ${statusBadgeClass(user.status)}`}
-                  >
-                    {user.status === "ACTIVE" ? (
-                      <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                    ) : user.status === "INVITED" ? (
-                      <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
-                    ) : (
-                      <Ban className="h-3.5 w-3.5" aria-hidden="true" />
-                    )}
-                    {user.status}
-                  </span>
+                  <AdminIconBadge
+                    tone={userStatusTone(user.status)}
+                    icon={
+                      user.status === "ACTIVE" ? (
+                        <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                      ) : user.status === "INVITED" ? (
+                        <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
+                      ) : (
+                        <Ban className="h-3.5 w-3.5" aria-hidden="true" />
+                      )
+                    }
+                    label={user.status}
+                  />
                 </td>
                 <td className="px-3 py-3 text-xs text-muted-foreground sm:px-4">{formatDate(user.lastLoginAtIso)}</td>
                 <td className="px-3 py-3 sm:px-4">
@@ -604,6 +611,6 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
           </tbody>
         </table>
       </div>
-    </div>
+    </AdminListShell>
   );
 }

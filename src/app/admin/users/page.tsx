@@ -1,4 +1,4 @@
-import type { Prisma, UserRole, UserStatus } from "@prisma/client";
+import type { UserRole, UserStatus } from "@prisma/client";
 import { requireRole } from "@/lib/account-auth/guards";
 import { prisma } from "@/lib/prisma";
 import { UsersTableClient } from "@/components/admin/users/UsersTableClient";
@@ -36,7 +36,7 @@ function buildReturnTo(q: string, role: string, status: string) {
 }
 
 export default async function UsersAdminPage({ searchParams }: UsersAdminPageProps) {
-  const currentUser = await requireRole(["ADMIN"], { redirectTo: "/admin/tracks" });
+  const currentUser = await requireRole(["ADMIN"], { redirectTo: "/admin/login?err=forbidden" });
   if (!currentUser) return null;
 
   const params = (await searchParams) ?? {};
@@ -48,23 +48,12 @@ export default async function UsersAdminPage({ searchParams }: UsersAdminPagePro
   const inviteEmail = firstValue(params.email).trim();
   const inviteLink = firstValue(params.link).trim();
 
-  const role = parseRole(roleParam);
-  const status = parseStatus(statusParam);
-  const returnTo = buildReturnTo(q, roleParam, statusParam);
-
-  const where: Prisma.UserWhereInput = {};
-  if (role) where.role = role;
-  if (status) where.status = status;
-  if (q) {
-    where.OR = [
-      { email: { contains: q, mode: "insensitive" } },
-      { name: { contains: q, mode: "insensitive" } },
-    ];
-  }
+  const role = parseRole(roleParam) ?? "";
+  const status = parseStatus(statusParam) ?? "";
+  const returnTo = buildReturnTo(q, role, status);
 
   const [users, pendingInvites] = await Promise.all([
     prisma.user.findMany({
-      where,
       orderBy: [{ role: "asc" }, { createdAt: "desc" }],
       take: 200,
       select: {
@@ -133,9 +122,9 @@ export default async function UsersAdminPage({ searchParams }: UsersAdminPagePro
         returnTo={returnTo}
         filters={{
           q,
-          roleParam,
-          statusParam,
-          activeCount: [q, roleParam, statusParam].filter(Boolean).length,
+          roleParam: role,
+          statusParam: status,
+          activeCount: [q, role, status].filter(Boolean).length,
         }}
         alerts={{
           successMessages,

@@ -12,7 +12,19 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import {
+  AdminDataTable,
+  AdminFilterPanel,
+  AdminListEmptyState,
+  AdminListHeader,
+  AdminListShell,
+  AdminStatusBadge,
+  buildFilterQueryString,
+  countActiveFilters,
+  type AdminColumnDef,
+} from "@/components/admin/list-kit";
+import { LabeledSelect } from "@/components/admin/ui/LabeledSelect";
 
 type Row = {
   id: string;
@@ -63,7 +75,6 @@ export default function LicensingAdminClient(props: {
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const sp = useSearchParams();
 
   // Estado controlado del formulario (inicializado con initialQS)
   const [q, setQ] = React.useState(props.initialQS.q ?? "");
@@ -73,16 +84,16 @@ export default function LicensingAdminClient(props: {
   const [fupTo, setFupTo] = React.useState(props.initialQS.fupTo ?? "");
 
   function applyFilters(nextPage = 1) {
-    const params = new URLSearchParams(sp?.toString() ?? "");
-    // Actualizamos parámetros
-    q ? params.set("q", q) : params.delete("q");
-    status ? params.set("status", status) : params.delete("status");
-    priority ? params.set("priority", priority) : params.delete("priority");
-    fupFrom ? params.set("fupFrom", fupFrom) : params.delete("fupFrom");
-    fupTo ? params.set("fupTo", fupTo) : params.delete("fupTo");
-    params.set("page", String(nextPage));
-    params.set("per", String(props.initialQS.per || 20));
-    router.push(`${pathname}?${params.toString()}`);
+    const query = buildFilterQueryString({
+      q,
+      status,
+      priority,
+      fupFrom,
+      fupTo,
+      page: nextPage,
+      per: props.initialQS.per || 20,
+    });
+    router.push(`${pathname}?${query}`);
   }
 
   const fmt = new Intl.DateTimeFormat("es-CL", {
@@ -94,184 +105,254 @@ export default function LicensingAdminClient(props: {
     minute: "2-digit",
   });
 
+  const page = props.initialQS.page || 1;
+  const per = props.initialQS.per || 20;
+  const canPrev = page > 1;
+  const canNext = props.totals.total > page * per;
+  const activeFilters = countActiveFilters([q, status, priority, fupFrom, fupTo]);
+
+  const desktopColumns: AdminColumnDef<Row>[] = [
+    {
+      key: "cliente",
+      label: "Cliente",
+      render: (row) => (
+        <div className="flex flex-col">
+          <span className="text-sm font-medium text-foreground">{row.name ?? "(Sin nombre)"}</span>
+          <span className="text-xs text-muted-foreground">{row.company ?? "—"}</span>
+          <span className="text-[11px] text-muted-foreground">{row.email ?? "—"}</span>
+        </div>
+      ),
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (row) => (
+        <div className="font-medium text-foreground">{row.status?.replaceAll("_", " ")}</div>
+      ),
+    },
+    {
+      key: "priority",
+      label: "Prioridad",
+      render: (row) => <div className="font-medium text-foreground">{row.priority ?? "—"}</div>,
+    },
+    {
+      key: "track",
+      label: "Track",
+      render: (row) => (
+        <div className="flex flex-col">
+          <span className="font-medium text-foreground">{row.trackTitle ?? "—"}</span>
+          <span className="text-[11px] text-muted-foreground">{row.trackArtist ?? "—"}</span>
+        </div>
+      ),
+    },
+    {
+      key: "followUp",
+      label: "Follow-up",
+      align: "right",
+      render: (row) => (
+        <div className="font-medium text-foreground">
+          {row.nextFollowUpAt ? fmt.format(new Date(row.nextFollowUpAt)) : "—"}
+        </div>
+      ),
+    },
+    {
+      key: "acciones",
+      label: "Acciones",
+      align: "right",
+      render: (row) => (
+        <Link
+          href={`/admin/licensing/${row.id}`}
+          className="inline-flex items-center justify-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted/45"
+        >
+          Abrir
+        </Link>
+      ),
+    },
+  ];
+
   return (
-    <section className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">
-            Licencias — Bandeja
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Total: {props.totals.total} · Overdue: {props.totals.cOverdue} · Hoy:{" "}
-            {props.totals.cToday} · Mañana: {props.totals.cTomorrow} · 7d:{" "}
-            {props.totals.cWeek}
-          </p>
-        </div>
-        <div className="text-right">
-          {props.errorMsg && (
-            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {props.errorMsg}
+    <section>
+      <AdminListShell className="bg-card/80 backdrop-blur">
+        <AdminListHeader
+          title="Licencias"
+          subtitle="Bandeja"
+          count={<AdminStatusBadge>Total {props.totals.total}</AdminStatusBadge>}
+          statusBadge={
+            <div className="inline-flex items-center gap-1">
+              <AdminStatusBadge tone={props.totals.cOverdue > 0 ? "warning" : "neutral"}>
+                Overdue {props.totals.cOverdue}
+              </AdminStatusBadge>
+              <AdminStatusBadge>Hoy {props.totals.cToday}</AdminStatusBadge>
+              <AdminStatusBadge>Mañana {props.totals.cTomorrow}</AdminStatusBadge>
+              <AdminStatusBadge>7d {props.totals.cWeek}</AdminStatusBadge>
             </div>
-          )}
-        </div>
-      </header>
+          }
+          actionSlot={
+            props.errorMsg ? (
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                {props.errorMsg}
+              </div>
+            ) : null
+          }
+        />
 
-      {/* Filtros */}
-      <section className="rounded-xl border border-border bg-card/80 p-4 backdrop-blur">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
-          <input
-            className="col-span-2 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            placeholder="Buscar (cliente, email, track...)"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-
-          <select
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
-            <option value="">Status (todos)</option>
-            {props.statusOptions.map((s) => (
-              <option key={s} value={s}>
-                {s.replaceAll("_", " ")}
-              </option>
-            ))}
-          </select>
-
-          <select
-            className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            value={priority}
-            onChange={(e) => setPriority(e.target.value)}
-          >
-            <option value="">Priority (todas)</option>
-            {props.priorityOptions.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="mt-3 grid grid-cols-1 items-center gap-3 md:grid-cols-5">
-          <div className="flex gap-2 md:col-span-2">
-            <input
-              type="date"
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              value={fupFrom}
-              onChange={(e) => setFupFrom(e.target.value)}
-            />
-            <input
-              type="date"
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              value={fupTo}
-              onChange={(e) => setFupTo(e.target.value)}
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 md:col-span-3">
-            <button
-              className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground hover:bg-accent"
-              onClick={() => {
-                setQ(""); setStatus(""); setPriority(""); setFupFrom(""); setFupTo("");
-                const params = new URLSearchParams();
-                params.set("page", "1");
-                params.set("per", String(props.initialQS.per || 20));
-                router.push(`${pathname}?${params.toString()}`);
-              }}
-            >
-              Limpiar
-            </button>
-            <button
-              className="rounded-md border border-primary/60 bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-              onClick={() => applyFilters(1)}
-            >
-              Aplicar
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Lista */}
-      <section className="rounded-xl border border-border bg-card/80 backdrop-blur">
-        {props.rows.length === 0 ? (
-          <div className="p-6 text-sm text-muted-foreground">
-            No hay solicitudes para los filtros actuales.
-          </div>
-        ) : (
-          <table className="w-full table-auto text-sm">
-            <thead className="bg-muted/60 text-xs tracking-wide text-muted-foreground uppercase">
-              <tr>
-                <th className="px-4 py-3 text-left align-middle">Cliente</th>
-                <th className="px-4 py-3 text-left align-middle">Status</th>
-                <th className="px-4 py-3 text-left align-middle">Prioridad</th>
-                <th className="px-4 py-3 text-left align-middle">Track</th>
-                <th className="px-4 py-3 text-right align-middle">Follow-up</th>
-                <th className="px-4 py-3 text-right align-middle">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {props.rows.map((r) => (
-                <tr
-                  key={r.id}
-                  className="border-t border-border/80 hover:bg-muted/40"
+        <div className="border-b border-border px-3 py-2 sm:px-4">
+          <AdminFilterPanel
+            title="Filtros de lista"
+            statusSlot={
+              <>
+                <span className="text-[11px] text-muted-foreground">·</span>
+                <AdminStatusBadge>{activeFilters === 0 ? "Sin filtros" : `${activeFilters} filtros activos`}</AdminStatusBadge>
+              </>
+            }
+            actionSlot={
+              <>
+                <button
+                  className="rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground transition-colors hover:bg-muted/45"
+                  onClick={() => {
+                    setQ("");
+                    setStatus("");
+                    setPriority("");
+                    setFupFrom("");
+                    setFupTo("");
+                    const params = new URLSearchParams();
+                    params.set("page", "1");
+                    params.set("per", String(props.initialQS.per || 20));
+                    router.push(`${pathname}?${params.toString()}`);
+                  }}
                 >
-                  <td className="px-4 py-3 align-top">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-foreground">
-                        {r.name ?? "(Sin nombre)"}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {r.company ?? "—"}
-                      </span>
-                      <span className="text-[11px] text-muted-foreground">
-                        {r.email ?? "—"}
-                      </span>
+                  Limpiar
+                </button>
+                <button
+                  className="rounded-md border border-primary/60 bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                  onClick={() => applyFilters(1)}
+                >
+                  Aplicar
+                </button>
+              </>
+            }
+          >
+            <div className="grid grid-cols-1 gap-2 lg:grid-cols-6">
+              <input
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:col-span-2"
+                placeholder="Buscar (cliente, email, track...)"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+              <LabeledSelect
+                label="STATUS"
+                labelPosition="top"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="h-9 w-full"
+                options={[
+                  { value: "", label: "TODOS" },
+                  ...props.statusOptions.map((s) => ({ value: s, label: s.replaceAll("_", " ") })),
+                ]}
+              />
+              <LabeledSelect
+                label="PRIORIDAD"
+                labelPosition="top"
+                value={priority}
+                onChange={(e) => setPriority(e.target.value)}
+                className="h-9 w-full"
+                options={[
+                  { value: "", label: "TODAS" },
+                  ...props.priorityOptions.map((p) => ({ value: p, label: p })),
+                ]}
+              />
+              <div className="grid gap-1">
+                <span className="text-center text-[10px] font-semibold tracking-wide uppercase text-muted-foreground">
+                  Desde
+                </span>
+                <input
+                  type="date"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={fupFrom}
+                  onChange={(e) => setFupFrom(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-1">
+                <span className="text-center text-[10px] font-semibold tracking-wide uppercase text-muted-foreground">
+                  Hasta
+                </span>
+                <input
+                  type="date"
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={fupTo}
+                  onChange={(e) => setFupTo(e.target.value)}
+                />
+              </div>
+            </div>
+          </AdminFilterPanel>
+        </div>
+
+        {props.rows.length === 0 ? (
+          <AdminListEmptyState message="No hay solicitudes para los filtros actuales." />
+        ) : (
+          <>
+            <div className="space-y-2 p-3 md:hidden">
+              {props.rows.map((row) => (
+                <article key={row.id} className="space-y-2 rounded-lg border border-border/70 bg-card p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{row.name ?? "(Sin nombre)"}</p>
+                      <p className="text-xs text-muted-foreground">{row.email ?? "—"}</p>
                     </div>
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <div className="text-xs text-muted-foreground">Status</div>
-                    <div className="font-medium text-foreground">
-                      {r.status?.replaceAll("_", " ")}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <div className="text-xs text-muted-foreground">Prioridad</div>
-                    <div className="font-medium text-foreground">
-                      {r.priority ?? "—"}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <div className="text-xs text-muted-foreground">Track</div>
-                    <div className="font-medium text-foreground">
-                      {r.trackTitle ?? "—"}
-                    </div>
-                    <div className="text-[11px] text-muted-foreground">
-                      {r.trackArtist ?? "—"}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-right align-top">
-                    <div className="text-xs text-muted-foreground">Follow-up</div>
-                    <div className="font-medium text-foreground">
-                      {r.nextFollowUpAt
-                        ? fmt.format(new Date(r.nextFollowUpAt))
-                        : "—"}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-right align-top">
-                    <Link
-                      href={`/admin/licensing/${r.id}`}
-                      className="inline-flex items-center justify-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent"
-                    >
-                      Abrir
-                    </Link>
-                  </td>
-                </tr>
+                    <AdminStatusBadge>{row.status?.replaceAll("_", " ")}</AdminStatusBadge>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    <p>Prioridad: <span className="text-foreground">{row.priority ?? "—"}</span></p>
+                    <p>Track: <span className="text-foreground">{row.trackTitle ?? "—"}</span></p>
+                    <p>Follow-up: <span className="text-foreground">{row.nextFollowUpAt ? fmt.format(new Date(row.nextFollowUpAt)) : "—"}</span></p>
+                  </div>
+                  <Link
+                    href={`/admin/licensing/${row.id}`}
+                    className="inline-flex w-full items-center justify-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted/45"
+                  >
+                    Abrir
+                  </Link>
+                </article>
               ))}
-            </tbody>
-          </table>
+            </div>
+
+            <div className="hidden md:block">
+              <AdminDataTable
+                rows={props.rows}
+                columns={desktopColumns}
+                rowKey={(row) => row.id}
+                rowClassName="border-t border-border/80 hover:bg-muted/40"
+                tableClassName="w-full table-auto"
+                headerClassName="bg-muted/60"
+              />
+            </div>
+          </>
         )}
-      </section>
+
+        <footer className="flex items-center justify-between gap-3 border-t border-border px-3 py-3 text-sm text-muted-foreground sm:px-4">
+          <span>
+            Página {page} · {props.rows.length} de {props.totals.total}
+          </span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={!canPrev}
+              onClick={() => applyFilters(page - 1)}
+              className="inline-flex items-center justify-center rounded-[2px] border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-muted/45 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              disabled={!canNext}
+              onClick={() => applyFilters(page + 1)}
+              className="inline-flex items-center justify-center rounded-[2px] border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-muted/45 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Siguiente
+            </button>
+          </div>
+        </footer>
+      </AdminListShell>
     </section>
   );
 }

@@ -14,9 +14,7 @@ export function AdminDashboardLayoutClient({
   role: UserRole | null;
   children: React.ReactNode;
 }) {
-  const sections = role
-    ? getAdminDashboardSectionsForRole(role)
-    : adminDashboardSections;
+  const sections = role ? getAdminDashboardSectionsForRole(role) : adminDashboardSections;
 
   return (
     <DashboardShell

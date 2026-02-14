@@ -1,6 +1,7 @@
 import type { UserRole, UserStatus } from "@prisma/client";
-import { Ban, Clock3, ShieldCheck, UserRound, Wrench } from "lucide-react";
+import { Ban, Clock3, ShieldCheck } from "lucide-react";
 import { notFound } from "next/navigation";
+import { AdminIconBadge, AdminRoleBadge } from "@/components/admin/list-kit";
 import { requireRole } from "@/lib/account-auth/guards";
 import { prisma } from "@/lib/prisma";
 
@@ -25,32 +26,16 @@ function toRoleLabel(role: UserRole) {
   return "Creator";
 }
 
-function RoleIcon({ role }: { role: UserRole }) {
-  if (role === "ADMIN") {
-    return <ShieldCheck className="h-5 w-5 text-emerald-300" aria-hidden="true" />;
-  }
-  if (role === "STAFF") {
-    return <Wrench className="h-5 w-5 text-sky-300" aria-hidden="true" />;
-  }
-  return <UserRound className="h-5 w-5 text-zinc-300" aria-hidden="true" />;
-}
-
 function toStatusLabel(status: UserStatus) {
   if (status === "ACTIVE") return "Activo";
   if (status === "INVITED") return "Invitado";
   return "Suspendido";
 }
 
-function roleBadgeClass(role: UserRole) {
-  if (role === "ADMIN") return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
-  if (role === "STAFF") return "border-sky-500/40 bg-sky-500/10 text-sky-300";
-  return "border-zinc-500/40 bg-zinc-500/10 text-zinc-300";
-}
-
-function statusBadgeClass(status: UserStatus) {
-  if (status === "ACTIVE") return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
-  if (status === "INVITED") return "border-amber-500/40 bg-amber-500/10 text-amber-300";
-  return "border-destructive/40 bg-destructive/10 text-destructive";
+function statusTone(status: UserStatus): "success" | "warning" | "danger" {
+  if (status === "ACTIVE") return "success";
+  if (status === "INVITED") return "warning";
+  return "danger";
 }
 
 function errorMessage(err: string) {
@@ -63,7 +48,7 @@ function errorMessage(err: string) {
 }
 
 export default async function UserDetailPage({ params, searchParams }: UserDetailPageProps) {
-  const currentUser = await requireRole(["ADMIN"], { redirectTo: "/admin/tracks" });
+  const currentUser = await requireRole(["ADMIN"], { redirectTo: "/admin/login?err=forbidden" });
   if (!currentUser) return null;
 
   const { id } = await params;
@@ -157,25 +142,26 @@ export default async function UserDetailPage({ params, searchParams }: UserDetai
         <article className="rounded-lg border border-border bg-muted/20 p-4">
           <p className="text-xs uppercase text-muted-foreground">Rol</p>
           <div className="mt-2">
-            <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-medium ${roleBadgeClass(user.role)}`}>
-              <RoleIcon role={user.role} />
-              {toRoleLabel(user.role)}
-            </span>
+            <AdminRoleBadge role={user.role} label={toRoleLabel(user.role)} className="px-3 py-1 text-sm [&_svg]:h-4 [&_svg]:w-4" />
           </div>
         </article>
         <article className="rounded-lg border border-border bg-muted/20 p-4">
           <p className="text-xs uppercase text-muted-foreground">Estado</p>
           <div className="mt-2">
-            <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-medium ${statusBadgeClass(user.status)}`}>
-              {user.status === "ACTIVE" ? (
-                <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-              ) : user.status === "INVITED" ? (
-                <Clock3 className="h-4 w-4" aria-hidden="true" />
-              ) : (
-                <Ban className="h-4 w-4" aria-hidden="true" />
-              )}
-              {toStatusLabel(user.status)}
-            </span>
+            <AdminIconBadge
+              tone={statusTone(user.status)}
+              icon={
+                user.status === "ACTIVE" ? (
+                  <ShieldCheck aria-hidden="true" />
+                ) : user.status === "INVITED" ? (
+                  <Clock3 aria-hidden="true" />
+                ) : (
+                  <Ban aria-hidden="true" />
+                )
+              }
+              label={toStatusLabel(user.status)}
+              className="px-3 py-1 text-sm [&_svg]:h-4 [&_svg]:w-4"
+            />
           </div>
         </article>
         <article className="rounded-lg border border-border bg-muted/20 p-4">

@@ -15,8 +15,21 @@
  */
 
 import Link from "next/link";
+import type { Prisma } from "@prisma/client";
+import { Ban, Clock3, ShieldCheck } from "lucide-react";
 import prisma from "@/lib/prisma";
 import AnalyzeActions from "@/components/admin/AnalyzeActions";
+import {
+  AdminDataTable,
+  AdminListEmptyState,
+  AdminFilterPanel,
+  AdminIconBadge,
+  AdminListHeader,
+  AdminListShell,
+  AdminStatusBadge,
+  countActiveFilters,
+  type AdminColumnDef,
+} from "@/components/admin/list-kit";
 
 export const dynamic = "force-dynamic";
 
@@ -82,12 +95,41 @@ export default async function Page(props: {
   searchParams: Promise<SearchDict>;
 }) {
   const sp = await props.searchParams;
+  const q = (first(sp.q) ?? "").trim();
+  const analysis = (first(sp.analysis) ?? "").trim().toLowerCase();
   const page = Math.max(1, parseInt(first(sp.page) ?? "1", 10) || 1);
   const per = Math.min(100, Math.max(10, parseInt(first(sp.per) ?? "50", 10) || 50));
   const skip = (page - 1) * per;
+  const activeFilterCount = countActiveFilters([q, analysis]);
+
+  const whereAND: Prisma.TrackWhereInput[] = [];
+
+  if (q) {
+    whereAND.push({
+      OR: [
+        { title: { contains: q, mode: "insensitive" } },
+        { artist: { contains: q, mode: "insensitive" } },
+      ],
+    });
+  }
+
+  if (analysis === "analyzed") {
+    whereAND.push({ analysisAt: { not: null } });
+  } else if (analysis === "pending") {
+    whereAND.push({ analysisAt: null });
+    whereAND.push({
+      OR: [{ assetKey: { not: "" } }, { audioUrl: { not: "" } }],
+    });
+  } else if (analysis === "no_audio") {
+    whereAND.push({ assetKey: "" });
+    whereAND.push({ audioUrl: "" });
+  }
+
+  const where: Prisma.TrackWhereInput = whereAND.length > 0 ? { AND: whereAND } : {};
 
   const [tracks, total] = await Promise.all([
     prisma.track.findMany({
+      where,
       orderBy: { createdAt: "desc" },
       take: per,
       skip,
@@ -158,7 +200,7 @@ export default async function Page(props: {
         },
       },
     }),
-    prisma.track.count(),
+    prisma.track.count({ where }),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / per));
@@ -167,54 +209,178 @@ export default async function Page(props: {
 
   const buildHref = (target: number) => {
     const qs = new URLSearchParams();
+    if (q) qs.set("q", q);
+    if (analysis) qs.set("analysis", analysis);
     qs.set("page", String(target));
     qs.set("per", String(per));
     return `/admin/tracks?${qs.toString()}`;
   };
 
-  return (
-    <section className="space-y-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold text-foreground">
-          Análisis técnico de tracks
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Panel de control para revisar el estado de análisis de cada track,
-          métricas de audio y acceso rápido a la ficha técnica.
-        </p>
-        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-          <span>
-            Página {page} de {totalPages} · {total} track
-            {total === 1 ? "" : "s"}
-          </span>
-          <div className="flex items-center gap-2">
-            <Link
-              href={buildHref(prevPage)}
-              className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground hover:bg-accent"
-              aria-disabled={page <= 1}
-            >
-              ← Anterior
-            </Link>
-            <Link
-              href={buildHref(nextPage)}
-              className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground hover:bg-accent"
-              aria-disabled={page >= totalPages}
-            >
-              Siguiente →
-            </Link>
-          </div>
-        </div>
-      </header>
+  const clearHref = `/admin/tracks?page=1&per=${per}`;
 
-      <section className="relative overflow-hidden rounded-xl border border-border bg-muted/30 backdrop-blur">
+  const desktopColumns: AdminColumnDef<AnalyzeRow>[] = [
+    {
+      key: "track",
+      label: "Track",
+      render: (track) => (
+        <div className="flex flex-col">
+          <span className="text-sm font-medium text-foreground">{track.title || "(sin título)"}</span>
+          <span className="text-xs text-muted-foreground">{track.artist || "(sin artista)"}</span>
+          <span className="mt-1 font-mono text-[10px] break-words text-muted-foreground">ID: {track.id}</span>
+        </div>
+      ),
+    },
+    {
+      key: "metadata",
+      label: "Metadata",
+      render: (track) => <MetadataSummary row={track} />,
+    },
+    {
+      key: "estado",
+      label: "Estado",
+      render: (track) => <EstadoChip row={track} />,
+    },
+    {
+      key: "audio",
+      label: "Audio",
+      render: (track) => <AudioInfo row={track} />,
+    },
+    {
+      key: "analizado",
+      label: "Analizado",
+      render: (track) => (
+        <div className="flex flex-col text-xs text-muted-foreground">
+          {track.analysisAt ? (
+            <>
+              <span className="text-success">Analizado</span>
+              <span>{formatDateTime(track.analysisAt)}</span>
+            </>
+          ) : (
+            <span className="text-warning">Sin análisis</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "acciones",
+      label: "Acciones",
+      align: "right",
+      render: (track) => <AnalyzeActions id={track.id} audioUrl={track.audioUrl} className="justify-end" />,
+    },
+  ];
+
+  return (
+    <section>
+      <AdminListShell className="relative bg-muted/30 backdrop-blur">
+        <AdminListHeader
+          title="Análisis técnico de tracks"
+          subtitle="Estado técnico, métricas de audio y acceso rápido a ficha"
+          count={
+            <AdminStatusBadge>
+              Página {page} de {totalPages} · {total} track{total === 1 ? "" : "s"}
+            </AdminStatusBadge>
+          }
+          actionSlot={
+            <div className="flex items-center gap-2">
+              <Link
+                href={buildHref(prevPage)}
+                className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/45"
+                aria-disabled={page <= 1}
+              >
+                ← Anterior
+              </Link>
+              <Link
+                href={buildHref(nextPage)}
+                className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/45"
+                aria-disabled={page >= totalPages}
+              >
+                Siguiente →
+              </Link>
+            </div>
+          }
+        />
+        <div className="border-b border-border px-3 py-2 sm:px-4">
+          <form method="GET" action="/admin/tracks">
+            <input type="hidden" name="page" value="1" />
+            <AdminFilterPanel
+              title="Filtros de lista"
+              statusSlot={
+                <>
+                  <span className="text-[11px] text-muted-foreground">·</span>
+                  <AdminStatusBadge>
+                    {activeFilterCount === 0
+                      ? "Sin filtros"
+                      : `${activeFilterCount} ${
+                          activeFilterCount === 1 ? "filtro activo" : "filtros activos"
+                        }`}
+                  </AdminStatusBadge>
+                </>
+              }
+              actionSlot={
+                <>
+                  <button
+                    type="submit"
+                    className="rounded-md border border-border bg-foreground px-3 py-2 text-xs font-semibold text-background transition hover:bg-foreground/90"
+                  >
+                    Aplicar
+                  </button>
+                  <Link
+                    href={clearHref}
+                    className="rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-muted/45"
+                  >
+                    Limpiar
+                  </Link>
+                </>
+              }
+            >
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-4">
+                <input
+                  type="text"
+                  name="q"
+                  defaultValue={q}
+                  placeholder="Buscar título o artista"
+                  className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground md:col-span-2"
+                />
+                <div className="grid gap-1">
+                  <span className="text-center text-[10px] font-semibold tracking-wide uppercase text-muted-foreground">
+                    Estado
+                  </span>
+                  <select
+                    name="analysis"
+                    defaultValue={analysis}
+                    className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground"
+                  >
+                    <option value="">Todos</option>
+                    <option value="analyzed">Analizado</option>
+                    <option value="pending">Sin análisis</option>
+                    <option value="no_audio">Sin audio</option>
+                  </select>
+                </div>
+                <div className="grid gap-1">
+                  <span className="text-center text-[10px] font-semibold tracking-wide uppercase text-muted-foreground">
+                    Por página
+                  </span>
+                  <select
+                    name="per"
+                    defaultValue={String(per)}
+                    className="h-9 rounded-md border border-border bg-background px-3 text-sm text-foreground"
+                  >
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                </div>
+              </div>
+            </AdminFilterPanel>
+          </form>
+        </div>
         <div className="border-b border-border px-4 py-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
           {tracks.length} track{tracks.length === 1 ? "" : "s"} en esta página
         </div>
 
         {tracks.length === 0 ? (
-          <div className="px-4 py-6 text-center text-xs text-muted-foreground">
-            No hay tracks registrados todavía.
-          </div>
+          <AdminListEmptyState message="No hay tracks registrados todavía." />
         ) : (
           <>
             <div className="space-y-3 p-3 md:hidden">
@@ -269,79 +435,18 @@ export default async function Page(props: {
             </div>
 
             <div className="table-scroll hidden md:block">
-              <table className="w-full table-auto text-sm min-w-[1100px]">
-                <thead className="bg-muted/60 text-xs tracking-wide text-muted-foreground uppercase">
-                  <tr>
-                    <th className="px-4 py-3 text-left align-middle">Track</th>
-                    <th className="px-4 py-3 text-left align-middle">Metadata</th>
-                    <th className="px-4 py-3 text-left align-middle">Estado</th>
-                    <th className="px-4 py-3 text-left align-middle">Audio</th>
-                    <th className="px-4 py-3 text-left align-middle">Analizado</th>
-                    <th className="px-4 py-3 text-right align-middle">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tracks.map((t) => {
-                    return (
-                      <tr
-                        key={t.id}
-                        className="border-t border-border/70 hover:bg-muted/60"
-                      >
-                        <td className="px-4 py-3 align-top">
-                          <div className="flex flex-col">
-                            <span className="text-sm font-medium text-foreground">
-                              {t.title || "(sin título)"}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {t.artist || "(sin artista)"}
-                            </span>
-                            <span className="mt-1 font-mono text-[10px] break-words text-muted-foreground">
-                              ID: {t.id}
-                            </span>
-                          </div>
-                        </td>
-
-                        <td className="px-4 py-3 align-top">
-                          <MetadataSummary row={t} />
-                        </td>
-
-                        <td className="px-4 py-3 align-top">
-                          <EstadoChip row={t} />
-                        </td>
-
-                        <td className="px-4 py-3 align-top">
-                          <AudioInfo row={t} />
-                        </td>
-
-                        <td className="px-4 py-3 align-top">
-                          <div className="flex flex-col text-xs text-muted-foreground">
-                            {t.analysisAt ? (
-                              <>
-                                <span className="text-success">Analizado</span>
-                                <span>{formatDateTime(t.analysisAt)}</span>
-                              </>
-                            ) : (
-                              <span className="text-warning">Sin análisis</span>
-                            )}
-                          </div>
-                        </td>
-
-                        <td className="px-4 py-3 align-top">
-                          <AnalyzeActions
-                            id={t.id}
-                            audioUrl={t.audioUrl}
-                            className="justify-end"
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <AdminDataTable
+                rows={tracks}
+                columns={desktopColumns}
+                rowKey={(track) => track.id}
+                rowClassName="border-t border-border/70 hover:bg-muted/60"
+                tableClassName="w-full table-auto min-w-[1100px]"
+                headerClassName="bg-muted/60"
+              />
             </div>
           </>
         )}
-      </section>
+      </AdminListShell>
     </section>
   );
 }
@@ -350,43 +455,32 @@ function EstadoChip({ row }: { row: AnalyzeRow }) {
   const hasAudio = !!(row.assetKey || row.audioUrl);
   const analyzed = !!row.analysisAt;
 
-  const baseClass =
-    "inline-flex items-center justify-center rounded-md px-2 py-0.5 text-[11px] font-medium";
-
   if (!hasAudio) {
     return (
-      <span
-        className={
-          baseClass + " border border-border bg-muted/60 text-muted-foreground"
-        }
-      >
-        Sin audio
-      </span>
+      <AdminIconBadge
+        tone="danger"
+        icon={<Ban className="h-3.5 w-3.5" aria-hidden="true" />}
+        label="SIN AUDIO"
+      />
     );
   }
 
   if (!analyzed) {
     return (
-      <span
-        className={
-          baseClass +
-          " border border-warning/50 bg-warning/10 text-warning"
-        }
-      >
-        Sin análisis
-      </span>
+      <AdminIconBadge
+        tone="warning"
+        icon={<Clock3 className="h-3.5 w-3.5" aria-hidden="true" />}
+        label="SIN ANÁLISIS"
+      />
     );
   }
 
   return (
-    <span
-      className={
-        baseClass +
-        " border border-success/50 bg-success/10 text-success"
-      }
-    >
-      Analizado
-    </span>
+    <AdminIconBadge
+      tone="success"
+      icon={<ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />}
+      label="ANALIZADO"
+    />
   );
 }
 
@@ -490,22 +584,6 @@ function formatListShort(
   return `${cleaned.slice(0, maxItems).join(", ")} +${remaining}`;
 }
 
-function formatTrackType(value: string | null | undefined) {
-  if (!value) return null;
-  switch (value) {
-    case "INSTRUMENTAL":
-      return "Instrumental";
-    case "VOCAL":
-      return "Vocal";
-    case "VOCAL_INSTRUMENTAL":
-      return "Vocal + instrumental";
-    case "OTHER":
-      return "Otro";
-    default:
-      return value;
-  }
-}
-
 function formatLicenseType(value: string | null | undefined) {
   if (!value) return null;
   switch (value) {
@@ -520,117 +598,4 @@ function formatLicenseType(value: string | null | undefined) {
     default:
       return value;
   }
-}
-
-function formatPricingTier(value: string | null | undefined) {
-  if (!value) return null;
-  switch (value) {
-    case "LOW":
-      return "Low";
-    case "MID":
-      return "Mid";
-    case "HIGH":
-      return "High";
-    case "BESPOKE":
-      return "Bespoke";
-    default:
-      return value;
-  }
-}
-
-function formatBudgetRange(
-  min: number | null | undefined,
-  max: number | null | undefined,
-  currency: string | null | undefined,
-) {
-  const hasMin = typeof min === "number" && Number.isFinite(min);
-  const hasMax = typeof max === "number" && Number.isFinite(max);
-  if (!hasMin && !hasMax) return null;
-  const prefix = currency ? `${currency} ` : "";
-  if (hasMin && hasMax) return `${prefix}${min} - ${max}`;
-  if (hasMin) return `${prefix}${min}+`;
-  return `${prefix}${max}`;
-}
-
-function formatVersionLabel(version: AnalyzeRow["versions"][number]) {
-  const label = formatText(version.label);
-  if (label) return label;
-  if (version.kind) return version.kind;
-  if (typeof version.durationSec === "number") return `${version.durationSec}s`;
-  return null;
-}
-
-function formatStemLabel(stem: AnalyzeRow["stems"][number]) {
-  const name = formatText(stem.name);
-  if (!name) return null;
-  const group = formatStemGroup(stem.group);
-  return group ? `${name} (${group})` : name;
-}
-
-function formatStemGroup(value: string | null | undefined) {
-  if (!value) return null;
-  switch (value) {
-    case "INSTRUMENT":
-      return "Instr";
-    case "VOCAL":
-      return "Vocal";
-    case "FX":
-      return "FX";
-    case "PERCUSSION":
-      return "Perc";
-    case "OTHER":
-      return "Otro";
-    default:
-      return value;
-  }
-}
-
-function formatClearance(oneStop: boolean | null, cleared: boolean | null) {
-  const parts: string[] = [];
-  if (oneStop) parts.push("One-stop");
-  if (cleared) parts.push("Cleared");
-  return parts.length ? parts.join(" · ") : null;
-}
-
-function formatRestrictionsSummary(row: AnalyzeRow) {
-  const parts: string[] = [];
-  const terr = formatListShort(row.restrictedTerritories, 2);
-  const ind = formatListShort(row.restrictedIndustries, 2);
-  const plat = formatListShort(row.restrictedPlatforms, 2);
-  const brands = formatListShort(row.restrictedBrands, 2);
-  const text = formatListShort(row.restrictions, 2);
-
-  if (terr) parts.push(`Terr: ${terr}`);
-  if (ind) parts.push(`Ind: ${ind}`);
-  if (plat) parts.push(`Plat: ${plat}`);
-  if (brands) parts.push(`Marcas: ${brands}`);
-  if (text) parts.push(`Texto: ${text}`);
-
-  return parts.length ? parts.join(" · ") : null;
-}
-
-function formatPricingSummary(row: AnalyzeRow) {
-  const tier = formatPricingTier(row.pricingTier);
-  const budget = formatBudgetRange(
-    row.budgetMin,
-    row.budgetMax,
-    row.budgetCurrency,
-  );
-  if (tier && budget) return `${tier} · ${budget}`;
-  return tier ?? budget;
-}
-
-function formatDeliverablesSummary(row: AnalyzeRow) {
-  const versionLabels = row.versions
-    .map((version) => formatVersionLabel(version))
-    .filter((value): value is string => Boolean(value));
-  const stemLabels = row.stems
-    .map((stem) => formatStemLabel(stem))
-    .filter((value): value is string => Boolean(value));
-
-  const versions = formatListShort(versionLabels, 3);
-  const stems = formatListShort(stemLabels, 3);
-
-  if (versions && stems) return `${versions} / ${stems}`;
-  return versions ?? stems;
 }

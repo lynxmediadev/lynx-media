@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,6 +18,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { RefreshCw, Trash2 } from "lucide-react";
+import {
+  AdminFilterPanel,
+  AdminListHeader,
+  AdminListShell,
+  AdminStatusBadge,
+  buildFilterQueryString,
+  countActiveFilters,
+} from "@/components/admin/list-kit";
+import { LabeledSelect } from "@/components/admin/ui/LabeledSelect";
 
 type Row = {
   id: string;
@@ -175,7 +184,6 @@ export default function RequestsAdminClient(props: {
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const sp = useSearchParams();
 
   const [q, setQ] = React.useState(props.initialQS.q ?? "");
   const [status, setStatus] = React.useState(props.initialQS.status ?? "");
@@ -187,14 +195,15 @@ export default function RequestsAdminClient(props: {
   const [isCreatingDummy, setIsCreatingDummy] = React.useState(false);
 
   function applyFilters(nextPage = 1) {
-    const params = new URLSearchParams(sp?.toString() ?? "");
-    q ? params.set("q", q) : params.delete("q");
-    status ? params.set("status", status) : params.delete("status");
-    serviceType ? params.set("serviceType", serviceType) : params.delete("serviceType");
-    projectType ? params.set("projectType", projectType) : params.delete("projectType");
-    params.set("page", String(nextPage));
-    params.set("per", String(props.initialQS.per || 20));
-    router.push(`${pathname}?${params.toString()}`);
+    const query = buildFilterQueryString({
+      q,
+      status,
+      serviceType,
+      projectType,
+      page: nextPage,
+      per: props.initialQS.per || 20,
+    });
+    router.push(`${pathname}?${query}`);
   }
 
   function resetFilters() {
@@ -214,6 +223,7 @@ export default function RequestsAdminClient(props: {
   const canNext = props.total > page * per;
   const rowHover = "transition-colors hover:bg-border/10";
   const selectedCount = selectedIds.size;
+  const activeFilters = countActiveFilters([q, status, serviceType, projectType]);
 
   function pick<T>(arr: T[]) {
     return arr[Math.floor(Math.random() * arr.length)];
@@ -333,125 +343,139 @@ export default function RequestsAdminClient(props: {
   }
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Solicitudes</h1>
-          <p className="text-sm text-muted-foreground">
-            Bandeja única (serviceType) · Total {props.total}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/admin/requests/mix"
-            className="rounded-[2px] border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-border/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          >
-            Ver solo Mix/Master
-          </Link>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={isCreatingDummy}
-            className="h-8 rounded-[2px] text-xs full-sm"
-            onClick={() => createDummy("single")}
-          >
-            Dummy Single
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={isCreatingDummy}
-            className="h-8 rounded-[2px] text-xs full-sm"
-            onClick={() => createDummy("album")}
-          >
-            Dummy Álbum
-          </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            size="sm"
-            disabled={selectedCount === 0 || isDeleting}
-            onClick={() => setConfirmOpen(true)}
-            className="h-8 rounded-[2px] text-xs"
-            aria-label="Eliminar seleccionados"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            Eliminar
-          </Button>
-          <button
-            type="button"
-            onClick={() => router.refresh()}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-[2px] border border-border bg-card text-foreground transition hover:bg-border/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            aria-label="Refrescar"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </button>
-        </div>
-      </header>
+    <div className="space-y-4">
+      <AdminListShell className="rounded-[2px] bg-card/80">
+        <AdminListHeader
+          title="Solicitudes"
+          subtitle="Bandeja única"
+          count={<AdminStatusBadge>Total {props.total}</AdminStatusBadge>}
+          statusBadge={<AdminStatusBadge>{selectedCount} selección</AdminStatusBadge>}
+          actionSlot={
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/admin/requests/mix"
+                className="rounded-[2px] border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                Ver solo Mix/Master
+              </Link>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isCreatingDummy}
+                className="h-8 rounded-[2px] text-xs full-sm"
+                onClick={() => createDummy("single")}
+              >
+                Dummy Single
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isCreatingDummy}
+                className="h-8 rounded-[2px] text-xs full-sm"
+                onClick={() => createDummy("album")}
+              >
+                Dummy Álbum
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                disabled={selectedCount === 0 || isDeleting}
+                onClick={() => setConfirmOpen(true)}
+                className="h-8 rounded-[2px] text-xs"
+                aria-label="Eliminar seleccionados"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Eliminar
+              </Button>
+              <button
+                type="button"
+                onClick={() => router.refresh()}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-[2px] border border-border bg-card text-foreground transition-colors hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                aria-label="Refrescar"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </button>
+            </div>
+          }
+        />
 
-      <section className="rounded-[2px] border border-border bg-card/80 p-4 backdrop-blur">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-6">
-          <input
-            className="col-span-2 rounded-[2px] border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            placeholder="Buscar nombre/email/detalle"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-          <select
-            className="rounded-[2px] border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            value={projectType}
-            onChange={(e) => setProjectType(e.target.value)}
+        <div className="border-b border-border px-3 py-2 sm:px-4">
+          <AdminFilterPanel
+            title="Filtros de lista"
+            statusSlot={
+              <>
+                <span className="text-[11px] text-muted-foreground">·</span>
+                <AdminStatusBadge>{activeFilters === 0 ? "Sin filtros" : `${activeFilters} filtros activos`}</AdminStatusBadge>
+              </>
+            }
+            actionSlot={
+              <>
+                <button
+                  type="button"
+                  onClick={() => applyFilters(1)}
+                  className="inline-flex items-center justify-center gap-2 rounded-[2px] border border-border bg-foreground px-3 py-2 text-xs font-semibold text-background transition hover:bg-foreground/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                >
+                  Aplicar
+                </button>
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="inline-flex items-center justify-center gap-2 rounded-[2px] border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                >
+                  Limpiar
+                </button>
+              </>
+            }
           >
-            <option value="">Tipo (todos)</option>
-            <option value="single">Single</option>
-            <option value="album">Álbum / EP</option>
-          </select>
-          <select
-            className="rounded-[2px] border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            value={serviceType}
-            onChange={(e) => setServiceType(e.target.value)}
-          >
-            <option value="">Servicio (todos)</option>
-            {props.serviceOptions.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-          <select
-            className="rounded-[2px] border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
-            <option value="">Status (todos)</option>
-            {props.statusOptions.map((s) => (
-              <option key={s} value={s}>
-                {s.replaceAll("_", " ")}
-              </option>
-            ))}
-          </select>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => applyFilters(1)}
-              className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-[2px] border border-border bg-foreground px-3 py-2 text-sm font-semibold text-background transition hover:bg-foreground/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              Aplicar
-            </button>
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-[2px] border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground transition hover:bg-border/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              Limpiar
-            </button>
-          </div>
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-6">
+              <input
+                className="rounded-[2px] border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:col-span-2"
+                placeholder="Buscar nombre/email/detalle"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+              <LabeledSelect
+                label="TIPO"
+                labelPosition="top"
+                value={projectType}
+                onChange={(e) => setProjectType(e.target.value)}
+                className="h-9 w-full"
+                options={[
+                  { value: "", label: "TODOS" },
+                  { value: "single", label: "SINGLE" },
+                  { value: "album", label: "ÁLBUM / EP" },
+                ]}
+              />
+              <LabeledSelect
+                label="SERVICIO"
+                labelPosition="top"
+                value={serviceType}
+                onChange={(e) => setServiceType(e.target.value)}
+                className="h-9 w-full"
+                options={[
+                  { value: "", label: "TODOS" },
+                  ...props.serviceOptions.map((value) => ({ value, label: value.toUpperCase() })),
+                ]}
+              />
+              <LabeledSelect
+                label="STATUS"
+                labelPosition="top"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="h-9 w-full"
+                options={[
+                  { value: "", label: "TODOS" },
+                  ...props.statusOptions.map((value) => ({ value, label: value.replaceAll("_", " ") })),
+                ]}
+              />
+            </div>
+          </AdminFilterPanel>
         </div>
-      </section>
 
-      <section className="rounded-[2px] border border-border bg-card/80">
+        <section className="rounded-[2px] border-0 bg-card/80">
         <TooltipProvider delayDuration={200}>
           {props.rows.length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-muted-foreground">
@@ -645,7 +669,32 @@ export default function RequestsAdminClient(props: {
             </>
           )}
         </TooltipProvider>
-      </section>
+        </section>
+
+        <footer className="flex items-center justify-between gap-3 border-t border-border px-3 py-3 text-sm text-muted-foreground sm:px-4">
+          <span>
+            Página {page} · {props.rows.length} de {props.total}
+          </span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={!canPrev}
+              onClick={() => applyFilters(page - 1)}
+              className="inline-flex items-center justify-center rounded-[2px] border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              disabled={!canNext}
+              onClick={() => applyFilters(page + 1)}
+              className="inline-flex items-center justify-center rounded-[2px] border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-muted/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Siguiente
+            </button>
+          </div>
+        </footer>
+      </AdminListShell>
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="border-border bg-card text-foreground">
@@ -697,29 +746,6 @@ export default function RequestsAdminClient(props: {
         </DialogContent>
       </Dialog>
 
-      <footer className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
-        <span>
-          Página {page} · {props.rows.length} de {props.total}
-        </span>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            disabled={!canPrev}
-            onClick={() => applyFilters(page - 1)}
-            className="inline-flex items-center justify-center rounded-[2px] border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-border/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Anterior
-          </button>
-          <button
-            type="button"
-            disabled={!canNext}
-            onClick={() => applyFilters(page + 1)}
-            className="inline-flex items-center justify-center rounded-[2px] border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-border/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Siguiente
-          </button>
-        </div>
-      </footer>
     </div>
   );
 }

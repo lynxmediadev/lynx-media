@@ -207,6 +207,36 @@ Regla para el asistente (futuro):
 | adminDashboardSections | `src/components/dashboard/nav-config.admin.ts`      | Config centralizada de navegación admin                           | Activo |
 | Tipos de contrato nav  | `src/components/dashboard/types.ts`                 | `DashboardNavItem` y `DashboardSection` para escalabilidad        | Activo |
 
+### 10) Admin List Kit reusable (`src/components/admin/list-kit`)
+
+| Componente          | Ruta                                                         | Uso principal                                                      | Estado |
+| ------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------ | ------ |
+| AdminListShell      | `src/components/admin/list-kit/AdminListShell.tsx`           | Contenedor base de listas admin (borde/fondo/sombra)              | Activo |
+| AdminListHeader     | `src/components/admin/list-kit/AdminListHeader.tsx`          | Header estándar (título/subtítulo/contador/acciones)              | Activo |
+| AdminListPanel      | `src/components/admin/list-kit/AdminListPanel.tsx`           | Panel interno reutilizable para filtros/bulk/secciones auxiliares  | Activo |
+| AdminFilterPanel    | `src/components/admin/list-kit/AdminFilterPanel.tsx`         | Estructura de filtros con título, estado y acciones               | Activo |
+| AdminBulkPanel      | `src/components/admin/list-kit/AdminBulkPanel.tsx`           | Estructura de acciones masivas con estado de selección            | Activo |
+| AdminDataTable      | `src/components/admin/list-kit/AdminDataTable.tsx`           | Tabla tipada por columnas (`AdminColumnDef<T>`)                   | Activo |
+| AdminStatusBadge    | `src/components/admin/list-kit/AdminStatusBadge.tsx`         | Badge de estado unificado (`neutral/success/warning/danger`)      | Activo |
+| AdminIconBadge      | `src/components/admin/list-kit/AdminStatusBadge.tsx`         | Badge compacto con ícono + texto + tono (`neutral/success/warning/danger`) | Activo |
+| AdminRoleBadge      | `src/components/admin/list-kit/AdminStatusBadge.tsx`         | Badge compacto de rol con ícono + texto (`ADMIN/STAFF/CREATOR`)   | Activo |
+| AdminListEmptyState | `src/components/admin/list-kit/AdminListEmptyState.tsx`      | Estado vacío estandarizado                                         | Activo |
+| AdminTableRowActions| `src/components/admin/list-kit/AdminTableRowActions.tsx`     | Acciones por fila reutilizables (link/acción local)               | Activo |
+| Tipos list-kit      | `src/components/admin/list-kit/types.ts`                     | `AdminColumnDef`, `AdminRowAction`, `AdminFilterSchema`, `AdminBulkActionSchema` | Activo |
+
+Guía rápida: crear una nueva lista admin con List Kit
+
+1. Crear página server que obtenga datos + filtros desde `searchParams`.
+2. En cliente, envolver la vista con `AdminListShell`.
+3. Usar `AdminListHeader` para título, contador y acciones principales.
+4. Montar filtros con `AdminFilterPanel` (+ `LabeledSelect` si aplica).
+5. Si hay operaciones masivas, usar `AdminBulkPanel`.
+6. Para desktop, renderizar tabla con `AdminDataTable<T>` + `AdminColumnDef<T>`.
+7. Para mobile, mantener cards/paneles compactos sin overflow horizontal.
+8. Mostrar estados vacíos con `AdminListEmptyState`.
+9. Registrar acciones por fila con `AdminTableRowActions` o botón local.
+10. Cerrar con smoke desktop/mobile y validar `typecheck`.
+
 ## Inventario operativo actualizado (vigente)
 
 Nota:
