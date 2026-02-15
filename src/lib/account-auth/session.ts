@@ -5,6 +5,7 @@ import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export const APP_SESSION_COOKIE = "app_session";
+export const VIEW_AS_ROLE_COOKIE = "app_view_as_role";
 const APP_SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 14; // 14 dias
 
 function baseCookieOptions() {
@@ -96,6 +97,31 @@ export async function setSessionCookie(rawToken: string, expiresAt: Date) {
 export async function clearSessionCookie() {
   const c = await cookies();
   c.set(APP_SESSION_COOKIE, "", {
+    ...baseCookieOptions(),
+    maxAge: 0,
+  });
+}
+
+export function normalizeViewAsRole(raw: string | undefined): UserRole | null {
+  if (!raw) return null;
+  const role = raw.trim().toUpperCase();
+  if (role === "ADMIN" || role === "STAFF" || role === "CREATOR") {
+    return role;
+  }
+  return null;
+}
+
+export async function setViewAsRoleCookie(role: UserRole) {
+  const c = await cookies();
+  c.set(VIEW_AS_ROLE_COOKIE, role, {
+    ...baseCookieOptions(),
+    maxAge: 60 * 60 * 8, // 8 horas
+  });
+}
+
+export async function clearViewAsRoleCookie() {
+  const c = await cookies();
+  c.set(VIEW_AS_ROLE_COOKIE, "", {
     ...baseCookieOptions(),
     maxAge: 0,
   });

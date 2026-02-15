@@ -435,3 +435,38 @@ Validación:
 - `npm run typecheck` ✅
 - `npm run lint` ✅ (solo warnings legacy)
 
+
+## 2026-02-14 · Plan 030 avance (Codex)
+- Implementado CRUD/bulk API para playlists, sound-kits, services, contracts.
+- Implementadas listas List Kit en `/admin/playlists`, `/admin/sound-kits`, `/admin/services`, `/admin/contracts`.
+- Implementadas rutas de detalle con edición rápida persistente en los 4 módulos.
+- Ejecutado `npm run db:seed:modules` (ok).
+- Ejecutado `npm run typecheck` (ok).
+- Ejecutado lint focal de archivos nuevos/modificados (ok).
+
+## 2026-02-14 · Plan 030 smoke técnico autenticado (Codex)
+- Levantado dev server en `127.0.0.1:3010` para validación dirigida.
+- Reseteado admin local para smoke:
+  - `AUTH_BOOTSTRAP_ADMIN_EMAIL=admin@lynx.local AUTH_BOOTSTRAP_ADMIN_PASSWORD=CodexSmoke123! npm run db:bootstrap:auth`
+- Login HTTP OK en `/auth/login/submit` con cookie `app_session`.
+- GET autenticado (200) en:
+  - `/admin/playlists`, `/admin/sound-kits`, `/admin/services`, `/admin/contracts`
+  - filtros por query (`q`, `status`, `category`) con respuesta 200.
+  - regresión: `/admin/users`, `/admin/tracks`, `/admin/requests` también 200.
+- Smoke API autenticado (create + bulk status + bulk delete) OK en:
+  - `/api/admin/playlists`
+  - `/api/admin/sound-kits`
+  - `/api/admin/services`
+  - `/api/admin/contracts`
+
+## 2026-02-14 · Plan 030 smoke PATCH por entidad (Codex)
+- Levantado dev server en `127.0.0.1:3012` para smoke dirigido.
+- Admin local reset para credencial temporal de prueba:
+  - `AUTH_BOOTSTRAP_ADMIN_EMAIL=admin@lynx.local AUTH_BOOTSTRAP_ADMIN_PASSWORD=AdminTest123! npm run db:bootstrap:auth`
+- Login HTTP OK y cookie de sesión válida.
+- Flujo validado en cada módulo:
+  - `POST /api/admin/{module}` (crear registro smoke)
+  - `PATCH /api/admin/{module}/[id]` (cambio de nombre/título + estado)
+  - `GET /api/admin/{module}?q=...` (verificación de persistencia)
+  - `POST /api/admin/{module}/bulk` con `delete` (limpieza)
+- Resultado final: `PATCH_SMOKE_OK` ✅ para playlists, sound-kits, services y contracts.

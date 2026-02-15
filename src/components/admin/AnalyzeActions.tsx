@@ -25,6 +25,7 @@ import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
+import { ExternalLink, FileText, Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +33,7 @@ type BaseProps = {
   id: string;
   audioUrl?: string | null;
   className?: string;
+  iconOnly?: boolean;
 };
 
 type TrackAnalysisHook = {
@@ -230,6 +232,7 @@ export default function AnalyzeActions({
   id,
   audioUrl,
   className = "",
+  iconOnly = false,
 }: BaseProps) {
   const {
     busy,
@@ -252,9 +255,19 @@ export default function AnalyzeActions({
           disabled={busy || !canAnalyze}
           variant="outline"
           size="sm"
-          className="h-8 w-24 text-xs"
+          className={iconOnly ? "h-8 w-8 px-0" : "h-8 w-24 text-xs"}
+          title={busy ? "Analizando" : !canAnalyze ? "Sin audio" : "Analizar"}
+          aria-label={busy ? "Analizando" : !canAnalyze ? "Sin audio" : "Analizar"}
         >
-          {busy ? "Analizando…" : !canAnalyze ? "Sin audio" : "Analizar"}
+          {iconOnly ? (
+            busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Search className="h-3.5 w-3.5" aria-hidden="true" />
+          ) : busy ? (
+            "Analizando…"
+          ) : !canAnalyze ? (
+            "Sin audio"
+          ) : (
+            "Analizar"
+          )}
         </Button>
 
         <Button
@@ -262,18 +275,24 @@ export default function AnalyzeActions({
           onClick={handleOpenPayload}
           variant="outline"
           size="sm"
-          className="h-8 w-24 text-xs"
+          className={iconOnly ? "h-8 w-8 px-0" : "h-8 w-24 text-xs"}
+          title="Payload"
+          aria-label="Payload"
         >
-          Payload
+          {iconOnly ? <FileText className="h-3.5 w-3.5" aria-hidden="true" /> : "Payload"}
         </Button>
 
         <Button
           asChild
           variant="outline"
           size="sm"
-          className="h-8 w-24 text-xs text-center"
+          className={iconOnly ? "h-8 w-8 px-0 text-center" : "h-8 w-24 text-xs text-center"}
+          title="Ver track"
+          aria-label="Ver track"
         >
-          <Link href={trackUrl}>Ver track</Link>
+          <Link href={trackUrl}>
+            {iconOnly ? <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /> : "Ver track"}
+          </Link>
         </Button>
       </div>
 

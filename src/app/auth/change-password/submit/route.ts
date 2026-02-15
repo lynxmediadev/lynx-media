@@ -19,7 +19,7 @@ function redirectUrl(req: NextRequest, path: string) {
 }
 
 function accountPathByRole(role: "ADMIN" | "STAFF" | "CREATOR") {
-  if (role === "CREATOR") return "/creator/tracks";
+  if (role === "CREATOR") return "/creator/account";
   return "/admin/account";
 }
 
@@ -108,4 +108,3 @@ export async function POST(req: NextRequest) {
     status: 303,
   });
 }
-

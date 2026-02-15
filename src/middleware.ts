@@ -38,9 +38,16 @@ async function sha256hex(s: string) {
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  const viewAsRole = (req.cookies.get("app_view_as_role")?.value ?? "").trim().toUpperCase();
+  const isViewAsCreator = viewAsRole === "CREATOR";
 
   // Rutas abiertas del flujo de auth
-  if (pathname === "/admin/login" || pathname === "/admin/login/submit" || pathname === "/admin/logout") {
+  if (
+    pathname === "/admin/login" ||
+    pathname === "/admin/login/submit" ||
+    pathname === "/admin/logout" ||
+    pathname === "/admin/view-as"
+  ) {
     return NextResponse.next();
   }
 
@@ -65,9 +72,12 @@ export async function middleware(req: NextRequest) {
           const p = JSON.parse(json) as { sub?: string; role?: string; exp?: number };
           if (p?.sub && p?.role && typeof p.exp === "number" && Date.now() < p.exp) {
             if (isAdminArea && (p.role === "ADMIN" || p.role === "STAFF")) {
+              if (p.role === "ADMIN" && isViewAsCreator) {
+                return NextResponse.redirect(new URL("/creator", req.url), { status: 303 });
+              }
               return NextResponse.next();
             }
-            if (isCreatorArea && p.role === "CREATOR") {
+            if (isCreatorArea && (p.role === "CREATOR" || (p.role === "ADMIN" && isViewAsCreator))) {
               return NextResponse.next();
             }
           }

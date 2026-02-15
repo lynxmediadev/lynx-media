@@ -14,9 +14,9 @@ export const dynamic = "force-dynamic";
 export default async function RequestDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const { id } = params;
+  const { id } = await params;
   const req = await prisma.contactRequest.findUnique({
     where: { id },
     select: {

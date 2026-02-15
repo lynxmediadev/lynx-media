@@ -34,7 +34,7 @@ export function AdminDataTable<T>({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="w-full overflow-hidden">
       <table className={cn(minWidthClassName, "text-sm", tableClassName)}>
         <thead className={cn("bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground", headerClassName)}>
           <tr>
@@ -83,4 +83,3 @@ export function AdminDataTable<T>({
     </div>
   );
 }
-

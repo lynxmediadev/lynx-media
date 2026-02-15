@@ -1,3 +1,12 @@
+
+
+
+
+Evalúa, registra, planifica, ejecuta, implementa, soluciona y resuelve.
+
+
+
+
 # PROMPT PARA SIGUIENTE CHAT (MODIFICAR SEGÚN NECESIDAD)
 - Lee y respeta `docs/AI_CONTEXT.md` en este repo y trabaja estrictamente bajo sus reglas (contiene reglas, estado UI actual, estética y naming del waveform Artlist-style). No repitas cambios ya asentados. No expongas secretos. Prioriza UX minimalista y accesible.
 - Objetivo actual: rehacer la ficha pública `/track/[id]` con la estética vigente (tokens bg-background/text-foreground/bg-card/border, radios 2px salvo íconos circulares).

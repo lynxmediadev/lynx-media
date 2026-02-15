@@ -14,7 +14,10 @@ export default async function AdminLayout({
 }) {
   const user = await getCurrentUser();
   return (
-    <AdminDashboardLayoutClient role={user?.role ?? null}>
+    <AdminDashboardLayoutClient
+      role={user?.role ?? null}
+      realRole={user?.realRole ?? user?.role ?? null}
+    >
       {children}
     </AdminDashboardLayoutClient>
   );

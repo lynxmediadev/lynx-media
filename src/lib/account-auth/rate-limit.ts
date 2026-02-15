@@ -1,5 +1,6 @@
 import "server-only";
 import crypto from "node:crypto";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 type ConsumeRateLimitInput = {
@@ -9,7 +10,8 @@ type ConsumeRateLimitInput = {
     | "forgot"
     | "reset"
     | "change_password"
-    | "verify_email_send";
+    | "verify_email_send"
+    | "support_ticket_submit";
   fingerprint: string;
   maxAttempts: number;
   windowMs: number;
@@ -24,22 +26,36 @@ function buildKey(action: string, fingerprint: string) {
   return `${action}:${hashFingerprint(fingerprint)}`;
 }
 
+function isUniqueConstraintError(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002"
+  );
+}
+
 export async function consumeRateLimit(input: ConsumeRateLimitInput) {
   const now = new Date();
   const windowStart = new Date(now.getTime() - input.windowMs);
   const key = buildKey(input.action, input.fingerprint);
 
-  const current = await prisma.authRateLimit.findUnique({ where: { key } });
+  let current = await prisma.authRateLimit.findUnique({ where: { key } });
   if (!current) {
-    await prisma.authRateLimit.create({
-      data: {
-        key,
-        action: input.action,
-        windowStart: now,
-        count: 1,
-      },
-    });
-    return { allowed: true, retryAfterSec: 0 };
+    try {
+      await prisma.authRateLimit.create({
+        data: {
+          key,
+          action: input.action,
+          windowStart: now,
+          count: 1,
+        },
+      });
+      return { allowed: true, retryAfterSec: 0 };
+    } catch (error) {
+      // Condición de carrera esperable en ráfagas: otro request creó la fila primero.
+      if (!isUniqueConstraintError(error)) throw error;
+      current = await prisma.authRateLimit.findUnique({ where: { key } });
+      if (!current) throw error;
+    }
   }
 
   if (current.blockedUntil && current.blockedUntil > now) {
@@ -50,16 +66,33 @@ export async function consumeRateLimit(input: ConsumeRateLimitInput) {
   }
 
   const inSameWindow = current.windowStart > windowStart;
-  const nextCount = inSameWindow ? current.count + 1 : 1;
+  if (!inSameWindow) {
+    await prisma.authRateLimit.update({
+      where: { key },
+      data: {
+        count: 1,
+        blockedUntil: null,
+        windowStart: now,
+      },
+    });
+    return { allowed: true, retryAfterSec: 0 };
+  }
+
+  const bumped = await prisma.authRateLimit.update({
+    where: { key },
+    data: {
+      count: { increment: 1 },
+    },
+    select: { count: true },
+  });
+  const nextCount = bumped.count;
 
   if (nextCount > input.maxAttempts) {
     const blockedUntil = new Date(now.getTime() + input.blockMs);
     await prisma.authRateLimit.update({
       where: { key },
       data: {
-        count: nextCount,
         blockedUntil,
-        windowStart: inSameWindow ? current.windowStart : now,
       },
     });
     return {
@@ -67,15 +100,6 @@ export async function consumeRateLimit(input: ConsumeRateLimitInput) {
       retryAfterSec: Math.max(1, Math.ceil(input.blockMs / 1000)),
     };
   }
-
-  await prisma.authRateLimit.update({
-    where: { key },
-    data: {
-      count: nextCount,
-      blockedUntil: null,
-      windowStart: inSameWindow ? current.windowStart : now,
-    },
-  });
 
   return { allowed: true, retryAfterSec: 0 };
 }

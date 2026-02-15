@@ -19,6 +19,7 @@ import {
   Check,
   Clock3,
   FileText,
+  Filter,
   RefreshCw,
   RefreshCcw,
   Search,
@@ -239,6 +240,8 @@ export default function RequestsAdminClient(props: {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [isCreatingDummy, setIsCreatingDummy] = React.useState(false);
+  const [copyState, setCopyState] = React.useState<"idle" | "copied" | "error">("idle");
+  const copyResetRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const selectableIds = React.useMemo(() => props.rows.map((row) => row.id), [props.rows]);
   const selectedSet = React.useMemo(() => new Set(selectedIds), [selectedIds]);
@@ -261,10 +264,6 @@ export default function RequestsAdminClient(props: {
     setStatus("");
     setServiceType("");
     setProjectType("");
-    const params = new URLSearchParams();
-    params.set("page", "1");
-    params.set("per", String(props.initialQS.per || 20));
-    router.push(`${pathname}?${params.toString()}`);
   }
 
   const page = props.initialQS.page || 1;
@@ -273,6 +272,54 @@ export default function RequestsAdminClient(props: {
   const canNext = props.total > page * per;
   const selectedCount = selectedIds.length;
   const activeFilters = countActiveFilters([q, status, serviceType, projectType]);
+
+  React.useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      const query = buildFilterQueryString({
+        q,
+        status,
+        serviceType,
+        projectType,
+        page: 1,
+        per: props.initialQS.per || 20,
+      });
+      const nextPath = `${pathname}?${query}`;
+      const currentPath = `${window.location.pathname}${window.location.search}`;
+      if (nextPath !== currentPath) {
+        router.replace(nextPath, { scroll: false });
+      }
+    }, 130);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [pathname, projectType, props.initialQS.per, q, router, serviceType, status]);
+
+  React.useEffect(() => {
+    return () => {
+      if (copyResetRef.current) {
+        clearTimeout(copyResetRef.current);
+      }
+    };
+  }, []);
+
+  async function handleCopyFilter() {
+    const query = buildFilterQueryString({
+      q,
+      status,
+      serviceType,
+      projectType,
+      page: 1,
+      per: props.initialQS.per || 20,
+    });
+    const url = `${window.location.origin}${pathname}?${query}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopyState("copied");
+    } catch {
+      setCopyState("error");
+    }
+    if (copyResetRef.current) clearTimeout(copyResetRef.current);
+    copyResetRef.current = setTimeout(() => setCopyState("idle"), 1600);
+  }
 
   function pick<T>(arr: T[]) {
     return arr[Math.floor(Math.random() * arr.length)];
@@ -526,35 +573,38 @@ export default function RequestsAdminClient(props: {
           <div className="grid gap-2 xl:grid-cols-2">
             <form method="GET" action="/admin/requests" className="min-w-0" onSubmit={(event) => event.preventDefault()}>
               <AdminFilterPanel
-                title="Filtros de lista"
+                title={
+                  <>
+                    <Filter className="h-3.5 w-3.5" />
+                    Filtros de lista
+                  </>
+                }
                 statusSlot={
                   <>
                     <span className="text-[11px] text-muted-foreground">·</span>
-                    <AdminStatusBadge>
+                    <AdminStatusBadge className="capitalize">
                       {activeFilters === 0 ? "Sin filtros" : `${activeFilters} filtros activos`}
                     </AdminStatusBadge>
                   </>
                 }
                 actionSlot={
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => applyFilters(1)}
-                      className="inline-flex h-8 items-center justify-center rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-muted/45"
-                    >
-                      Aplicar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={resetFilters}
-                      className="inline-flex h-8 items-center justify-center rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-muted/45"
-                    >
-                      Limpiar
-                    </button>
-                  </>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleCopyFilter();
+                    }}
+                    className={cn(
+                      "inline-flex items-center rounded-full border border-border bg-background px-2 py-1 text-[11px] capitalize",
+                      "transition-colors hover:bg-muted/45",
+                      copyState === "copied" ? "border-emerald-500/50 text-emerald-300" : "",
+                      copyState === "error" ? "border-destructive/60 text-destructive" : "",
+                    )}
+                  >
+                    {copyState === "copied" ? "Copiado" : copyState === "error" ? "Error" : "Copiar filtro"}
+                  </button>
                 }
               >
-                <AdminControlsRow innerClassName="w-full">
+                <AdminControlsRow innerClassName="w-full xl:flex-nowrap">
                   <div className="grid min-w-[260px] flex-1 gap-1">
                     <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">Campo</span>
                     <input
@@ -604,6 +654,21 @@ export default function RequestsAdminClient(props: {
                       ...props.statusOptions.map((value) => ({ value, label: value.replaceAll("_", " ") })),
                     ]}
                   />
+
+                  <div className="grid w-[42px] gap-1">
+                    <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">
+                      Acción
+                    </span>
+                    <button
+                      type="button"
+                      title="Limpiar"
+                      aria-label="Limpiar"
+                      onClick={resetFilters}
+                      className="inline-flex h-9 w-full items-center justify-center rounded-md border border-border text-sm transition-colors hover:bg-muted/45"
+                    >
+                      <RefreshCcw className="h-4 w-4" />
+                    </button>
+                  </div>
                 </AdminControlsRow>
               </AdminFilterPanel>
             </form>

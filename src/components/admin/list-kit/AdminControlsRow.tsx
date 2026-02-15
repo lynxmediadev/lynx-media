@@ -9,8 +9,8 @@ type AdminControlsRowProps = {
 
 export function AdminControlsRow({ children, className, innerClassName }: AdminControlsRowProps) {
   return (
-    <div className={cn("overflow-x-auto", className)}>
-      <div className={cn("flex min-w-max items-end gap-2", innerClassName)}>{children}</div>
+    <div className={cn("w-full", className)}>
+      <div className={cn("flex w-full flex-wrap items-end gap-2", innerClassName)}>{children}</div>
     </div>
   );
 }

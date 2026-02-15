@@ -86,6 +86,7 @@ export async function findValidEmailVerificationToken(rawToken: string) {
           select: {
             id: true,
             email: true,
+            role: true,
             status: true,
             emailVerifiedAt: true,
           },

@@ -15,6 +15,7 @@
  */
 
 import Link from "next/link";
+import { Music2 } from "lucide-react";
 import type { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import {
@@ -144,6 +145,7 @@ export default async function Page(props: {
     <section>
       <AdminListShell className="relative bg-muted/30 backdrop-blur">
         <AdminListHeader
+          icon={<Music2 className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
           title="Análisis técnico de tracks"
           subtitle="Estado técnico, métricas de audio y acceso rápido a ficha"
           count={

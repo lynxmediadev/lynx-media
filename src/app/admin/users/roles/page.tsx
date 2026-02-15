@@ -53,22 +53,22 @@ export default async function RoleMatrixPage() {
       </div>
 
       <div className="overflow-hidden rounded-xl border border-border">
-        <table className="min-w-full text-sm">
-          <thead className="bg-muted/40">
+        <table className="min-w-full text-xs leading-5 sm:text-sm">
+          <thead className="bg-muted/40 text-[11px] uppercase tracking-wide text-muted-foreground sm:text-xs">
             <tr>
-              <th className="px-3 py-2 text-left font-medium">Atribución</th>
-              <th className="px-3 py-2 text-left font-medium">ADMIN</th>
-              <th className="px-3 py-2 text-left font-medium">STAFF</th>
-              <th className="px-3 py-2 text-left font-medium">CREATOR</th>
+              <th className="px-2.5 py-1.5 text-left font-semibold">Atribución</th>
+              <th className="px-2.5 py-1.5 text-left font-semibold">ADMIN</th>
+              <th className="px-2.5 py-1.5 text-left font-semibold">STAFF</th>
+              <th className="px-2.5 py-1.5 text-left font-semibold">CREATOR</th>
             </tr>
           </thead>
           <tbody>
             {matrix.map((row) => (
               <tr key={row.permission} className="border-t border-border">
-                <td className="px-3 py-2">{row.permission}</td>
-                <td className="px-3 py-2">{row.admin}</td>
-                <td className="px-3 py-2">{row.staff}</td>
-                <td className="px-3 py-2">{row.creator}</td>
+                <td className="px-2.5 py-1.5 align-top">{row.permission}</td>
+                <td className="px-2.5 py-1.5 align-top">{row.admin}</td>
+                <td className="px-2.5 py-1.5 align-top">{row.staff}</td>
+                <td className="px-2.5 py-1.5 align-top">{row.creator}</td>
               </tr>
             ))}
           </tbody>

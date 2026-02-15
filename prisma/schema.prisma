@@ -46,8 +46,14 @@ model User {
   verifyTokens EmailVerificationToken[]
   inviteTokens InviteToken[]
 
-  ownedTracks    Track[]            @relation("TrackOwner")
-  ownedLicensing LicensingRequest[] @relation("LicensingOwner")
+  ownedTracks     Track[]            @relation("TrackOwner")
+  ownedLicensing  LicensingRequest[] @relation("LicensingOwner")
+  ownedPlaylists  Playlist[]         @relation("PlaylistOwner")
+  ownedSoundKits  SoundKit[]         @relation("SoundKitOwner")
+  ownedServices   ServiceOffer[]     @relation("ServiceOwner")
+  ownedContracts  ContractRecord[]   @relation("ContractOwner")
+  reportedTickets SupportTicket[]    @relation("TicketReporter")
+  resolvedTickets SupportTicket[]    @relation("TicketResolver")
 }
 
 model UserSession {
@@ -217,8 +223,10 @@ model Track {
   stems       TrackStem[]
   tags        TrackTag[]
   moodLinks   TrackMood[]
+  playlists   PlaylistTrack[]
+  contracts   ContractRecord[]
   ownerUserId String?
-  owner       User?          @relation("TrackOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  owner       User?            @relation("TrackOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
 
   @@index([artist])
   @@index([title])
@@ -436,6 +444,66 @@ enum RequestPriority {
   HIGH
 }
 
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  SPAM
+}
+
+enum TicketSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TicketSource {
+  NOT_FOUND
+  ERROR_PAGE
+  MANUAL
+}
+
+enum PlaylistStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum PlaylistVisibility {
+  PRIVATE
+  INTERNAL
+  PUBLIC
+}
+
+enum SoundKitStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ServiceOfferStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum ServiceCategory {
+  MIX_MASTER
+  PRODUCTION
+  COMPOSITION
+  SOUND_DESIGN
+  OTHER
+}
+
+enum ContractStatus {
+  DRAFT
+  SENT
+  NEGOTIATION
+  SIGNED
+  EXPIRED
+  CANCELED
+}
+
 // ───────────────────────────────────────────────────────────────────────────────
 // Modelo para solicitudes de contacto generales (homepage)
 // ───────────────────────────────────────────────────────────────────────────────
@@ -458,6 +526,146 @@ model ContactRequest {
 
   @@index([createdAt, status])
   @@index([serviceType])
+}
+
+model SupportTicket {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  source   TicketSource   @default(MANUAL)
+  status   TicketStatus   @default(OPEN)
+  severity TicketSeverity @default(MEDIUM)
+
+  summary String
+  details String
+
+  pageUrl   String?
+  email     String? @db.Citext
+  userAgent String?
+  ipHash    String?
+
+  reporterUserId String?
+  reporter       User?   @relation("TicketReporter", fields: [reporterUserId], references: [id], onDelete: SetNull)
+
+  resolvedAt       DateTime?
+  resolvedByUserId String?
+  resolvedBy       User?     @relation("TicketResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+
+  meta Json?
+
+  @@index([status, createdAt])
+  @@index([severity, createdAt])
+  @@index([source, createdAt])
+  @@index([reporterUserId, createdAt])
+  @@index([resolvedByUserId, createdAt])
+}
+
+model Playlist {
+  id          String             @id @default(cuid())
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  name        String
+  slug        String             @unique @db.Citext
+  description String?
+  status      PlaylistStatus     @default(DRAFT)
+  visibility  PlaylistVisibility @default(INTERNAL)
+  coverUrl    String?
+  featured    Boolean            @default(false)
+  sortOrder   Int                @default(0)
+  ownerUserId String?
+  owner       User?              @relation("PlaylistOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  tracks      PlaylistTrack[]
+
+  @@index([status, updatedAt])
+  @@index([visibility, updatedAt])
+  @@index([ownerUserId, updatedAt])
+}
+
+model PlaylistTrack {
+  playlistId String
+  trackId    String
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  track      Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@id([playlistId, trackId])
+  @@index([trackId])
+  @@index([playlistId, sortOrder])
+}
+
+model SoundKit {
+  id          String         @id @default(cuid())
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  name        String
+  slug        String         @unique @db.Citext
+  description String?
+  status      SoundKitStatus @default(DRAFT)
+  price       Int            @default(0)
+  currency    Currency       @default(USD)
+  coverUrl    String?
+  previewUrl  String?
+  featured    Boolean        @default(false)
+  sortOrder   Int            @default(0)
+  ownerUserId String?
+  owner       User?          @relation("SoundKitOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+  @@index([status, updatedAt])
+  @@index([ownerUserId, updatedAt])
+}
+
+model ServiceOffer {
+  id             String             @id @default(cuid())
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  name           String
+  slug           String             @unique @db.Citext
+  category       ServiceCategory    @default(OTHER)
+  status         ServiceOfferStatus @default(ACTIVE)
+  description    String?
+  priceFrom      Int?
+  priceTo        Int?
+  currency       Currency           @default(USD)
+  turnaroundDays Int?
+  featured       Boolean            @default(false)
+  sortOrder      Int                @default(0)
+  ownerUserId    String?
+  owner          User?              @relation("ServiceOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+  @@index([status, updatedAt])
+  @@index([category, status, updatedAt])
+  @@index([ownerUserId, updatedAt])
+}
+
+model ContractRecord {
+  id                String         @id @default(cuid())
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  contractNumber    String         @unique
+  title             String
+  counterpartyName  String
+  counterpartyEmail String?
+  status            ContractStatus @default(DRAFT)
+  amount            Int?
+  currency          Currency       @default(USD)
+  startsAt          DateTime?
+  endsAt            DateTime?
+  signedAt          DateTime?
+  fileUrl           String?
+  notes             String?
+  requestId         String?
+  trackId           String?
+  track             Track?         @relation(fields: [trackId], references: [id], onDelete: SetNull)
+  ownerUserId       String?
+  owner             User?          @relation("ContractOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+  @@index([status, updatedAt])
+  @@index([counterpartyName, updatedAt])
+  @@index([ownerUserId, updatedAt])
+  @@index([trackId])
+  @@index([requestId])
 }
 
 // ───────────────────────────────────────────────────────────────────────────────

@@ -15,6 +15,7 @@ import { cookies } from "next/headers";
 import {
   APP_SESSION_COOKIE,
   clearSessionCookie,
+  clearViewAsRoleCookie,
   destroyUserSessionByCookie,
 } from "@/lib/account-auth/session";
 
@@ -74,6 +75,7 @@ export async function POST(req: NextRequest) {
 
   await destroyUserSessionByCookie(rawSession);
   await clearSessionCookie();
+  await clearViewAsRoleCookie();
 
   // Token firmado (HMAC)
   c.set("admin_session", "", {

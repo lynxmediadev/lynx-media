@@ -2,15 +2,38 @@ import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { UserRole } from "@prisma/client";
-import { APP_SESSION_COOKIE, getSessionUserFromCookie } from "@/lib/account-auth/session";
+import {
+  APP_SESSION_COOKIE,
+  VIEW_AS_ROLE_COOKIE,
+  getSessionUserFromCookie,
+  normalizeViewAsRole,
+} from "@/lib/account-auth/session";
 import { verifyAdminTokenV1 } from "@/lib/auth";
 
 type SessionUser = NonNullable<Awaited<ReturnType<typeof getSessionUserFromCookie>>>;
+type EffectiveSessionUser = SessionUser & {
+  realRole: UserRole;
+  viewAsRole: UserRole | null;
+  isViewAsActive: boolean;
+};
 
 export async function getCurrentUser() {
   const c = await cookies();
   const rawSession = c.get(APP_SESSION_COOKIE)?.value;
-  return getSessionUserFromCookie(rawSession);
+  const user = await getSessionUserFromCookie(rawSession);
+  if (!user) return null;
+
+  const viewAsRole = normalizeViewAsRole(c.get(VIEW_AS_ROLE_COOKIE)?.value);
+  const canViewAs = user.role === "ADMIN" && viewAsRole && viewAsRole !== "ADMIN";
+
+  const effectiveRole = canViewAs ? viewAsRole : user.role;
+  return {
+    ...user,
+    role: effectiveRole,
+    realRole: user.role,
+    viewAsRole: canViewAs ? viewAsRole : null,
+    isViewAsActive: Boolean(canViewAs),
+  } satisfies EffectiveSessionUser;
 }
 
 export async function requireAuth(options?: { redirectTo?: string }) {

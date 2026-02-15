@@ -5,7 +5,7 @@
  * =========================================================
  * PERAS Y MANZANAS (qué hace este archivo)
  * - Es el “cascarón” público del sitio.
- * - Decide si muestra el header (lo oculta en /admin y /catalog).
+ * - Decide si muestra el header (lo oculta en áreas dashboard: /admin y /creator).
  * - Mantiene estructura simple: header arriba + main abajo.
  * - NO implementa Snap; Snap vive solo en el homepage (page.tsx).
  * =========================================================
@@ -22,13 +22,14 @@ interface FrontendShellProps {
 export default function FrontendShell({ children }: FrontendShellProps) {
   const pathname = usePathname();
 
-  const hideHeader = pathname.startsWith("/admin");
-  const isAdminRoute = pathname.startsWith("/admin");
+  const isDashboardRoute =
+    pathname.startsWith("/admin") || pathname.startsWith("/creator");
+  const hideHeader = isDashboardRoute;
 
   return (
     <div className="min-h-dvh">
       {!hideHeader && <SiteHeader />}
-      <main className={isAdminRoute ? "" : "px-4 sm:px-6"}>{children}</main>
+      <main className={isDashboardRoute ? "" : "px-4 sm:px-6"}>{children}</main>
     </div>
   );
 }

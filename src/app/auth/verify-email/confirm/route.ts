@@ -10,6 +10,11 @@ function redirectUrl(req: NextRequest, path: string) {
   return url;
 }
 
+function postVerifyDestination(role: "ADMIN" | "STAFF" | "CREATOR") {
+  if (role === "CREATOR") return "/creator";
+  return "/admin";
+}
+
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("token")?.trim() ?? "";
   if (!token) {
@@ -33,5 +38,5 @@ export async function GET(req: NextRequest) {
     }),
   ]);
 
-  return NextResponse.redirect(redirectUrl(req, "/auth/verify-email?ok=verified"), { status: 303 });
+  return NextResponse.redirect(redirectUrl(req, postVerifyDestination(verification.user.role)), { status: 303 });
 }

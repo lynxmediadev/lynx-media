@@ -238,6 +238,61 @@ Guía rápida: crear una nueva lista admin con List Kit
 9. Registrar acciones por fila con `AdminTableRowActions` o botón local.
 10. Cerrar con smoke desktop/mobile y validar `typecheck`.
 
+Regla UX/UI obligatoria (List Kit y módulos admin):
+
+- No usar scrollers horizontales por defecto (desktop ni mobile), salvo requerimiento explícito del usuario.
+- Los controles deben reflow (wrap) dentro del contenedor antes de forzar overflow.
+- En mobile, priorizar cards/stack vertical en vez de tablas con scroll horizontal.
+- Mantener legibilidad/accesibilidad: evitar recortes de información y evitar que acciones clave queden fuera de viewport.
+
+### 11) Módulos operativos nuevos (Playlists / Sound Kits / Services / Contracts)
+
+Rutas admin activas:
+
+- `src/app/admin/playlists/page.tsx` (lista)
+- `src/app/admin/playlists/[id]/page.tsx` (detalle + edición rápida)
+- `src/app/admin/sound-kits/page.tsx` (lista)
+- `src/app/admin/sound-kits/[id]/page.tsx` (detalle + edición rápida)
+- `src/app/admin/services/page.tsx` (lista)
+- `src/app/admin/services/[id]/page.tsx` (detalle + edición rápida)
+- `src/app/admin/contracts/page.tsx` (lista)
+- `src/app/admin/contracts/[id]/page.tsx` (detalle + edición rápida)
+
+Clientes List Kit por módulo:
+
+- `src/components/admin/playlists/PlaylistsTableClient.tsx`
+- `src/components/admin/sound-kits/SoundKitsTableClient.tsx`
+- `src/components/admin/services/ServicesTableClient.tsx`
+- `src/components/admin/contracts/ContractsTableClient.tsx`
+
+Editores rápidos por módulo:
+
+- `src/components/admin/playlists/PlaylistDetailEditor.tsx`
+- `src/components/admin/sound-kits/SoundKitDetailEditor.tsx`
+- `src/components/admin/services/ServiceDetailEditor.tsx`
+- `src/components/admin/contracts/ContractDetailEditor.tsx`
+
+APIs admin (CRUD/bulk):
+
+- `/api/admin/playlists`, `/api/admin/playlists/[id]`, `/api/admin/playlists/bulk`
+- `/api/admin/sound-kits`, `/api/admin/sound-kits/[id]`, `/api/admin/sound-kits/bulk`
+- `/api/admin/services`, `/api/admin/services/[id]`, `/api/admin/services/bulk`
+- `/api/admin/contracts`, `/api/admin/contracts/[id]`, `/api/admin/contracts/bulk`
+
+Modelos Prisma agregados para estos módulos:
+
+- `Playlist` + pivote `PlaylistTrack`
+- `SoundKit`
+- `ServiceOffer`
+- `ContractRecord`
+
+Enums Prisma agregados:
+
+- `PlaylistStatus`, `PlaylistVisibility`
+- `SoundKitStatus`
+- `ServiceOfferStatus`, `ServiceCategory`
+- `ContractStatus`
+
 ## Inventario operativo actualizado (vigente)
 
 Nota:
@@ -411,10 +466,18 @@ Estado de ruta:
 - [ ] [No reusable][ R ] Tracks table client (`src/components/admin/tracks/TracksTableClient.tsx`)
 - [ ] [No reusable][ R ] `PlaceholderPage` (`src/components/admin/PlaceholderPage.tsx`)
 - [ ] [No reusable][ R ] Placeholder `Account` (`src/app/admin/account/page.tsx`)
-- [ ] [No reusable][ R ] Placeholder `Playlists` (`src/app/admin/playlists/page.tsx`)
-- [ ] [No reusable][ R ] Placeholder `Sound Kits` (`src/app/admin/sound-kits/page.tsx`)
-- [ ] [No reusable][ R ] Placeholder `Services` (`src/app/admin/services/page.tsx`)
-- [ ] [No reusable][ R ] Placeholder `Contracts` (`src/app/admin/contracts/page.tsx`)
+- [ ] [No reusable][ R ] Lista `Playlists` con List Kit (`src/app/admin/playlists/page.tsx`)
+- [ ] [No reusable][ R ] Lista `Sound Kits` con List Kit (`src/app/admin/sound-kits/page.tsx`)
+- [ ] [No reusable][ R ] Lista `Services` con List Kit (`src/app/admin/services/page.tsx`)
+- [ ] [No reusable][ R ] Lista `Contracts` con List Kit (`src/app/admin/contracts/page.tsx`)
+- [ ] [No reusable][ R ] Cliente `PlaylistsTableClient` (`src/components/admin/playlists/PlaylistsTableClient.tsx`)
+- [ ] [No reusable][ R ] Cliente `SoundKitsTableClient` (`src/components/admin/sound-kits/SoundKitsTableClient.tsx`)
+- [ ] [No reusable][ R ] Cliente `ServicesTableClient` (`src/components/admin/services/ServicesTableClient.tsx`)
+- [ ] [No reusable][ R ] Cliente `ContractsTableClient` (`src/components/admin/contracts/ContractsTableClient.tsx`)
+- [ ] [No reusable][ R ] Detalle playlist (`src/app/admin/playlists/[id]/page.tsx`)
+- [ ] [No reusable][ R ] Detalle sound kit (`src/app/admin/sound-kits/[id]/page.tsx`)
+- [ ] [No reusable][ R ] Detalle service (`src/app/admin/services/[id]/page.tsx`)
+- [ ] [No reusable][ R ] Detalle contract (`src/app/admin/contracts/[id]/page.tsx`)
 - [ ] [No reusable][ R ] Placeholder `Audit Log` (`src/app/admin/audit-log/page.tsx`)
 - [ ] [No reusable][ R ] Placeholder `Settings` (`src/app/admin/settings/page.tsx`)
 

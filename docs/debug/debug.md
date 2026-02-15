@@ -1,38 +1,78 @@
-Hice una prueba entrando a "npx prisma studio" y ahora sí se está guardando data. 
+ ✓ Compiled /auth/register/submit in 623ms (615 modules)
+prisma:query SELECT "public"."AuthRateLimit"."key", "public"."AuthRateLimit"."createdAt", "public"."AuthRateLimit"."updatedAt", "public"."AuthRateLimit"."action", "public"."AuthRateLimit"."windowStart", "public"."AuthRateLimit"."count", "public"."AuthRateLimit"."blockedUntil" FROM "public"."AuthRateLimit" WHERE ("public"."AuthRateLimit"."key" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query INSERT INTO "public"."AuthRateLimit" ("key","createdAt","updatedAt","action","windowStart","count") VALUES ($1,$2,$3,$4,$5,$6) RETURNING "public"."AuthRateLimit"."key", "public"."AuthRateLimit"."createdAt", "public"."AuthRateLimit"."updatedAt", "public"."AuthRateLimit"."action", "public"."AuthRateLimit"."windowStart", "public"."AuthRateLimit"."count", "public"."AuthRateLimit"."blockedUntil"
+prisma:query SELECT "public"."InviteToken"."id", "public"."InviteToken"."email", "public"."InviteToken"."userId" FROM "public"."InviteToken" WHERE ("public"."InviteToken"."tokenHash" = $1 AND "public"."InviteToken"."usedAt" IS NULL AND "public"."InviteToken"."expiresAt" > $2) LIMIT $3 OFFSET $4
+prisma:query SELECT "public"."User"."id", "public"."User"."email", "public"."User"."status"::text, "public"."User"."role"::text FROM "public"."User" WHERE ("public"."User"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."User" SET "name" = $1, "passwordHash" = $2, "status" = CAST($3::text AS "public"."UserStatus"), "emailVerifiedAt" = $4, "updatedAt" = $5 WHERE ("public"."User"."id" = $6 AND 1=1) RETURNING "public"."User"."id", "public"."User"."role"::text
+prisma:query UPDATE "public"."InviteToken" SET "usedAt" = $1 WHERE ("public"."InviteToken"."id" = $2 AND 1=1) RETURNING "public"."InviteToken"."id", "public"."InviteToken"."createdAt", "public"."InviteToken"."userId", "public"."InviteToken"."email", "public"."InviteToken"."tokenHash", "public"."InviteToken"."expiresAt", "public"."InviteToken"."usedAt"
+prisma:query INSERT INTO "public"."UserSession" ("id","createdAt","updatedAt","userId","sessionTokenHash","expiresAt","ip","userAgent") VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING "public"."UserSession"."id", "public"."UserSession"."expiresAt"
+prisma:query UPDATE "public"."User" SET "lastLoginAt" = $1, "updatedAt" = $2 WHERE ("public"."User"."id" = $3 AND 1=1) RETURNING "public"."User"."id", "public"."User"."createdAt", "public"."User"."updatedAt", "public"."User"."email", "public"."User"."passwordHash", "public"."User"."name", "public"."User"."role"::text, "public"."User"."status"::text, "public"."User"."emailVerifiedAt", "public"."User"."lastLoginAt"
+prisma:query SELECT "public"."User"."id", "public"."User"."email", "public"."User"."status"::text, "public"."User"."emailVerifiedAt" FROM "public"."User" WHERE ("public"."User"."id" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query INSERT INTO "public"."EmailVerificationToken" ("id","createdAt","userId","tokenHash","expiresAt","requestedIp") VALUES ($1,$2,$3,$4,$5,$6) RETURNING "public"."EmailVerificationToken"."id", "public"."EmailVerificationToken"."createdAt", "public"."EmailVerificationToken"."userId", "public"."EmailVerificationToken"."tokenHash", "public"."EmailVerificationToken"."expiresAt", "public"."EmailVerificationToken"."usedAt", "public"."EmailVerificationToken"."requestedIp"
+[auth:email:console] {
+  ts: '2026-02-14T21:33:01.778Z',
+  kind: 'verify_email',
+  to: 'q@q.cl',
+  subject: 'Verifica tu email · Lynx Media',
+  messageId: 'console-verify_email-1771104781778',
+  previewText: 'Verifica tu email · Lynx Media\n' +
+    '\n' +
+    'Confirma tu email para completar la seguridad de tu cuenta.\n' +
+    'Este enlace expira: 15-02-2026, 6:33 p. m.\n' +
+    '\n' +
+    'Verificar email: http://localhost:3000/auth/verify-email/confirm?token=[redacted]\n' +
+    '\n' +
+    'Si no solicitaste est'
+}
+[auth:email] email_verify_sent {
+  provider: 'console',
+  to: 'q@q.cl',
+  messageId: 'console-verify_email-1771104781778'
+}
+ POST /auth/register/submit 303 in 2005ms
+ ○ Compiling /auth/verify-email ...
+ ✓ Compiled /auth/verify-email in 752ms (617 modules)
+ GET /auth/verify-email?ok=sent&debugLink=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fverify-email%2Fconfirm%3Ftoken%3DKe-B3aT1rqcQVPpOmulHbgUgXfQ1o7Nh4V_GCsdk72I 200 in 1120ms
+ ○ Compiling /auth/verify-email/send ...
+ ✓ Compiled /auth/verify-email/send in 695ms (619 modules)
+prisma:query SELECT "public"."UserSession"."id", "public"."UserSession"."userId" FROM "public"."UserSession" WHERE ("public"."UserSession"."id" = $1 AND "public"."UserSession"."userId" = $2 AND "public"."UserSession"."sessionTokenHash" = $3 AND "public"."UserSession"."expiresAt" > $4) LIMIT $5 OFFSET $6
+prisma:query SELECT 1
+prisma:query SELECT 1
+prisma:query SELECT 1
+prisma:query SELECT "public"."User"."id", "public"."User"."email", "public"."User"."name", "public"."User"."role"::text, "public"."User"."status"::text, "public"."User"."emailVerifiedAt" FROM "public"."User" WHERE "public"."User"."id" IN ($1) OFFSET $2
+prisma:query SELECT "public"."UserSession"."id", "public"."UserSession"."userId" FROM "public"."UserSession" WHERE ("public"."UserSession"."id" = $1 AND "public"."UserSession"."userId" = $2 AND "public"."UserSession"."sessionTokenHash" = $3 AND "public"."UserSession"."expiresAt" > $4) LIMIT $5 OFFSET $6
+prisma:query SELECT "public"."UserSession"."id", "public"."UserSession"."userId" FROM "public"."UserSession" WHERE ("public"."UserSession"."id" = $1 AND "public"."UserSession"."userId" = $2 AND "public"."UserSession"."sessionTokenHash" = $3 AND "public"."UserSession"."expiresAt" > $4) LIMIT $5 OFFSET $6
+prisma:query SELECT "public"."UserSession"."id", "public"."UserSession"."userId" FROM "public"."UserSession" WHERE ("public"."UserSession"."id" = $1 AND "public"."UserSession"."userId" = $2 AND "public"."UserSession"."sessionTokenHash" = $3 AND "public"."UserSession"."expiresAt" > $4) LIMIT $5 OFFSET $6
+prisma:query SELECT "public"."User"."id", "public"."User"."email", "public"."User"."name", "public"."User"."role"::text, "public"."User"."status"::text, "public"."User"."emailVerifiedAt" FROM "public"."User" WHERE "public"."User"."id" IN ($1) OFFSET $2
+prisma:query SELECT "public"."User"."id", "public"."User"."email", "public"."User"."name", "public"."User"."role"::text, "public"."User"."status"::text, "public"."User"."emailVerifiedAt" FROM "public"."User" WHERE "public"."User"."id" IN ($1) OFFSET $2
+prisma:query SELECT "public"."AuthRateLimit"."key", "public"."AuthRateLimit"."createdAt", "public"."AuthRateLimit"."updatedAt", "public"."AuthRateLimit"."action", "public"."AuthRateLimit"."windowStart", "public"."AuthRateLimit"."count", "public"."AuthRateLimit"."blockedUntil" FROM "public"."AuthRateLimit" WHERE ("public"."AuthRateLimit"."key" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."User"."id", "public"."User"."email", "public"."User"."name", "public"."User"."role"::text, "public"."User"."status"::text, "public"."User"."emailVerifiedAt" FROM "public"."User" WHERE "public"."User"."id" IN ($1) OFFSET $2
+ POST /auth/verify-email/send 200 in 42ms
+prisma:query SELECT "public"."AuthRateLimit"."key", "public"."AuthRateLimit"."createdAt", "public"."AuthRateLimit"."updatedAt", "public"."AuthRateLimit"."action", "public"."AuthRateLimit"."windowStart", "public"."AuthRateLimit"."count", "public"."AuthRateLimit"."blockedUntil" FROM "public"."AuthRateLimit" WHERE ("public"."AuthRateLimit"."key" = $1 AND 1=1) LIMIT $2 OFFSET $3
+ POST /auth/verify-email/send 200 in 19ms
+prisma:query SELECT "public"."AuthRateLimit"."key", "public"."AuthRateLimit"."createdAt", "public"."AuthRateLimit"."updatedAt", "public"."AuthRateLimit"."action", "public"."AuthRateLimit"."windowStart", "public"."AuthRateLimit"."count", "public"."AuthRateLimit"."blockedUntil" FROM "public"."AuthRateLimit" WHERE ("public"."AuthRateLimit"."key" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query INSERT INTO "public"."AuthRateLimit" ("key","createdAt","updatedAt","action","windowStart","count") VALUES ($1,$2,$3,$4,$5,$6) RETURNING "public"."AuthRateLimit"."key", "public"."AuthRateLimit"."createdAt", "public"."AuthRateLimit"."updatedAt", "public"."AuthRateLimit"."action", "public"."AuthRateLimit"."windowStart", "public"."AuthRateLimit"."count", "public"."AuthRateLimit"."blockedUntil"
+prisma:query INSERT INTO "public"."AuthRateLimit" ("key","createdAt","updatedAt","action","windowStart","count") VALUES ($1,$2,$3,$4,$5,$6) RETURNING "public"."AuthRateLimit"."key", "public"."AuthRateLimit"."createdAt", "public"."AuthRateLimit"."updatedAt", "public"."AuthRateLimit"."action", "public"."AuthRateLimit"."windowStart", "public"."AuthRateLimit"."count", "public"."AuthRateLimit"."blockedUntil"
+prisma:error 
+Invalid `prisma.authRateLimit.create()` invocation:
 
-## Explico el comportamiento a continuación, con el paso a paso de lo que hago y veo:
 
-1. agrego un titular de master, aparece en la lista de titulares de master
-NOMBRE: TEST 1
-2. voy a prisma studio, veo que está el titular agregado en prisma:
-ID: cml2emy9e001guq4dw2402tkm
-trackId: cmkx1ed3f000duq9glemziy2b
-3. Voy a Table Editor de MasterShare en Supabase y también me muestra el nuevo titular, con las mismas ID y trackId que en prisma
-4. Recargo la página (yo normalmente uso Ctrl+Shift+R por costumbre), y en la lista de titulares del master no aparece el titular creado, simplemente no aparece ni un dato ahí y sólo se ve el mensaje que dice "Sin titulares registrados."
-
-## Llevé el test un poco más allá
-Creé un nuevo titular del master y esto fue lo que sucedió:
-1. Creé un nuevo titular del master con NOMBRE: TEST 2.
-2. Click en añadir master.
-3. Se muestra TEST 2 en la lista de titulares de master.
-4. Voy a prisma y reviso si efectivamente se guardó el nuevo titular del master y sucede esto:
-4.1. Voy al Model de Track y hago click en MasterShare. Esto abre un desplegable con una lista de MasterShare y me aparecen dos elementos/titulares: TEST 1 y TEST 2.
-4.2. Luego de unos 10-30 segundos recargo prisma y TEST 1 desaparece, y sólo queda TEST 2:
-- Con diferente ID (cml2f5aaq001wuq4duwsawy9x)
-- Con la misma trackId que TEST 1 (cmkx1ed3f000duq9glemziy2b).
-5. Voy a Supabase y pasa lo mismo, desaparece TEST 1 y queda TEST 2.
-6. Recargo la página y desaparece TEST 2 de la lista de titulares (pero sigue en prisma y supabase).
-
-Esto es lo que está pasando.
-Te voy a entregar el terminal en docs/debug/terminal.md.
-Hice de nuevo exactamente la misma prueba para tener un terminal limpio (ya que con el actual hice los tests y recargué varias veces). Entonces puede que veas id's distintas en ese terminal.
+Unique constraint failed on the fields: (`key`)
+Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.authRateLimit.create()` invocation:
 
 
-
-Creo que llevamos demasiado tiempo en esto, ¿será mejor crear desde cero esa sección de "Titulares de master (múltiples)"?
-Crear el schema de Titulares de master (múltiples) desde cero, agregar a prisma o a db desde cero?
-se habrá hecho mal la migración de prisma? habrá un problema con supabase?
-¿la conexión estará mal hecha?
-- Responsivo (mar 2026): helpers en globals (`.stack-sm`, `.table-scroll`, `.touch-gap`, `.full-sm`, `.btn-touch`).
-- Catálogo/track: tabla scrollable, waveform 22px, hero apilable, similares usan `table-scroll`.
-- Admin: headers con wrap; requests lista/detalle scroll-x; tracks list scroll-x; track edit shares/master con `table-scroll` y botón guardar adaptable.
+Unique constraint failed on the fields: (`key`)
+    at async consumeRateLimit (src/lib/account-auth/rate-limit.ts:34:5)
+    at async POST (src/app/auth/verify-email/send/route.ts:37:20)
+  32 |   const current = await prisma.authRateLimit.findUnique({ where: { key } });
+  33 |   if (!current) {
+> 34 |     await prisma.authRateLimit.create({
+     |     ^
+  35 |       data: {
+  36 |         key,
+  37 |         action: input.action, {
+  code: 'P2002',
+  meta: [Object],
+  clientVersion: '6.19.2'
+}

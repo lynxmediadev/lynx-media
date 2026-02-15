@@ -4,6 +4,7 @@ import {
   FolderKanban,
   Gavel,
   Home,
+  LifeBuoy,
   Library,
   Music2,
   ScrollText,
@@ -108,6 +109,13 @@ export const adminDashboardSections: DashboardSection[] = [
         label: "Requests",
         href: "/admin/requests",
         icon: ScrollText,
+        section: "system",
+      },
+      {
+        id: "tickets",
+        label: "Tickets",
+        href: "/admin/tickets",
+        icon: LifeBuoy,
         section: "system",
       },
       {

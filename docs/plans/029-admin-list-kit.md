@@ -183,15 +183,15 @@
 - [x] Ajustar estados vacíos y acciones fila por dominio.
 
 ### Smoke F4
-- [ ] Filtros operativos por ruta.
+- [x] Filtros operativos por ruta.
 - [x] Layout consistente desktop/mobile.
-- [ ] Sin regressions de permisos.
+- [x] Sin regressions de permisos.
 
 ### Criterio de cierre F4
-- [ ] Todas las listas admin prioritarias sobre un kit común.
+- [x] Todas las listas admin prioritarias sobre un kit común.
 
 #### Nota F4
-- Playlists y Contracts aún no tienen datasource/tablas reales; se dejó scaffold List Kit + empty state preparado para integración cuando exista backend de listado.
+- Playlists y Contracts ya tienen datasource/tablas reales y detalle básico con edición rápida.
 
 ---
 
@@ -275,7 +275,7 @@
 - [x] Migrar Users al List Kit.
 - [x] Migrar Tracks al List Kit.
 - [x] Migrar Requests/Licensing al List Kit.
-- [x] Aplicar scaffold List Kit en Playlists/Contracts.
+- [x] Aplicar List Kit operativo en Playlists/Contracts.
 - [ ] Corregir configuración ESLint para habilitar gate de lint en CI.
 - [ ] Ejecutar smoke manual completo desktop/mobile y cerrar regresiones.
 - [ ] Ejecutar profiling simple en listas con volumen alto de datos reales.

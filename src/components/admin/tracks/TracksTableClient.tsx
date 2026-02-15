@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Ban, Check, Clock3, Copy, Loader2, RefreshCcw, ShieldCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Ban, Check, Clock3, Copy, Filter, Loader2, RefreshCcw, Search, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AnalyzeActions from "@/components/admin/AnalyzeActions";
 import {
@@ -13,6 +14,7 @@ import {
   AdminIconBadge,
   AdminListEmptyState,
   AdminStatusBadge,
+  countActiveFilters,
   selectAllOrNone,
   toggleSelection,
   type AdminColumnDef,
@@ -77,14 +79,20 @@ function analysisBadge(row: TrackListRow) {
 }
 
 export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
+  const router = useRouter();
   const [rows, setRows] = useState<TrackListRow[]>(tracks);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
+  const [idCopyState, setIdCopyState] = useState<"idle" | "copied" | "error">("idle");
+  const [filterCopyState, setFilterCopyState] = useState<"idle" | "copied" | "error">("idle");
+  const [localQuery, setLocalQuery] = useState(filters.q);
+  const [localAnalysis, setLocalAnalysis] = useState(filters.analysis);
+  const [localPer, setLocalPer] = useState(String(filters.per));
   const [analyzeState, setAnalyzeState] = useState<{
     type: "idle" | "running" | "success" | "error";
     message: string;
   }>({ type: "idle", message: "" });
-  const copyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const idCopyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const filterCopyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const analyzeResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const selectableIds = useMemo(() => rows.map((track) => track.id), [rows]);
@@ -94,11 +102,19 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
     selectedIds.length > 0
       ? `${selectedIds.length} ${selectedIds.length === 1 ? "seleccionado" : "seleccionados"}`
       : "sin selección";
+  const localActiveCount = countActiveFilters([localQuery.trim().toLowerCase(), localAnalysis, localPer !== "50" ? localPer : ""]);
+  const filterStateLabel =
+    localActiveCount === 0
+      ? "sin filtros"
+      : `${localActiveCount} ${localActiveCount === 1 ? "filtro activo" : "filtros activos"}`;
 
   useEffect(() => {
     return () => {
-      if (copyResetRef.current) {
-        clearTimeout(copyResetRef.current);
+      if (idCopyResetRef.current) {
+        clearTimeout(idCopyResetRef.current);
+      }
+      if (filterCopyResetRef.current) {
+        clearTimeout(filterCopyResetRef.current);
       }
       if (analyzeResetRef.current) {
         clearTimeout(analyzeResetRef.current);
@@ -110,18 +126,58 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
     setRows(tracks);
   }, [tracks]);
 
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      const params = new URLSearchParams();
+      const trimmedQuery = localQuery.trim();
+      if (trimmedQuery) params.set("q", trimmedQuery);
+      if (localAnalysis) params.set("analysis", localAnalysis);
+      if (localPer) params.set("per", localPer);
+      params.set("page", "1");
+
+      const query = params.toString();
+      const nextPath = `${window.location.pathname}?${query}`;
+      const currentPath = `${window.location.pathname}${window.location.search}`;
+      if (nextPath !== currentPath) {
+        router.replace(nextPath, { scroll: false });
+      }
+    }, 120);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [localAnalysis, localPer, localQuery, router]);
+
+  async function handleCopyFilter() {
+    const params = new URLSearchParams();
+    const trimmedQuery = localQuery.trim();
+    if (trimmedQuery) params.set("q", trimmedQuery);
+    if (localAnalysis) params.set("analysis", localAnalysis);
+    if (localPer) params.set("per", localPer);
+    params.set("page", "1");
+    const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setFilterCopyState("copied");
+    } catch {
+      setFilterCopyState("error");
+    }
+    if (filterCopyResetRef.current) {
+      clearTimeout(filterCopyResetRef.current);
+    }
+    filterCopyResetRef.current = setTimeout(() => setFilterCopyState("idle"), 1600);
+  }
+
   async function handleCopySelected() {
     if (selectedIds.length === 0) return;
     try {
       await navigator.clipboard.writeText(selectedIds.join(","));
-      setCopyState("copied");
+      setIdCopyState("copied");
     } catch {
-      setCopyState("error");
+      setIdCopyState("error");
     }
-    if (copyResetRef.current) {
-      clearTimeout(copyResetRef.current);
+    if (idCopyResetRef.current) {
+      clearTimeout(idCopyResetRef.current);
     }
-    copyResetRef.current = setTimeout(() => setCopyState("idle"), 1500);
+    idCopyResetRef.current = setTimeout(() => setIdCopyState("idle"), 1500);
   }
 
   async function handleAnalyzeSelected() {
@@ -254,70 +310,80 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
       key: "acciones",
       label: "Acciones",
       align: "right",
-      render: (track) => <AnalyzeActions id={track.id} audioUrl={track.audioUrl} className="justify-end" />,
+      widthClassName: "w-[228px]",
+      render: (track) => (
+        <AnalyzeActions
+          id={track.id}
+          audioUrl={track.audioUrl}
+          iconOnly
+          className="max-w-[220px] flex-wrap justify-end"
+        />
+      ),
     },
   ];
-
-  if (rows.length === 0) {
-    return <AdminListEmptyState message="No hay tracks registrados todavía." />;
-  }
 
   return (
     <>
       <div className="border-b border-border px-3 py-2 sm:px-4">
         <div className="grid gap-2 xl:grid-cols-2">
-          <form method="GET" action="/admin/tracks" className="min-w-0">
-            <input type="hidden" name="page" value="1" />
+          <form method="GET" action="/admin/tracks" className="min-w-0" onSubmit={(event) => event.preventDefault()}>
             <AdminFilterPanel
-              title="Filtros de lista"
+              title={
+                <>
+                  <Filter className="h-3.5 w-3.5" />
+                  Filtros de lista
+                </>
+              }
               statusSlot={
                 <>
                   <span className="text-[11px] text-muted-foreground">·</span>
-                  <AdminStatusBadge className="capitalize">
-                    {filters.activeCount === 0
-                      ? "sin filtros"
-                      : `${filters.activeCount} ${filters.activeCount === 1 ? "filtro activo" : "filtros activos"}`}
-                  </AdminStatusBadge>
+                  <AdminStatusBadge className="capitalize">{filterStateLabel}</AdminStatusBadge>
                 </>
               }
               actionSlot={
-                <>
-                  <button
-                    type="submit"
-                    className="inline-flex h-8 items-center rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-muted/45"
-                  >
-                    Aplicar
-                  </button>
-                  <a
-                    href={`/admin/tracks?page=1&per=${filters.per}`}
-                    className="inline-flex h-8 items-center rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-muted/45"
-                  >
-                    Limpiar
-                  </a>
-                </>
+                <button
+                  type="button"
+                  onClick={() => void handleCopyFilter()}
+                  className={cn(
+                    "inline-flex items-center rounded-full border border-border bg-background px-2 py-1 text-[11px] capitalize",
+                    "transition-colors hover:bg-muted/45",
+                    filterCopyState === "copied" ? "border-emerald-500/50 text-emerald-300" : "",
+                    filterCopyState === "error" ? "border-destructive/60 text-destructive" : "",
+                  )}
+                >
+                  {filterCopyState === "copied" ? "Copiado" : filterCopyState === "error" ? "Error" : "Copiar filtro"}
+                </button>
               }
             >
-              <AdminControlsRow innerClassName="w-full">
-                  <div className="grid min-w-[260px] flex-1 gap-1">
+              <AdminControlsRow innerClassName="w-full xl:flex-nowrap">
+                  <div className="grid min-w-0 flex-[1_1_220px] gap-1">
                     <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">
                       Campo
                     </span>
-                    <input
-                      type="text"
-                      name="q"
-                      defaultValue={filters.q}
-                      placeholder="Buscar título o artista"
-                      className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
-                    />
+                    <div className="relative w-full">
+                      <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <input
+                        id="filter-tracks-q"
+                        type="text"
+                        name="q"
+                        value={localQuery}
+                        onChange={(event) => setLocalQuery(event.target.value)}
+                        placeholder="Buscar título o artista"
+                        className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm"
+                        autoComplete="off"
+                      />
+                    </div>
                   </div>
 
-                  <div className="grid w-[150px] gap-1">
+                  <div className="grid w-[132px] gap-1">
                     <span className="text-center text-[10px] font-semibold tracking-wide uppercase text-muted-foreground">
                       ESTADO
                     </span>
                     <select
+                      id="filter-tracks-status"
                       name="analysis"
-                      defaultValue={filters.analysis}
+                      value={localAnalysis}
+                      onChange={(event) => setLocalAnalysis(event.target.value)}
                       className="h-9 w-full rounded-md border border-border bg-background px-3 pr-8 text-sm"
                     >
                       <option value="">TODOS</option>
@@ -327,13 +393,15 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
                     </select>
                   </div>
 
-                  <div className="grid w-[120px] gap-1">
+                  <div className="grid w-[104px] gap-1">
                     <span className="text-center text-[10px] font-semibold tracking-wide uppercase text-muted-foreground">
                       POR PÁGINA
                     </span>
                     <select
+                      id="filter-tracks-per"
                       name="per"
-                      defaultValue={String(filters.per)}
+                      value={localPer}
+                      onChange={(event) => setLocalPer(event.target.value)}
                       className="h-9 w-full rounded-md border border-border bg-background px-3 pr-8 text-sm"
                     >
                       <option value="10">10</option>
@@ -341,6 +409,26 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
                       <option value="50">50</option>
                       <option value="100">100</option>
                     </select>
+                  </div>
+
+                  <div className="grid w-[42px] gap-1">
+                    <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">
+                      Acción
+                    </span>
+                    <button
+                      id="tracks-limpiar-filtros"
+                      type="button"
+                      title="Limpiar"
+                      aria-label="Limpiar"
+                      onClick={() => {
+                        setLocalQuery("");
+                        setLocalAnalysis("");
+                        setLocalPer("50");
+                      }}
+                      className="inline-flex h-9 w-full items-center justify-center rounded-md border border-border text-sm transition-colors hover:bg-muted/45"
+                    >
+                      <RefreshCcw className="h-4 w-4" />
+                    </button>
                   </div>
               </AdminControlsRow>
             </AdminFilterPanel>
@@ -423,12 +511,12 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
                     className={cn(
                       "inline-flex h-8 items-center gap-1 rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-muted/45",
                       "disabled:cursor-not-allowed disabled:opacity-50",
-                      copyState === "copied" ? "border-emerald-500/50 text-emerald-300" : "",
-                      copyState === "error" ? "border-destructive/60 text-destructive" : "",
+                      idCopyState === "copied" ? "border-emerald-500/50 text-emerald-300" : "",
+                      idCopyState === "error" ? "border-destructive/60 text-destructive" : "",
                     )}
                   >
                     <Copy className="h-3.5 w-3.5" />
-                    {copyState === "copied" ? "Copiado" : copyState === "error" ? "Error" : "Copiar IDs"}
+                    {idCopyState === "copied" ? "Copiado" : idCopyState === "error" ? "Error" : "Copiar IDs"}
                   </button>
                 </div>
 
@@ -453,7 +541,10 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
       </div>
 
       <div className="space-y-3 p-3 md:hidden">
-        {rows.map((track) => (
+        {rows.length === 0 ? (
+          <AdminListEmptyState message="Sin resultados para los filtros actuales." />
+        ) : (
+          rows.map((track) => (
           <article
             key={track.id}
             className={cn(
@@ -497,14 +588,16 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
               <AnalyzeActions
                 id={track.id}
                 audioUrl={track.audioUrl}
-                className="w-full justify-between"
+                iconOnly
+                className="w-full justify-start"
               />
             </div>
           </article>
-        ))}
+          ))
+        )}
       </div>
 
-      <div className="table-scroll hidden md:block">
+      <div className="hidden overflow-hidden md:block">
         <AdminDataTable
           rows={rows}
           columns={desktopColumns}
@@ -515,8 +608,9 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
               selectedSet.has(track.id) && "bg-accent/20 hover:bg-accent/25",
             )
           }
-          tableClassName="w-full table-auto min-w-[1140px]"
+          tableClassName="w-full table-fixed"
           headerClassName="bg-muted/60"
+          emptyState={<AdminListEmptyState message="Sin resultados para los filtros actuales." />}
         />
       </div>
     </>

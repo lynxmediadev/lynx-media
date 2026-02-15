@@ -35,11 +35,13 @@ function humanize(segment: string): string {
 
 function buildBreadcrumbs(
   pathname: string,
+  rootCrumb: DashboardCrumb,
   activeItem?: DashboardNavItem,
 ): DashboardCrumb[] {
-  const crumbs: DashboardCrumb[] = [{ label: "Admin", href: "/admin" }];
+  const crumbs: DashboardCrumb[] = [rootCrumb];
+  const rootHref = rootCrumb.href;
 
-  if (activeItem && activeItem.href !== "/admin") {
+  if (activeItem && activeItem.href !== rootHref) {
     crumbs.push({ label: activeItem.label, href: activeItem.href });
   }
 
@@ -69,12 +71,24 @@ export function DashboardShell({
   brandSubtitle,
   children,
   hiddenPaths = ["/admin/login"],
+  rootCrumb = { label: "Admin", href: "/admin" },
+  publicSiteHref = "/",
+  logoutAction = "/admin/logout",
+  mobileMenuTitle = "Menu de navegacion",
+  topbarCustomActions,
+  mobileFooterCustomActions,
 }: {
   sections: DashboardSection[];
   brandTitle: string;
   brandSubtitle?: string;
   children: React.ReactNode;
   hiddenPaths?: string[];
+  rootCrumb?: DashboardCrumb;
+  publicSiteHref?: string;
+  logoutAction?: string;
+  mobileMenuTitle?: string;
+  topbarCustomActions?: React.ReactNode;
+  mobileFooterCustomActions?: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -92,8 +106,8 @@ export function DashboardShell({
   }, [allItems, pathname]);
 
   const breadcrumbs = useMemo(
-    () => buildBreadcrumbs(pathname, activeItem),
-    [pathname, activeItem],
+    () => buildBreadcrumbs(pathname, rootCrumb, activeItem),
+    [pathname, activeItem, rootCrumb],
   );
   const isTrackEditRoute =
     pathname.startsWith("/admin/tracks/") && pathname.includes("/edit");
@@ -101,13 +115,15 @@ export function DashboardShell({
 
   const topbarActions = (
     <>
+      {topbarCustomActions}
+
       <Button asChild variant="secondary" size="sm" className="hidden h-8 sm:inline-flex">
-        <Link href="/">Sitio publico</Link>
+        <Link href={publicSiteHref}>Sitio publico</Link>
       </Button>
 
       <ThemeToggle />
 
-      <form method="POST" action="/admin/logout" className="hidden sm:block">
+      <form method="POST" action={logoutAction} className="hidden sm:block">
         <Button
           type="submit"
           variant="outline"
@@ -122,13 +138,15 @@ export function DashboardShell({
 
   const mobileSidebarActions = (
     <div className="space-y-2">
+      {mobileFooterCustomActions}
+
       <Button asChild variant="secondary" size="sm" className="h-9 w-full">
-        <Link href="/">Sitio publico</Link>
+        <Link href={publicSiteHref}>Sitio publico</Link>
       </Button>
 
       <div className="flex items-center justify-between gap-2">
         <ThemeToggle />
-        <form method="POST" action="/admin/logout" className="flex-1">
+        <form method="POST" action={logoutAction} className="flex-1">
           <Button
             type="submit"
             variant="outline"
@@ -163,7 +181,7 @@ export function DashboardShell({
 
         <div className="flex min-w-0 flex-1 flex-col">
           <DashboardTopbar
-            title={activeItem?.label ?? "Admin"}
+            title={activeItem?.label ?? rootCrumb.label}
             breadcrumbs={breadcrumbs}
             onOpenMobile={() => setMobileOpen(true)}
             actions={topbarActions}
@@ -177,7 +195,7 @@ export function DashboardShell({
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-[300px] p-0">
-          <SheetTitle className="sr-only">Menu de navegacion admin</SheetTitle>
+          <SheetTitle className="sr-only">{mobileMenuTitle}</SheetTitle>
           <DashboardMobileSidebar
             sections={sections}
             brandTitle={brandTitle}

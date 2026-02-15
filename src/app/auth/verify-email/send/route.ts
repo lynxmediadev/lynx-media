@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   if (!sessionUser) {
     return NextResponse.redirect(redirectUrl(req, "/auth/login?err=unauthorized"), { status: 303 });
   }
-  const baseDestination = sessionUser.role === "CREATOR" ? "/auth/verify-email" : "/admin/account";
+  const baseDestination = sessionUser.role === "CREATOR" ? "/creator/account" : "/admin/account";
 
   if (sessionUser.emailVerifiedAt) {
     return NextResponse.redirect(redirectUrl(req, `${baseDestination}?ok=already`), { status: 303 });

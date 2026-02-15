@@ -55,6 +55,15 @@ export default function SiteHeader() {
             asChild
             variant="outline"
             size="sm"
+            className="shadow-sm"
+          >
+            <Link href="/auth/panel">Mi panel</Link>
+          </Button>
+
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
             className="hidden shadow-sm md:inline-flex"
           >
             <Link href="/catalog">Ver catálogo</Link>
