@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -351,9 +352,14 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
       label: "Track",
       render: (track) => (
         <div className="flex flex-col">
-          <span className="text-foreground text-sm font-medium">
-            {track.title || "(sin título)"}
-          </span>
+          <Link
+            href={`/admin/tracks/${track.id}/edit`}
+            className="text-foreground hover:underline"
+          >
+            <span className="text-sm font-medium">
+              {track.title || "(sin título)"}
+            </span>
+          </Link>
           <span className="text-muted-foreground text-xs">
             {track.artist || "(sin artista)"}
           </span>
@@ -675,9 +681,12 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
                     aria-label={`Seleccionar track ${track.title ?? track.id}`}
                   />
                   <div className="min-w-0">
-                    <p className="text-foreground truncate text-sm font-semibold">
+                    <Link
+                      href={`/admin/tracks/${track.id}/edit`}
+                      className="text-foreground block truncate text-sm font-semibold hover:underline"
+                    >
                       {track.title || "(sin título)"}
-                    </p>
+                    </Link>
                     <p className="text-muted-foreground truncate text-xs">
                       {track.artist || "(sin artista)"}
                     </p>

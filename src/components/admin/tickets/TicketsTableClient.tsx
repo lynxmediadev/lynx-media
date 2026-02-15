@@ -341,7 +341,12 @@ export function TicketsTableClient({ rows, filters }: TicketsTableClientProps) {
       label: "Ticket",
       render: (row) => (
         <div className="space-y-1">
-          <p className="text-sm leading-tight font-medium">{row.summary}</p>
+          <Link
+            href={`/admin/tickets/${row.id}`}
+            className="text-foreground block text-sm leading-tight font-medium hover:underline"
+          >
+            {row.summary}
+          </Link>
           <p className="text-muted-foreground text-xs">
             {truncate(row.details)}
           </p>

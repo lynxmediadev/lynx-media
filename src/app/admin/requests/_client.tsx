@@ -583,9 +583,12 @@ export default function RequestsAdminClient(props: {
       label: "Cliente",
       render: (row) => (
         <div className="flex flex-col">
-          <span className="text-foreground text-sm font-medium">
-            {row.name}
-          </span>
+          <Link
+            href={`/admin/requests/${row.id}`}
+            className="text-foreground hover:underline"
+          >
+            <span className="text-sm font-medium">{row.name}</span>
+          </Link>
           <CopyEmail email={row.email} />
         </div>
       ),
@@ -921,9 +924,12 @@ export default function RequestsAdminClient(props: {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-foreground truncate text-sm font-semibold">
+                      <Link
+                        href={`/admin/requests/${row.id}`}
+                        className="text-foreground block truncate text-sm font-semibold hover:underline"
+                      >
                         {row.name}
-                      </p>
+                      </Link>
                       <CopyEmail email={row.email} />
                     </div>
                     <Checkbox

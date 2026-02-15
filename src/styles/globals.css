@@ -277,6 +277,59 @@ body {
 }
 
 /* =========================================================
+   Admin badges (theme-aware para light/dark sin depender de `dark:`)
+   ======================================================= */
+.admin-badge-success {
+  border-color: rgb(16 185 129 / 0.4);
+  background-color: rgb(16 185 129 / 0.12);
+  color: rgb(110 231 183);
+}
+.admin-badge-warning {
+  border-color: rgb(245 158 11 / 0.4);
+  background-color: rgb(245 158 11 / 0.12);
+  color: rgb(253 186 116);
+}
+.admin-badge-danger {
+  border-color: rgb(244 63 94 / 0.45);
+  background-color: rgb(244 63 94 / 0.12);
+  color: rgb(251 113 133);
+}
+.admin-badge-role-admin {
+  border-color: rgb(16 185 129 / 0.4);
+  background-color: rgb(16 185 129 / 0.12);
+  color: rgb(110 231 183);
+}
+.admin-badge-role-staff {
+  border-color: rgb(14 165 233 / 0.4);
+  background-color: rgb(14 165 233 / 0.12);
+  color: rgb(125 211 252);
+}
+.admin-badge-role-creator {
+  border-color: rgb(113 113 122 / 0.4);
+  background-color: rgb(113 113 122 / 0.12);
+  color: rgb(212 212 216);
+}
+
+html.light .admin-badge-success {
+  color: rgb(6 95 70);
+}
+html.light .admin-badge-warning {
+  color: rgb(146 64 14);
+}
+html.light .admin-badge-danger {
+  color: rgb(153 27 27);
+}
+html.light .admin-badge-role-admin {
+  color: rgb(6 95 70);
+}
+html.light .admin-badge-role-staff {
+  color: rgb(7 89 133);
+}
+html.light .admin-badge-role-creator {
+  color: rgb(63 63 70);
+}
+
+/* =========================================================
    Base layer
    ======================================================= */
 @layer base {

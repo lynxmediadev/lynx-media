@@ -11,16 +11,16 @@ type AdminStatusBadgeProps = {
 };
 
 function toneClass(tone: AdminBadgeTone) {
-  if (tone === "success") return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300";
-  if (tone === "warning") return "border-amber-500/30 bg-amber-500/10 text-amber-300";
-  if (tone === "danger") return "border-destructive/40 bg-destructive/10 text-destructive";
+  if (tone === "success") return "admin-badge-success";
+  if (tone === "warning") return "admin-badge-warning";
+  if (tone === "danger") return "admin-badge-danger";
   return "border-border bg-background text-muted-foreground";
 }
 
 function iconToneClass(tone: AdminBadgeTone) {
-  if (tone === "success") return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
-  if (tone === "warning") return "border-amber-500/40 bg-amber-500/10 text-amber-300";
-  if (tone === "danger") return "border-destructive/40 bg-destructive/10 text-destructive";
+  if (tone === "success") return "admin-badge-success";
+  if (tone === "warning") return "admin-badge-warning";
+  if (tone === "danger") return "admin-badge-danger";
   return "border-border bg-background text-muted-foreground";
 }
 
@@ -67,9 +67,9 @@ type AdminRoleBadgeProps = {
 };
 
 function roleToneClass(role: "ADMIN" | "STAFF" | "CREATOR") {
-  if (role === "ADMIN") return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
-  if (role === "STAFF") return "border-sky-500/40 bg-sky-500/10 text-sky-300";
-  return "border-zinc-500/40 bg-zinc-500/10 text-zinc-300";
+  if (role === "ADMIN") return "admin-badge-role-admin";
+  if (role === "STAFF") return "admin-badge-role-staff";
+  return "admin-badge-role-creator";
 }
 
 function roleIcon(role: "ADMIN" | "STAFF" | "CREATOR") {
