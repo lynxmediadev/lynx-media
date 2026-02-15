@@ -114,14 +114,49 @@ Separar técnicamente Landing y Plataforma para que:
 Peras y manzanas: sin fronteras claras, después todo se mezcla y toca rehacer.
 
 ## Fase 1 · Estructura híbrida inicial (sin romper la app actual)
-- [ ] Crear estructura de trabajo:
-  - [ ] `apps/landing`
-  - [ ] `apps/platform`
-  - [ ] `packages/brand-ui`
-  - [ ] `packages/brand-tokens`
+- [x] Crear estructura de trabajo:
+  - [x] `apps/landing`
+  - [x] `apps/platform`
+  - [x] `packages/brand-ui`
+  - [x] `packages/brand-tokens`
+- [x] Bootstrap mínimo de `apps/landing` (Next app shell inicial).
+- [x] Inicializar workspaces npm en `package.json`.
 - [ ] Mantener app actual funcional durante transición.
 
 Peras y manzanas: se prepara la mudanza sin botar la casa donde ya vives.
+
+### Inventario inicial: se queda / migra / descarta
+
+#### Se queda en Plataforma (A)
+- Todo el dominio operativo actual:
+  - tracks, playlists, users, requests, tickets, contracts, services, sound kits.
+- Auth actual de plataforma y dashboard admin.
+- DB operativa actual (Supabase Plataforma).
+
+#### Migra a Landing (B)
+- Identidad visual de marca (gradualmente vía `brand-tokens` y `brand-ui`).
+- Home/hero y secciones comerciales (cuando se implementen en `apps/landing`).
+- Formulario(s) de contacto.
+
+#### Se descarta de Landing (no entra)
+- Schemas y backend de dominio de Plataforma:
+  - tracks/playlists/contracts/licensing/users internos.
+
+---
+
+## Registro de ejecución (implementación real)
+
+- [x] Documento de migración reescrito y normalizado:
+  - `docs/migrate/001-MIGRACIÓN-Y-SPLIT-DE-PROYECTOS.md`
+- [x] Alias legacy creado para evitar confusión de ruta:
+  - `docs/migate/001-MIGRACIÓN-Y-SPLIT-DE-PROYECTOS.md`
+- [x] Estructura de carpetas creada:
+  - `apps/landing`
+  - `apps/platform`
+  - `packages/brand-ui`
+  - `packages/brand-tokens`
+- [x] `apps/landing` inicializada con shell Next (layout/page/globals).
+- [x] `package.json` raíz actualizado con `workspaces` y scripts `*:landing`.
 
 ## Fase 2 · Extracción visual reutilizable
 - [ ] Mover colores, tipografía y spacing a `brand-tokens`.
