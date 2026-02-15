@@ -25,8 +25,9 @@ import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import { ExternalLink, FileText, Loader2, Search } from "lucide-react";
+import { ExternalLink, FileText, Loader2, Microscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AdminListButton } from "@/components/admin/list-kit";
 import { cn } from "@/lib/utils";
 
 type BaseProps = {
@@ -83,13 +84,23 @@ function useTrackAnalysisActions(
         method: "POST",
       });
 
-      const json = await res.json().catch(() => null);
-      (globalThis as any).__lynx_last_payload = json;
+      const isJson = (res.headers.get("content-type") ?? "")
+        .toLowerCase()
+        .includes("application/json");
+      const json = isJson ? await res.json().catch(() => null) : null;
+      const responseText = !isJson ? await res.text().catch(() => "") : "";
+      (globalThis as any).__lynx_last_payload = json ?? responseText;
 
       if (!res.ok || !json?.ok) {
-        console.error("[AnalyzeActions] fallo:", json);
-        const detail = json?.error ? `Error al analizar: ${json.error}` : null;
-        setError(detail ?? "Error al analizar. Revisa consola/servidor.");
+        const jsonError = typeof json?.error === "string" ? json.error : null;
+        const textError = responseText
+          ? responseText.replace(/\s+/g, " ").slice(0, 140)
+          : null;
+        const statusError = res.ok
+          ? "Respuesta inválida del servidor."
+          : `HTTP ${res.status}.`;
+        const detail = jsonError ?? textError ?? statusError;
+        setError(`Error al analizar: ${detail}`);
       } else {
         setLastPayload(json);
         setError(null);
@@ -101,7 +112,11 @@ function useTrackAnalysisActions(
     } catch (err) {
       console.error("[AnalyzeActions] excepción:", err);
       const detail = err instanceof Error ? err.message : null;
-      setError(detail ? `Excepción en el análisis: ${detail}` : "Excepción en el análisis. Revisa consola/servidor.");
+      setError(
+        detail
+          ? `Excepción en el análisis: ${detail}`
+          : "Excepción en el análisis. Revisa consola/servidor.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -158,7 +173,7 @@ function PayloadModal({
   function handleCopy() {
     if (!json) return;
     try {
-      navigator.clipboard.writeText(JSON.stringify(json, null, 2));
+      void navigator.clipboard.writeText(JSON.stringify(json, null, 2));
     } catch (err) {
       console.error("[PayloadModal] error al copiar:", err);
     }
@@ -169,23 +184,23 @@ function PayloadModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
       onClick={handleOverlayClick}
     >
-      <div className="max-h-[80vh] w-full max-w-3xl overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
-        <header className="border-b border-border px-4 py-3">
-          <h2 className="text-sm font-semibold text-foreground">
+      <div className="border-border bg-card max-h-[80vh] w-full max-w-3xl overflow-hidden rounded-xl border shadow-2xl">
+        <header className="border-border border-b px-4 py-3">
+          <h2 className="text-foreground text-sm font-semibold">
             Payload último análisis
           </h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <p className="text-muted-foreground mt-0.5 text-xs">
             JSON crudo retornado por /api/tracks/[id]/analyze.
           </p>
         </header>
 
         <div className="max-h-[56vh] overflow-auto px-4 py-3">
-          <pre className="whitespace-pre-wrap rounded bg-muted/60 p-3 text-xs text-foreground">
+          <pre className="bg-muted/60 text-foreground rounded p-3 text-xs whitespace-pre-wrap">
             {pretty}
           </pre>
         </div>
 
-        <footer className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
+        <footer className="border-border flex items-center justify-between gap-3 border-t px-4 py-3">
           <div className="flex gap-2">
             <Button
               type="button"
@@ -198,12 +213,7 @@ function PayloadModal({
             </Button>
 
             {showViewTrack && trackUrl && (
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-                className="text-xs"
-              >
+              <Button asChild variant="outline" size="sm" className="text-xs">
                 <Link href={trackUrl}>Ver track</Link>
               </Button>
             )}
@@ -249,18 +259,23 @@ export default function AnalyzeActions({
   return (
     <>
       <div className={cn("inline-flex items-center gap-2", className)}>
-        <Button
+        <AdminListButton
           type="button"
           onClick={handleAnalyze}
           disabled={busy || !canAnalyze}
-          variant="outline"
-          size="sm"
-          className={iconOnly ? "h-8 w-8 px-0" : "h-8 w-24 text-xs"}
+          size={iconOnly ? "controlIcon" : "row"}
+          className={iconOnly ? "" : "w-24"}
           title={busy ? "Analizando" : !canAnalyze ? "Sin audio" : "Analizar"}
-          aria-label={busy ? "Analizando" : !canAnalyze ? "Sin audio" : "Analizar"}
+          aria-label={
+            busy ? "Analizando" : !canAnalyze ? "Sin audio" : "Analizar"
+          }
         >
           {iconOnly ? (
-            busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Search className="h-3.5 w-3.5" aria-hidden="true" />
+            busy ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Microscope className="h-4 w-4" aria-hidden="true" />
+            )
           ) : busy ? (
             "Analizando…"
           ) : !canAnalyze ? (
@@ -268,39 +283,41 @@ export default function AnalyzeActions({
           ) : (
             "Analizar"
           )}
-        </Button>
+        </AdminListButton>
 
-        <Button
+        <AdminListButton
           type="button"
           onClick={handleOpenPayload}
-          variant="outline"
-          size="sm"
-          className={iconOnly ? "h-8 w-8 px-0" : "h-8 w-24 text-xs"}
+          size={iconOnly ? "controlIcon" : "row"}
+          className={iconOnly ? "" : "w-24"}
           title="Payload"
           aria-label="Payload"
         >
-          {iconOnly ? <FileText className="h-3.5 w-3.5" aria-hidden="true" /> : "Payload"}
-        </Button>
+          {iconOnly ? (
+            <FileText className="h-4 w-4" aria-hidden="true" />
+          ) : (
+            "Payload"
+          )}
+        </AdminListButton>
 
-        <Button
+        <AdminListButton
           asChild
-          variant="outline"
-          size="sm"
-          className={iconOnly ? "h-8 w-8 px-0 text-center" : "h-8 w-24 text-xs text-center"}
+          size={iconOnly ? "controlIcon" : "row"}
+          className={iconOnly ? "text-center" : "w-24 text-center"}
           title="Ver track"
           aria-label="Ver track"
         >
           <Link href={trackUrl}>
-            {iconOnly ? <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /> : "Ver track"}
+            {iconOnly ? (
+              <ExternalLink className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              "Ver track"
+            )}
           </Link>
-        </Button>
+        </AdminListButton>
       </div>
 
-      {error && (
-        <p className="mt-1 text-xs text-destructive">
-          {error}
-        </p>
-      )}
+      {error && <p className="text-destructive mt-1 text-xs">{error}</p>}
 
       {typeof document !== "undefined" &&
         isModalOpen &&
@@ -340,34 +357,33 @@ export function TrackAnalyzeHeaderButtons({
 
   return (
     <>
-      <div className={cn("flex w-full flex-wrap items-center gap-2 sm:w-auto", className)}>
-        <Button
+      <div
+        className={cn(
+          "flex w-full flex-wrap items-center gap-2 sm:w-auto",
+          className,
+        )}
+      >
+        <AdminListButton
           type="button"
           onClick={handleAnalyze}
           disabled={busy || !canAnalyze}
-          variant="outline"
-          size="sm"
-          className="h-8 w-full text-xs sm:w-24"
+          size="row"
+          className="w-full sm:w-24"
         >
           {busy ? "Analizando…" : !canAnalyze ? "Sin audio" : "Analizar"}
-        </Button>
+        </AdminListButton>
 
-        <Button
+        <AdminListButton
           type="button"
           onClick={handleOpenPayload}
-          variant="outline"
-          size="sm"
-          className="h-8 w-full text-xs sm:w-24"
+          size="row"
+          className="w-full sm:w-24"
         >
           Payload
-        </Button>
+        </AdminListButton>
       </div>
 
-      {error && (
-        <p className="mt-1 text-xs text-destructive">
-          {error}
-        </p>
-      )}
+      {error && <p className="text-destructive mt-1 text-xs">{error}</p>}
 
       {typeof document !== "undefined" &&
         isModalOpen &&

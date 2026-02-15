@@ -16,6 +16,7 @@ import { useRouter, usePathname } from "next/navigation";
 import {
   AdminDataTable,
   AdminFilterPanel,
+  AdminListButton,
   AdminListEmptyState,
   AdminListHeader,
   AdminListShell,
@@ -28,7 +29,7 @@ import { LabeledSelect } from "@/components/admin/ui/LabeledSelect";
 
 type Row = {
   id: string;
-  createdAt: number | null;      // ← timestamps (ms) enviados por el server
+  createdAt: number | null; // ← timestamps (ms) enviados por el server
   updatedAt: number | null;
   nextFollowUpAt: number | null;
   assignee: string | null;
@@ -59,10 +60,16 @@ type Row = {
 
 export default function LicensingAdminClient(props: {
   rows: Row[];
-  totals: { total: number; cOverdue: number; cToday: number; cTomorrow: number; cWeek: number };
+  totals: {
+    total: number;
+    cOverdue: number;
+    cToday: number;
+    cTomorrow: number;
+    cWeek: number;
+  };
   errorMsg: string | null;
-  statusOptions: string[];     // ← del enum real Prisma.RequestStatus
-  priorityOptions: string[];   // ← del enum real Prisma.RequestPriority
+  statusOptions: string[]; // ← del enum real Prisma.RequestStatus
+  priorityOptions: string[]; // ← del enum real Prisma.RequestPriority
   initialQS: {
     q: string;
     status: string;
@@ -79,7 +86,9 @@ export default function LicensingAdminClient(props: {
   // Estado controlado del formulario (inicializado con initialQS)
   const [q, setQ] = React.useState(props.initialQS.q ?? "");
   const [status, setStatus] = React.useState(props.initialQS.status ?? "");
-  const [priority, setPriority] = React.useState(props.initialQS.priority ?? "");
+  const [priority, setPriority] = React.useState(
+    props.initialQS.priority ?? "",
+  );
   const [fupFrom, setFupFrom] = React.useState(props.initialQS.fupFrom ?? "");
   const [fupTo, setFupTo] = React.useState(props.initialQS.fupTo ?? "");
 
@@ -109,7 +118,13 @@ export default function LicensingAdminClient(props: {
   const per = props.initialQS.per || 20;
   const canPrev = page > 1;
   const canNext = props.totals.total > page * per;
-  const activeFilters = countActiveFilters([q, status, priority, fupFrom, fupTo]);
+  const activeFilters = countActiveFilters([
+    q,
+    status,
+    priority,
+    fupFrom,
+    fupTo,
+  ]);
 
   const desktopColumns: AdminColumnDef<Row>[] = [
     {
@@ -117,9 +132,15 @@ export default function LicensingAdminClient(props: {
       label: "Cliente",
       render: (row) => (
         <div className="flex flex-col">
-          <span className="text-sm font-medium text-foreground">{row.name ?? "(Sin nombre)"}</span>
-          <span className="text-xs text-muted-foreground">{row.company ?? "—"}</span>
-          <span className="text-[11px] text-muted-foreground">{row.email ?? "—"}</span>
+          <span className="text-foreground text-sm font-medium">
+            {row.name ?? "(Sin nombre)"}
+          </span>
+          <span className="text-muted-foreground text-xs">
+            {row.company ?? "—"}
+          </span>
+          <span className="text-muted-foreground text-[11px]">
+            {row.email ?? "—"}
+          </span>
         </div>
       ),
     },
@@ -127,21 +148,29 @@ export default function LicensingAdminClient(props: {
       key: "status",
       label: "Status",
       render: (row) => (
-        <div className="font-medium text-foreground">{row.status?.replaceAll("_", " ")}</div>
+        <div className="text-foreground font-medium">
+          {row.status?.replaceAll("_", " ")}
+        </div>
       ),
     },
     {
       key: "priority",
       label: "Prioridad",
-      render: (row) => <div className="font-medium text-foreground">{row.priority ?? "—"}</div>,
+      render: (row) => (
+        <div className="text-foreground font-medium">{row.priority ?? "—"}</div>
+      ),
     },
     {
       key: "track",
       label: "Track",
       render: (row) => (
         <div className="flex flex-col">
-          <span className="font-medium text-foreground">{row.trackTitle ?? "—"}</span>
-          <span className="text-[11px] text-muted-foreground">{row.trackArtist ?? "—"}</span>
+          <span className="text-foreground font-medium">
+            {row.trackTitle ?? "—"}
+          </span>
+          <span className="text-muted-foreground text-[11px]">
+            {row.trackArtist ?? "—"}
+          </span>
         </div>
       ),
     },
@@ -150,7 +179,7 @@ export default function LicensingAdminClient(props: {
       label: "Follow-up",
       align: "right",
       render: (row) => (
-        <div className="font-medium text-foreground">
+        <div className="text-foreground font-medium">
           {row.nextFollowUpAt ? fmt.format(new Date(row.nextFollowUpAt)) : "—"}
         </div>
       ),
@@ -160,12 +189,9 @@ export default function LicensingAdminClient(props: {
       label: "Acciones",
       align: "right",
       render: (row) => (
-        <Link
-          href={`/admin/licensing/${row.id}`}
-          className="inline-flex items-center justify-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted/45"
-        >
-          Abrir
-        </Link>
+        <AdminListButton asChild size="row" surface="background">
+          <Link href={`/admin/licensing/${row.id}`}>Abrir</Link>
+        </AdminListButton>
       ),
     },
   ];
@@ -176,39 +202,50 @@ export default function LicensingAdminClient(props: {
         <AdminListHeader
           title="Licencias"
           subtitle="Bandeja"
-          count={<AdminStatusBadge>Total {props.totals.total}</AdminStatusBadge>}
+          count={
+            <AdminStatusBadge>Total {props.totals.total}</AdminStatusBadge>
+          }
           statusBadge={
             <div className="inline-flex items-center gap-1">
-              <AdminStatusBadge tone={props.totals.cOverdue > 0 ? "warning" : "neutral"}>
+              <AdminStatusBadge
+                tone={props.totals.cOverdue > 0 ? "warning" : "neutral"}
+              >
                 Overdue {props.totals.cOverdue}
               </AdminStatusBadge>
               <AdminStatusBadge>Hoy {props.totals.cToday}</AdminStatusBadge>
-              <AdminStatusBadge>Mañana {props.totals.cTomorrow}</AdminStatusBadge>
+              <AdminStatusBadge>
+                Mañana {props.totals.cTomorrow}
+              </AdminStatusBadge>
               <AdminStatusBadge>7d {props.totals.cWeek}</AdminStatusBadge>
             </div>
           }
           actionSlot={
             props.errorMsg ? (
-              <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              <div className="border-destructive/40 bg-destructive/10 text-destructive rounded-md border px-3 py-2 text-xs">
                 {props.errorMsg}
               </div>
             ) : null
           }
         />
 
-        <div className="border-b border-border px-3 py-2 sm:px-4">
+        <div className="border-border border-b px-3 py-2 sm:px-4">
           <AdminFilterPanel
             title="Filtros de lista"
             statusSlot={
               <>
-                <span className="text-[11px] text-muted-foreground">·</span>
-                <AdminStatusBadge>{activeFilters === 0 ? "Sin filtros" : `${activeFilters} filtros activos`}</AdminStatusBadge>
+                <span className="text-muted-foreground text-[11px]">·</span>
+                <AdminStatusBadge>
+                  {activeFilters === 0
+                    ? "Sin filtros"
+                    : `${activeFilters} filtros activos`}
+                </AdminStatusBadge>
               </>
             }
             actionSlot={
               <>
-                <button
-                  className="rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground transition-colors hover:bg-muted/45"
+                <AdminListButton
+                  size="control"
+                  surface="background"
                   onClick={() => {
                     setQ("");
                     setStatus("");
@@ -222,19 +259,20 @@ export default function LicensingAdminClient(props: {
                   }}
                 >
                   Limpiar
-                </button>
-                <button
-                  className="rounded-md border border-primary/60 bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                </AdminListButton>
+                <AdminListButton
+                  size="control"
+                  surface="background"
                   onClick={() => applyFilters(1)}
                 >
                   Aplicar
-                </button>
+                </AdminListButton>
               </>
             }
           >
             <div className="grid grid-cols-1 gap-2 lg:grid-cols-6">
               <input
-                className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:col-span-2"
+                className="border-border bg-background text-foreground placeholder:text-muted-foreground focus-visible:ring-ring rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none lg:col-span-2"
                 placeholder="Buscar (cliente, email, track...)"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
@@ -247,7 +285,10 @@ export default function LicensingAdminClient(props: {
                 className="h-9 w-full"
                 options={[
                   { value: "", label: "TODOS" },
-                  ...props.statusOptions.map((s) => ({ value: s, label: s.replaceAll("_", " ") })),
+                  ...props.statusOptions.map((s) => ({
+                    value: s,
+                    label: s.replaceAll("_", " "),
+                  })),
                 ]}
               />
               <LabeledSelect
@@ -262,23 +303,23 @@ export default function LicensingAdminClient(props: {
                 ]}
               />
               <div className="grid gap-1">
-                <span className="text-center text-[10px] font-semibold tracking-wide uppercase text-muted-foreground">
+                <span className="text-muted-foreground text-center text-[10px] font-semibold tracking-wide uppercase">
                   Desde
                 </span>
                 <input
                   type="date"
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="border-border bg-background text-foreground focus-visible:ring-ring w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
                   value={fupFrom}
                   onChange={(e) => setFupFrom(e.target.value)}
                 />
               </div>
               <div className="grid gap-1">
-                <span className="text-center text-[10px] font-semibold tracking-wide uppercase text-muted-foreground">
+                <span className="text-muted-foreground text-center text-[10px] font-semibold tracking-wide uppercase">
                   Hasta
                 </span>
                 <input
                   type="date"
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="border-border bg-background text-foreground focus-visible:ring-ring w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
                   value={fupTo}
                   onChange={(e) => setFupTo(e.target.value)}
                 />
@@ -293,25 +334,53 @@ export default function LicensingAdminClient(props: {
           <>
             <div className="space-y-2 p-3 md:hidden">
               {props.rows.map((row) => (
-                <article key={row.id} className="space-y-2 rounded-lg border border-border/70 bg-card p-3">
+                <article
+                  key={row.id}
+                  className="border-border/70 bg-card space-y-2 rounded-lg border p-3"
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="text-sm font-semibold text-foreground">{row.name ?? "(Sin nombre)"}</p>
-                      <p className="text-xs text-muted-foreground">{row.email ?? "—"}</p>
+                      <p className="text-foreground text-sm font-semibold">
+                        {row.name ?? "(Sin nombre)"}
+                      </p>
+                      <p className="text-muted-foreground text-xs">
+                        {row.email ?? "—"}
+                      </p>
                     </div>
-                    <AdminStatusBadge>{row.status?.replaceAll("_", " ")}</AdminStatusBadge>
+                    <AdminStatusBadge>
+                      {row.status?.replaceAll("_", " ")}
+                    </AdminStatusBadge>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    <p>Prioridad: <span className="text-foreground">{row.priority ?? "—"}</span></p>
-                    <p>Track: <span className="text-foreground">{row.trackTitle ?? "—"}</span></p>
-                    <p>Follow-up: <span className="text-foreground">{row.nextFollowUpAt ? fmt.format(new Date(row.nextFollowUpAt)) : "—"}</span></p>
+                  <div className="text-muted-foreground text-xs">
+                    <p>
+                      Prioridad:{" "}
+                      <span className="text-foreground">
+                        {row.priority ?? "—"}
+                      </span>
+                    </p>
+                    <p>
+                      Track:{" "}
+                      <span className="text-foreground">
+                        {row.trackTitle ?? "—"}
+                      </span>
+                    </p>
+                    <p>
+                      Follow-up:{" "}
+                      <span className="text-foreground">
+                        {row.nextFollowUpAt
+                          ? fmt.format(new Date(row.nextFollowUpAt))
+                          : "—"}
+                      </span>
+                    </p>
                   </div>
-                  <Link
-                    href={`/admin/licensing/${row.id}`}
-                    className="inline-flex w-full items-center justify-center rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted/45"
+                  <AdminListButton
+                    asChild
+                    size="row"
+                    surface="background"
+                    className="w-full"
                   >
-                    Abrir
-                  </Link>
+                    <Link href={`/admin/licensing/${row.id}`}>Abrir</Link>
+                  </AdminListButton>
                 </article>
               ))}
             </div>
@@ -329,27 +398,29 @@ export default function LicensingAdminClient(props: {
           </>
         )}
 
-        <footer className="flex items-center justify-between gap-3 border-t border-border px-3 py-3 text-sm text-muted-foreground sm:px-4">
+        <footer className="border-border text-muted-foreground flex items-center justify-between gap-3 border-t px-3 py-3 text-sm sm:px-4">
           <span>
             Página {page} · {props.rows.length} de {props.totals.total}
           </span>
           <div className="flex gap-2">
-            <button
+            <AdminListButton
               type="button"
               disabled={!canPrev}
               onClick={() => applyFilters(page - 1)}
-              className="inline-flex items-center justify-center rounded-[2px] border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-muted/45 disabled:cursor-not-allowed disabled:opacity-50"
+              size="control"
+              surface="background"
             >
               Anterior
-            </button>
-            <button
+            </AdminListButton>
+            <AdminListButton
               type="button"
               disabled={!canNext}
               onClick={() => applyFilters(page + 1)}
-              className="inline-flex items-center justify-center rounded-[2px] border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-muted/45 disabled:cursor-not-allowed disabled:opacity-50"
+              size="control"
+              surface="background"
             >
               Siguiente
-            </button>
+            </AdminListButton>
           </div>
         </footer>
       </AdminListShell>

@@ -27,6 +27,7 @@ import {
   AdminDataTable,
   AdminFilterPanel,
   AdminIconBadge,
+  AdminListButton,
   AdminListEmptyState,
   AdminListHeader,
   AdminListShell,
@@ -79,14 +80,32 @@ function roleIconClass(role: UserRow["role"]) {
   return "text-zinc-300";
 }
 
-function RoleIcon({ role, size = "h-4 w-4" }: { role: UserRow["role"]; size?: string }) {
+function RoleIcon({
+  role,
+  size = "h-4 w-4",
+}: {
+  role: UserRow["role"];
+  size?: string;
+}) {
   if (role === "ADMIN") {
-    return <ShieldCheck className={`${size} ${roleIconClass(role)}`} aria-hidden="true" />;
+    return (
+      <ShieldCheck
+        className={`${size} ${roleIconClass(role)}`}
+        aria-hidden="true"
+      />
+    );
   }
   if (role === "STAFF") {
-    return <Wrench className={`${size} ${roleIconClass(role)}`} aria-hidden="true" />;
+    return (
+      <Wrench className={`${size} ${roleIconClass(role)}`} aria-hidden="true" />
+    );
   }
-  return <UserRound className={`${size} ${roleIconClass(role)}`} aria-hidden="true" />;
+  return (
+    <UserRound
+      className={`${size} ${roleIconClass(role)}`}
+      aria-hidden="true"
+    />
+  );
 }
 
 function roleLabel(role: UserRow["role"]) {
@@ -95,22 +114,35 @@ function roleLabel(role: UserRow["role"]) {
   return "Creator";
 }
 
-function userStatusTone(status: UserRow["status"]): "success" | "warning" | "danger" {
+function userStatusTone(
+  status: UserRow["status"],
+): "success" | "warning" | "danger" {
   if (status === "ACTIVE") return "success";
   if (status === "INVITED") return "warning";
   return "danger";
 }
 
-export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTableClientProps) {
+export function UsersTableClient({
+  users,
+  returnTo,
+  filters,
+  alerts,
+}: UsersTableClientProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [actionType, setActionType] = useState<BulkActionType>("set_status");
   const [role, setRole] = useState<UserRow["role"]>("CREATOR");
   const [status, setStatus] = useState<UserRow["status"]>("ACTIVE");
   const [localQuery, setLocalQuery] = useState(filters.q);
   const [localRoleFilter, setLocalRoleFilter] = useState(filters.roleParam);
-  const [localStatusFilter, setLocalStatusFilter] = useState(filters.statusParam);
-  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
-  const [inviteCopyState, setInviteCopyState] = useState<"idle" | "copied" | "error">("idle");
+  const [localStatusFilter, setLocalStatusFilter] = useState(
+    filters.statusParam,
+  );
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">(
+    "idle",
+  );
+  const [inviteCopyState, setInviteCopyState] = useState<
+    "idle" | "copied" | "error"
+  >("idle");
   const copyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inviteCopyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -127,12 +159,18 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
         normalizedQuery.length === 0 ||
         user.email.toLowerCase().includes(normalizedQuery) ||
         (user.name ?? "").toLowerCase().includes(normalizedQuery);
-      const matchesRole = localRoleFilter.length === 0 || user.role === localRoleFilter;
-      const matchesStatus = localStatusFilter.length === 0 || user.status === localStatusFilter;
+      const matchesRole =
+        localRoleFilter.length === 0 || user.role === localRoleFilter;
+      const matchesStatus =
+        localStatusFilter.length === 0 || user.status === localStatusFilter;
       return matchesQuery && matchesRole && matchesStatus;
     });
   }, [users, normalizedQuery, localRoleFilter, localStatusFilter]);
-  const localActiveCount = countActiveFilters([normalizedQuery, localRoleFilter, localStatusFilter]);
+  const localActiveCount = countActiveFilters([
+    normalizedQuery,
+    localRoleFilter,
+    localStatusFilter,
+  ]);
   const filterStateLabel =
     localActiveCount === 0
       ? "Sin filtros"
@@ -155,7 +193,9 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
       if (localRoleFilter) params.set("role", localRoleFilter);
       if (localStatusFilter) params.set("status", localStatusFilter);
       const query = params.toString();
-      const nextPath = query ? `${window.location.pathname}?${query}` : window.location.pathname;
+      const nextPath = query
+        ? `${window.location.pathname}?${query}`
+        : window.location.pathname;
       const currentPath = `${window.location.pathname}${window.location.search}`;
       if (nextPath !== currentPath) {
         window.history.replaceState(null, "", nextPath);
@@ -206,7 +246,10 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
     if (inviteCopyResetRef.current) {
       clearTimeout(inviteCopyResetRef.current);
     }
-    inviteCopyResetRef.current = setTimeout(() => setInviteCopyState("idle"), 1600);
+    inviteCopyResetRef.current = setTimeout(
+      () => setInviteCopyState("idle"),
+      1600,
+    );
   }
 
   function toggleRow(id: string) {
@@ -223,13 +266,17 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
       return;
     }
     if (actionType === "delete") {
-      const ok = window.confirm(`¿Eliminar ${selectedIds.length} usuario(s)? Esta acción no se puede deshacer.`);
+      const ok = window.confirm(
+        `¿Eliminar ${selectedIds.length} usuario(s)? Esta acción no se puede deshacer.`,
+      );
       if (!ok) event.preventDefault();
     }
   }
 
   function handleDeleteSubmit(event: React.FormEvent<HTMLFormElement>) {
-    const ok = window.confirm("¿Eliminar este usuario? Esta acción no se puede deshacer.");
+    const ok = window.confirm(
+      "¿Eliminar este usuario? Esta acción no se puede deshacer.",
+    );
     if (!ok) event.preventDefault();
   }
 
@@ -241,7 +288,7 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
           type="checkbox"
           checked={allSelected}
           onChange={(event) => toggleAll(event.target.checked)}
-          className="h-4 w-4 rounded border-border bg-background"
+          className="border-border bg-background h-4 w-4 rounded"
           aria-label="Seleccionar todos los usuarios"
         />
       ),
@@ -252,7 +299,7 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
           checked={selectedSet.has(user.id)}
           disabled={user.isCurrent}
           onChange={() => toggleRow(user.id)}
-          className="h-4 w-4 rounded border-border bg-background"
+          className="border-border bg-background h-4 w-4 rounded"
           aria-label={`Seleccionar usuario ${user.email}`}
         />
       ),
@@ -262,19 +309,28 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
       label: "Usuario",
       render: (user) => (
         <div>
-          <Link href={`/admin/users/${user.id}`} className="group inline-flex items-center gap-2">
+          <Link
+            href={`/admin/users/${user.id}`}
+            className="group inline-flex items-center gap-2"
+          >
             <RoleIcon role={user.role} />
-            <span className="font-medium group-hover:underline">{user.name?.trim() || "Sin nombre"}</span>
+            <span className="font-medium group-hover:underline">
+              {user.name?.trim() || "Sin nombre"}
+            </span>
           </Link>
-          <p className="text-xs text-muted-foreground">{user.email}</p>
-          <p className="text-[11px] text-muted-foreground">Creado: {formatDate(user.createdAtIso)}</p>
+          <p className="text-muted-foreground text-xs">{user.email}</p>
+          <p className="text-muted-foreground text-[11px]">
+            Creado: {formatDate(user.createdAtIso)}
+          </p>
         </div>
       ),
     },
     {
       key: "role",
       label: "Rol",
-      render: (user) => <AdminRoleBadge role={user.role} label={roleLabel(user.role)} />,
+      render: (user) => (
+        <AdminRoleBadge role={user.role} label={roleLabel(user.role)} />
+      ),
     },
     {
       key: "status",
@@ -298,7 +354,11 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
     {
       key: "lastLogin",
       label: "Último login",
-      render: (user) => <span className="text-xs text-muted-foreground">{formatDate(user.lastLoginAtIso)}</span>,
+      render: (user) => (
+        <span className="text-muted-foreground text-xs">
+          {formatDate(user.lastLoginAtIso)}
+        </span>
+      ),
     },
     {
       key: "actions",
@@ -306,24 +366,27 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
       align: "right",
       render: (user) => (
         <div className="flex items-center justify-end gap-2">
-          <Link
-            href={`/admin/users/${user.id}`}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border transition-colors hover:bg-muted/45"
-            title="Abrir usuario"
-          >
-            <Eye className="h-4 w-4" />
-          </Link>
+          <AdminListButton asChild size="rowIcon" title="Abrir usuario">
+            <Link href={`/admin/users/${user.id}`}>
+              <Eye className="h-4 w-4" />
+            </Link>
+          </AdminListButton>
           {user.isCurrent ? (
-            <span className="text-xs text-muted-foreground">Tu cuenta</span>
+            <span className="text-muted-foreground text-xs">Tu cuenta</span>
           ) : (
-            <form method="POST" action={`/admin/users/${user.id}/delete`} onSubmit={handleDeleteSubmit}>
+            <form
+              method="POST"
+              action={`/admin/users/${user.id}/delete`}
+              onSubmit={handleDeleteSubmit}
+            >
               <input type="hidden" name="returnTo" value={returnTo} />
-              <button
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-destructive/60 bg-destructive/10 text-destructive hover:bg-destructive/20"
+              <AdminListButton
+                tone="danger"
+                size="rowIcon"
                 title="Eliminar usuario"
               >
                 <Trash2 className="h-4 w-4" />
-              </button>
+              </AdminListButton>
             </form>
           )}
         </div>
@@ -334,11 +397,22 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
   return (
     <AdminListShell>
       <AdminListHeader
-        icon={<UsersIcon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
+        icon={
+          <UsersIcon
+            className="text-muted-foreground h-4 w-4"
+            aria-hidden="true"
+          />
+        }
         title="Usuarios"
         subtitle="Gestión de usuarios"
         count={<AdminStatusBadge>{filteredUsers.length}</AdminStatusBadge>}
-        statusBadge={bulkAppliedMessage ? <AdminStatusBadge tone="success">{bulkAppliedMessage}</AdminStatusBadge> : null}
+        statusBadge={
+          bulkAppliedMessage ? (
+            <AdminStatusBadge tone="success">
+              {bulkAppliedMessage}
+            </AdminStatusBadge>
+          ) : null
+        }
         actionSlot={<UsersInviteDialog returnTo={returnTo} />}
       />
 
@@ -358,9 +432,13 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
                 }}
                 className={cn(
                   "rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5",
-                  "transition-colors hover:bg-emerald-500/20 underline",
-                  inviteCopyState === "copied" ? "border-emerald-400/60 text-emerald-200" : "",
-                  inviteCopyState === "error" ? "border-destructive/60 text-destructive" : "",
+                  "underline transition-colors hover:bg-emerald-500/20",
+                  inviteCopyState === "copied"
+                    ? "border-emerald-400/60 text-emerald-200"
+                    : "",
+                  inviteCopyState === "error"
+                    ? "border-destructive/60 text-destructive"
+                    : "",
                 )}
                 title="Copiar link de registro"
               >
@@ -375,13 +453,13 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
         ) : null}
 
         {alerts.errorMessage ? (
-          <p className="mt-2 rounded-lg border border-destructive/50 bg-destructive/10 px-2 py-1 text-xs text-destructive">
+          <p className="border-destructive/50 bg-destructive/10 text-destructive mt-2 rounded-lg border px-2 py-1 text-xs">
             {alerts.errorMessage}
           </p>
         ) : null}
       </div>
 
-      <div className="border-b border-border px-3 py-2 sm:px-4">
+      <div className="border-border border-b px-3 py-2 sm:px-4">
         <div className="grid gap-2 xl:grid-cols-2">
           <form
             method="GET"
@@ -399,13 +477,15 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
               }
               statusSlot={
                 <>
-                  <span className="text-[11px] text-muted-foreground">·</span>
-                  <span className="rounded-full border border-border bg-background px-2 py-1 text-[11px] capitalize text-muted-foreground">
+                  <span className="text-muted-foreground text-[11px]">·</span>
+                  <span className="border-border bg-background text-muted-foreground rounded-full border px-2 py-1 text-[11px] capitalize">
                     {filterStateLabel}
                   </span>
                   {localActiveCount > 0 ? (
                     <>
-                      <span className="text-[11px] text-muted-foreground">·</span>
+                      <span className="text-muted-foreground text-[11px]">
+                        ·
+                      </span>
                       <span
                         className={cn(
                           "rounded-full border px-2 py-1 text-[11px]",
@@ -414,7 +494,9 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
                             : "border-amber-500/30 bg-amber-500/10 text-amber-300",
                         )}
                       >
-                        {filteredUsers.length > 0 ? `${filteredUsers.length} resultados` : "0 resultados"}
+                        {filteredUsers.length > 0
+                          ? `${filteredUsers.length} resultados`
+                          : "0 resultados"}
                       </span>
                     </>
                   ) : null}
@@ -422,98 +504,106 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
               }
               actionSlot={
                 <>
-                  <button
+                  <AdminListButton
                     type="button"
                     onClick={handleCopyFilter}
+                    size="pill"
+                    surface="background"
                     className={cn(
-                      "inline-flex items-center rounded-full border border-border bg-background px-2 py-1 text-[11px] capitalize",
-                      "transition-colors hover:bg-muted/45",
-                      copyState === "copied" ? "border-emerald-500/50 text-emerald-300" : "",
-                      copyState === "error" ? "border-destructive/60 text-destructive" : "",
+                      copyState === "copied"
+                        ? "border-emerald-500/50 text-emerald-300"
+                        : "",
+                      copyState === "error"
+                        ? "border-destructive/60 text-destructive"
+                        : "",
                     )}
                   >
-                    {copyState === "copied" ? "Copiado" : copyState === "error" ? "Error" : "Copiar filtro"}
-                  </button>
+                    {copyState === "copied"
+                      ? "Copiado"
+                      : copyState === "error"
+                        ? "Error"
+                        : "Copiar filtro"}
+                  </AdminListButton>
                 </>
               }
             >
-
               <AdminControlsRow innerClassName="w-full xl:flex-nowrap">
-                  <div className="grid min-w-0 flex-[1_1_220px] gap-1">
-                    <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">
-                      Campo
-                    </span>
-                    <div className="relative w-full">
-                      <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <label className="sr-only" htmlFor="filter-q">
-                        Buscar
-                      </label>
-                      <input
-                        id="filter-q"
-                        type="text"
-                        name="q"
-                        value={localQuery}
-                        onChange={(event) => setLocalQuery(event.target.value)}
-                        autoComplete="off"
-                        placeholder="Buscar usuarios por email o nombre"
-                        className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm"
-                      />
-                    </div>
+                <div className="grid min-w-0 flex-[1_1_220px] gap-1">
+                  <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
+                    Campo
+                  </span>
+                  <div className="relative w-full">
+                    <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                    <label className="sr-only" htmlFor="filter-q">
+                      Buscar
+                    </label>
+                    <input
+                      id="filter-q"
+                      type="text"
+                      name="q"
+                      value={localQuery}
+                      onChange={(event) => setLocalQuery(event.target.value)}
+                      autoComplete="off"
+                      placeholder="Buscar usuarios por email o nombre"
+                      className="border-border bg-background h-9 w-full rounded-md border pr-3 pl-9 text-sm"
+                    />
                   </div>
+                </div>
 
-                  <LabeledSelect
-                    rootClassName="w-[124px]"
-                    label="ROL"
-                    labelPosition="top"
-                    id="filter-role"
-                    name="role"
-                    value={localRoleFilter}
-                    onChange={(event) => setLocalRoleFilter(event.target.value)}
-                    className="h-9 w-full pr-8"
-                    options={[
-                      { value: "", label: "TODOS" },
-                      { value: "ADMIN", label: "ADMIN" },
-                      { value: "STAFF", label: "STAFF" },
-                      { value: "CREATOR", label: "CREATOR" },
-                    ]}
-                  />
+                <LabeledSelect
+                  rootClassName="w-[124px]"
+                  label="ROL"
+                  labelPosition="top"
+                  id="filter-role"
+                  name="role"
+                  value={localRoleFilter}
+                  onChange={(event) => setLocalRoleFilter(event.target.value)}
+                  className="h-9 w-full pr-8"
+                  options={[
+                    { value: "", label: "TODOS" },
+                    { value: "ADMIN", label: "ADMIN" },
+                    { value: "STAFF", label: "STAFF" },
+                    { value: "CREATOR", label: "CREATOR" },
+                  ]}
+                />
 
-                  <LabeledSelect
-                    rootClassName="w-[132px]"
-                    label="ESTADO"
-                    labelPosition="top"
-                    id="filter-status"
-                    name="status"
-                    value={localStatusFilter}
-                    onChange={(event) => setLocalStatusFilter(event.target.value)}
-                    className="h-9 w-full pr-8"
-                    options={[
-                      { value: "", label: "TODOS" },
-                      { value: "ACTIVE", label: "ACTIVE" },
-                      { value: "INVITED", label: "INVITED" },
-                      { value: "SUSPENDED", label: "SUSPENDED" },
-                    ]}
-                  />
+                <LabeledSelect
+                  rootClassName="w-[132px]"
+                  label="ESTADO"
+                  labelPosition="top"
+                  id="filter-status"
+                  name="status"
+                  value={localStatusFilter}
+                  onChange={(event) => setLocalStatusFilter(event.target.value)}
+                  className="h-9 w-full pr-8"
+                  options={[
+                    { value: "", label: "TODOS" },
+                    { value: "ACTIVE", label: "ACTIVE" },
+                    { value: "INVITED", label: "INVITED" },
+                    { value: "SUSPENDED", label: "SUSPENDED" },
+                  ]}
+                />
 
-                  <div className="grid w-[42px] gap-1">
-                    <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">
-                      Acción
-                    </span>
-                    <button
-                      id="limpiar-filtros"
-                      type="button"
-                      title="Limpiar"
-                      aria-label="Limpiar"
-                      onClick={() => {
-                        setLocalQuery("");
-                        setLocalRoleFilter("");
-                        setLocalStatusFilter("");
-                      }}
-                      className="inline-flex h-9 w-full items-center justify-center rounded-md border border-border text-sm transition-colors hover:bg-muted/45"
-                    >
-                      <RefreshCcw className="h-4 w-4" />
-                    </button>
-                  </div>
+                <div className="grid w-[42px] gap-1">
+                  <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
+                    Acción
+                  </span>
+                  <AdminListButton
+                    id="limpiar-filtros"
+                    type="button"
+                    title="Limpiar"
+                    aria-label="Limpiar"
+                    onClick={() => {
+                      setLocalQuery("");
+                      setLocalRoleFilter("");
+                      setLocalStatusFilter("");
+                    }}
+                    size="controlIcon"
+                    className="w-full"
+                  >
+                    <RefreshCcw className="h-4 w-4" />
+                  </AdminListButton>
+                </div>
               </AdminControlsRow>
             </AdminFilterPanel>
           </form>
@@ -534,112 +624,117 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
                 </>
               }
               statusSlot={
-                <span className="rounded-full border border-border bg-background px-2 py-1 text-[11px] capitalize text-muted-foreground">
+                <span className="border-border bg-background text-muted-foreground rounded-full border px-2 py-1 text-[11px] capitalize">
                   {selectionStateLabel}
                 </span>
               }
             >
-
               <AdminControlsRow>
-                  <div className="grid gap-1">
-                    <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">
-                      Campo
-                    </span>
-                    <label className="inline-flex h-8 items-center gap-2 rounded-md border border-border px-2 py-1 text-xs">
-                      <input
-                        type="checkbox"
-                        checked={allSelected}
-                        onChange={(event) => toggleAll(event.target.checked)}
-                        className="h-4 w-4 rounded border-border bg-background"
-                      />
-                      Todo
-                    </label>
-                  </div>
+                <div className="grid gap-1">
+                  <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
+                    Campo
+                  </span>
+                  <label className="border-border inline-flex h-8 items-center gap-2 rounded-md border px-2 py-1 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={(event) => toggleAll(event.target.checked)}
+                      className="border-border bg-background h-4 w-4 rounded"
+                    />
+                    Todo
+                  </label>
+                </div>
 
+                <LabeledSelect
+                  rootClassName="w-[160px]"
+                  label="ACCIÓN"
+                  labelPosition="top"
+                  name="actionType"
+                  value={actionType}
+                  onChange={(event) =>
+                    setActionType(event.target.value as BulkActionType)
+                  }
+                  className="h-8 w-full"
+                  options={[
+                    { value: "set_status", label: "Cambiar estado" },
+                    { value: "set_role", label: "Cambiar rol" },
+                    { value: "delete", label: "Eliminar" },
+                  ]}
+                />
+
+                {actionType === "set_role" ? (
                   <LabeledSelect
-                    rootClassName="w-[160px]"
-                    label="ACCIÓN"
+                    rootClassName="w-[140px]"
+                    label="ROL"
                     labelPosition="top"
-                    name="actionType"
-                    value={actionType}
-                    onChange={(event) => setActionType(event.target.value as BulkActionType)}
+                    name="role"
+                    value={role}
+                    onChange={(event) =>
+                      setRole(event.target.value as UserRow["role"])
+                    }
                     className="h-8 w-full"
                     options={[
-                      { value: "set_status", label: "Cambiar estado" },
-                      { value: "set_role", label: "Cambiar rol" },
-                      { value: "delete", label: "Eliminar" },
+                      { value: "ADMIN", label: "ADMIN" },
+                      { value: "STAFF", label: "STAFF" },
+                      { value: "CREATOR", label: "CREATOR" },
                     ]}
                   />
-
-                  {actionType === "set_role" ? (
-                    <LabeledSelect
-                      rootClassName="w-[140px]"
-                      label="ROL"
-                      labelPosition="top"
-                      name="role"
-                      value={role}
-                      onChange={(event) => setRole(event.target.value as UserRow["role"])}
-                      className="h-8 w-full"
-                      options={[
-                        { value: "ADMIN", label: "ADMIN" },
-                        { value: "STAFF", label: "STAFF" },
-                        { value: "CREATOR", label: "CREATOR" },
-                      ]}
-                    />
-                  ) : actionType === "set_status" ? (
-                    <LabeledSelect
-                      rootClassName="w-[160px]"
-                      label="ESTADO"
-                      labelPosition="top"
-                      name="status"
-                      value={status}
-                      onChange={(event) => setStatus(event.target.value as UserRow["status"])}
-                      className="h-8 w-full"
-                      options={[
-                        { value: "ACTIVE", label: "ACTIVE" },
-                        { value: "INVITED", label: "INVITED" },
-                        { value: "SUSPENDED", label: "SUSPENDED" },
-                      ]}
-                    />
-                  ) : (
-                    <div className="grid gap-1">
-                      <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">
-                        Campo
-                      </span>
-                      <p className="h-8 pt-2 text-xs text-destructive">Acción destructiva.</p>
-                    </div>
-                  )}
-
+                ) : actionType === "set_status" ? (
+                  <LabeledSelect
+                    rootClassName="w-[160px]"
+                    label="ESTADO"
+                    labelPosition="top"
+                    name="status"
+                    value={status}
+                    onChange={(event) =>
+                      setStatus(event.target.value as UserRow["status"])
+                    }
+                    className="h-8 w-full"
+                    options={[
+                      { value: "ACTIVE", label: "ACTIVE" },
+                      { value: "INVITED", label: "INVITED" },
+                      { value: "SUSPENDED", label: "SUSPENDED" },
+                    ]}
+                  />
+                ) : (
                   <div className="grid gap-1">
-                    <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">
+                    <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
                       Campo
                     </span>
-                    <button
-                      disabled={selectedIds.length === 0}
-                      className={cn(
-                        "inline-flex h-8 items-center gap-1 rounded-md border border-border px-2.5 text-sm transition-colors",
-                        "hover:bg-muted/45 disabled:cursor-not-allowed disabled:opacity-50",
-                      )}
-                    >
-                      <Check className="h-4 w-4" />
-                      Aplicar
-                    </button>
+                    <p className="text-destructive h-8 pt-2 text-xs">
+                      Acción destructiva.
+                    </p>
                   </div>
+                )}
 
-                  <div className="grid gap-1">
-                    <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">
-                      Campo
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedIds([])}
-                      disabled={selectedIds.length === 0}
-                      className="inline-flex h-8 items-center rounded-md border border-border px-2 text-xs transition-colors hover:bg-muted/45 disabled:cursor-not-allowed disabled:opacity-50"
-                      title="Limpiar selección"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
+                <div className="grid gap-1">
+                  <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
+                    Campo
+                  </span>
+                  <AdminListButton
+                    disabled={selectedIds.length === 0}
+                    size="row"
+                    className="gap-1 text-sm"
+                  >
+                    <Check className="h-4 w-4" />
+                    Aplicar
+                  </AdminListButton>
+                </div>
+
+                <div className="grid gap-1">
+                  <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
+                    Campo
+                  </span>
+                  <AdminListButton
+                    type="button"
+                    onClick={() => setSelectedIds([])}
+                    disabled={selectedIds.length === 0}
+                    size="rowIcon"
+                    title="Limpiar selección"
+                  >
+                    <X className="h-4 w-4" />
+                  </AdminListButton>
+                </div>
               </AdminControlsRow>
             </AdminBulkPanel>
 
@@ -655,32 +750,39 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
           <article
             key={user.id}
             className={cn(
-              "space-y-3 rounded-lg border border-border/70 bg-card p-3 transition-colors",
+              "border-border/70 bg-card space-y-3 rounded-lg border p-3 transition-colors",
               selectedSet.has(user.id) ? "bg-accent/20" : "",
             )}
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <a href={`/admin/users/${user.id}`} className="group inline-flex items-center gap-2">
+                <a
+                  href={`/admin/users/${user.id}`}
+                  className="group inline-flex items-center gap-2"
+                >
                   <RoleIcon role={user.role} />
                   <span className="font-medium group-hover:underline">
                     {user.name?.trim() || "Sin nombre"}
                   </span>
                 </a>
-                <p className="truncate text-xs text-muted-foreground">{user.email}</p>
-                <p className="text-[11px] text-muted-foreground">Creado: {formatDate(user.createdAtIso)}</p>
+                <p className="text-muted-foreground truncate text-xs">
+                  {user.email}
+                </p>
+                <p className="text-muted-foreground text-[11px]">
+                  Creado: {formatDate(user.createdAtIso)}
+                </p>
               </div>
               <input
                 type="checkbox"
                 checked={selectedSet.has(user.id)}
                 disabled={user.isCurrent}
                 onChange={() => toggleRow(user.id)}
-                className="mt-0.5 h-4 w-4 rounded border-border bg-background"
+                className="border-border bg-background mt-0.5 h-4 w-4 rounded"
                 aria-label={`Seleccionar usuario ${user.email}`}
               />
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-2">
+            <div className="border-border/60 flex flex-wrap items-center gap-2 border-t pt-2">
               <AdminRoleBadge role={user.role} label={roleLabel(user.role)} />
               <AdminIconBadge
                 tone={userStatusTone(user.status)}
@@ -695,30 +797,35 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
                 }
                 label={user.status}
               />
-              <span className="text-xs text-muted-foreground">Último login: {formatDate(user.lastLoginAtIso)}</span>
+              <span className="text-muted-foreground text-xs">
+                Último login: {formatDate(user.lastLoginAtIso)}
+              </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 border-t border-border/60 pt-2">
-              <a
-                href={`/admin/users/${user.id}`}
-                className="inline-flex h-8 items-center justify-center rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-muted/45"
-              >
-                Ver usuario
-              </a>
+            <div className="border-border/60 grid grid-cols-2 gap-2 border-t pt-2">
+              <AdminListButton asChild size="row">
+                <a href={`/admin/users/${user.id}`}>Ver usuario</a>
+              </AdminListButton>
               {user.isCurrent ? (
-                <span className="inline-flex h-8 items-center justify-center rounded-md border border-border px-2 text-xs text-muted-foreground">
+                <span className="border-border text-muted-foreground inline-flex h-8 items-center justify-center rounded-md border px-2 text-xs">
                   Tu cuenta
                 </span>
               ) : (
-                <form method="POST" action={`/admin/users/${user.id}/delete`} onSubmit={handleDeleteSubmit}>
+                <form
+                  method="POST"
+                  action={`/admin/users/${user.id}/delete`}
+                  onSubmit={handleDeleteSubmit}
+                >
                   <input type="hidden" name="returnTo" value={returnTo} />
-                  <button
-                    className="inline-flex h-8 w-full items-center justify-center gap-1 rounded-md border border-destructive/60 bg-destructive/10 px-2.5 text-xs text-destructive transition-colors hover:bg-destructive/20"
+                  <AdminListButton
+                    tone="danger"
+                    size="row"
+                    className="w-full gap-1"
                     title="Eliminar usuario"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                     Eliminar
-                  </button>
+                  </AdminListButton>
                 </form>
               )}
             </div>
@@ -739,7 +846,9 @@ export function UsersTableClient({ users, returnTo, filters, alerts }: UsersTabl
           }
           tableClassName="w-full table-fixed"
           headerClassName="bg-muted/60"
-          emptyState={<AdminListEmptyState message="No se encontraron usuarios con esos filtros." />}
+          emptyState={
+            <AdminListEmptyState message="No se encontraron usuarios con esos filtros." />
+          }
         />
       </div>
     </AdminListShell>

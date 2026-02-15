@@ -13,7 +13,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Ban,
   Check,
@@ -33,6 +38,7 @@ import {
   AdminDataTable,
   AdminFilterPanel,
   AdminIconBadge,
+  AdminListButton,
   AdminListEmptyState,
   AdminListHeader,
   AdminListShell,
@@ -116,13 +122,15 @@ function CopyEmail({ email }: { email: string }) {
           onClick={() => {
             void copy();
           }}
-          className="text-xs text-muted-foreground break-all"
+          className="text-muted-foreground text-xs break-all"
           aria-live="polite"
         >
           {email}
         </button>
       </TooltipTrigger>
-      <TooltipContent className="px-2 py-1 text-xs leading-none">Copiado</TooltipContent>
+      <TooltipContent className="px-2 py-1 text-xs leading-none">
+        Copiado
+      </TooltipContent>
     </Tooltip>
   );
 }
@@ -138,7 +146,10 @@ function buildMixMeta(row: Row) {
       tracksCount = String(payload.single.tracks);
     }
     if (payload.single.drumQuantize) parts.push("Bat");
-    if (typeof payload.single.vocalTracks === "number" && payload.single.vocalTracks > 0) {
+    if (
+      typeof payload.single.vocalTracks === "number" &&
+      payload.single.vocalTracks > 0
+    ) {
       parts.push(`V${payload.single.vocalTracks}`);
     }
     const addons = payload.single.addons || {};
@@ -159,7 +170,8 @@ function buildMixMeta(row: Row) {
 
 function formatPrice(row: Row) {
   const payload = row.rawPayload as Record<string, any> | null;
-  if (!payload || !payload.single || payload.projectType !== "single") return "—";
+  if (!payload || !payload.single || payload.projectType !== "single")
+    return "—";
   const totalClp = payload.single.pricingClp;
   if (typeof totalClp !== "number") return "—";
   const currency = payload.currency || "CLP";
@@ -171,7 +183,9 @@ function formatPrice(row: Row) {
   return formatter.format(totalClp);
 }
 
-function statusTone(status: string): "neutral" | "success" | "warning" | "danger" {
+function statusTone(
+  status: string,
+): "neutral" | "success" | "warning" | "danger" {
   if (status === "NEW") return "warning";
   if (status === "CLOSED_WON") return "success";
   if (status === "CLOSED_LOST") return "danger";
@@ -181,26 +195,66 @@ function statusTone(status: string): "neutral" | "success" | "warning" | "danger
 function StatusBadge({ status }: { status: string }) {
   const label = status.replaceAll("_", " ");
   if (status === "NEW") {
-    return <AdminIconBadge tone="warning" icon={<Clock3 aria-hidden="true" />} label={label} />;
+    return (
+      <AdminIconBadge
+        tone="warning"
+        icon={<Clock3 aria-hidden="true" />}
+        label={label}
+      />
+    );
   }
   if (status === "IN_REVIEW") {
-    return <AdminIconBadge tone="neutral" icon={<Search aria-hidden="true" />} label={label} />;
+    return (
+      <AdminIconBadge
+        tone="neutral"
+        icon={<Search aria-hidden="true" />}
+        label={label}
+      />
+    );
   }
   if (status === "QUOTED") {
-    return <AdminIconBadge tone="neutral" icon={<FileText aria-hidden="true" />} label={label} />;
+    return (
+      <AdminIconBadge
+        tone="neutral"
+        icon={<FileText aria-hidden="true" />}
+        label={label}
+      />
+    );
   }
   if (status === "CLOSED_WON") {
-    return <AdminIconBadge tone="success" icon={<ShieldCheck aria-hidden="true" />} label={label} />;
+    return (
+      <AdminIconBadge
+        tone="success"
+        icon={<ShieldCheck aria-hidden="true" />}
+        label={label}
+      />
+    );
   }
   if (status === "CLOSED_LOST") {
-    return <AdminIconBadge tone="danger" icon={<Ban aria-hidden="true" />} label={label} />;
+    return (
+      <AdminIconBadge
+        tone="danger"
+        icon={<Ban aria-hidden="true" />}
+        label={label}
+      />
+    );
   }
-  return <AdminIconBadge tone={statusTone(status)} icon={<FileText aria-hidden="true" />} label={label} />;
+  return (
+    <AdminIconBadge
+      tone={statusTone(status)}
+      icon={<FileText aria-hidden="true" />}
+      label={label}
+    />
+  );
 }
 
 function UrgencyBadge({ value }: { value: number }) {
   const tone = value >= 4 ? "danger" : value >= 3 ? "warning" : "neutral";
-  return <AdminStatusBadge tone={tone}>U{Number.isFinite(value) ? value : "—"}</AdminStatusBadge>;
+  return (
+    <AdminStatusBadge tone={tone}>
+      U{Number.isFinite(value) ? value : "—"}
+    </AdminStatusBadge>
+  );
 }
 
 function projectSummary(row: Row) {
@@ -234,16 +288,25 @@ export default function RequestsAdminClient(props: {
 
   const [q, setQ] = React.useState(props.initialQS.q ?? "");
   const [status, setStatus] = React.useState(props.initialQS.status ?? "");
-  const [serviceType, setServiceType] = React.useState(props.initialQS.serviceType ?? "");
-  const [projectType, setProjectType] = React.useState(props.initialQS.projectType ?? "");
+  const [serviceType, setServiceType] = React.useState(
+    props.initialQS.serviceType ?? "",
+  );
+  const [projectType, setProjectType] = React.useState(
+    props.initialQS.projectType ?? "",
+  );
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [isCreatingDummy, setIsCreatingDummy] = React.useState(false);
-  const [copyState, setCopyState] = React.useState<"idle" | "copied" | "error">("idle");
+  const [copyState, setCopyState] = React.useState<"idle" | "copied" | "error">(
+    "idle",
+  );
   const copyResetRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const selectableIds = React.useMemo(() => props.rows.map((row) => row.id), [props.rows]);
+  const selectableIds = React.useMemo(
+    () => props.rows.map((row) => row.id),
+    [props.rows],
+  );
   const selectedSet = React.useMemo(() => new Set(selectedIds), [selectedIds]);
   const allSelected = computeAllSelected(selectedIds, selectableIds);
 
@@ -271,7 +334,12 @@ export default function RequestsAdminClient(props: {
   const canPrev = page > 1;
   const canNext = props.total > page * per;
   const selectedCount = selectedIds.length;
-  const activeFilters = countActiveFilters([q, status, serviceType, projectType]);
+  const activeFilters = countActiveFilters([
+    q,
+    status,
+    serviceType,
+    projectType,
+  ]);
 
   React.useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -291,7 +359,15 @@ export default function RequestsAdminClient(props: {
     }, 130);
 
     return () => window.clearTimeout(timeoutId);
-  }, [pathname, projectType, props.initialQS.per, q, router, serviceType, status]);
+  }, [
+    pathname,
+    projectType,
+    props.initialQS.per,
+    q,
+    router,
+    serviceType,
+    status,
+  ]);
 
   React.useEffect(() => {
     return () => {
@@ -330,15 +406,43 @@ export default function RequestsAdminClient(props: {
   }
 
   function randomName() {
-    const first = ["Sofía", "Mateo", "Valentina", "Lucas", "Camila", "José", "Ana", "Sebastián", "Valeria", "Juan"];
-    const last = ["Pérez", "González", "Rojas", "Silva", "Vega", "Díaz", "Soto", "Mora", "Castro", "Herrera"];
+    const first = [
+      "Sofía",
+      "Mateo",
+      "Valentina",
+      "Lucas",
+      "Camila",
+      "José",
+      "Ana",
+      "Sebastián",
+      "Valeria",
+      "Juan",
+    ];
+    const last = [
+      "Pérez",
+      "González",
+      "Rojas",
+      "Silva",
+      "Vega",
+      "Díaz",
+      "Soto",
+      "Mora",
+      "Castro",
+      "Herrera",
+    ];
     const long = Math.random() < 0.2;
     const base = `${pick(first)} ${pick(last)}`;
     return long ? `${base} ${pick(last)} ${pick(last)}` : base;
   }
 
   function randomEmail(name: string) {
-    const domains = ["lynxmedia.cl", "example.com", "correo.cl", "studio.com", "agency.io"];
+    const domains = [
+      "lynxmedia.cl",
+      "example.com",
+      "correo.cl",
+      "studio.com",
+      "agency.io",
+    ];
     const slug = name
       .toLowerCase()
       .normalize("NFD")
@@ -378,7 +482,8 @@ export default function RequestsAdminClient(props: {
         name,
         email: randomEmail(name),
         company: Math.random() < 0.4 ? "Agencia Lynx" : undefined,
-        notes: Math.random() < 0.3 ? "Proyecto con referencia cine." : undefined,
+        notes:
+          Math.random() < 0.3 ? "Proyecto con referencia cine." : undefined,
         phone: Math.random() < 0.2 ? "+56 9 1234 5678" : undefined,
       },
       single: {
@@ -393,7 +498,10 @@ export default function RequestsAdminClient(props: {
           { label: "Tracks extra", amount: (tracks - 12) * 1200 },
         ],
       },
-      pageUrl: typeof window !== "undefined" ? `${window.location.origin}/servicios/mix` : undefined,
+      pageUrl:
+        typeof window !== "undefined"
+          ? `${window.location.origin}/servicios/mix`
+          : undefined,
     };
   }
 
@@ -407,7 +515,8 @@ export default function RequestsAdminClient(props: {
         name,
         email: randomEmail(name),
         company: Math.random() < 0.4 ? "Productora Sur" : undefined,
-        notes: Math.random() < 0.3 ? "EP conceptual, referencias synth." : undefined,
+        notes:
+          Math.random() < 0.3 ? "EP conceptual, referencias synth." : undefined,
         phone: Math.random() < 0.2 ? "+56 9 9876 5432" : undefined,
       },
       album: {
@@ -416,14 +525,18 @@ export default function RequestsAdminClient(props: {
         style: Math.random() < 0.6 ? "Synth / Cinematic" : "Indie / Alt",
         notes: Math.random() < 0.4 ? "Necesita cohesión entre tracks." : "",
       },
-      pageUrl: typeof window !== "undefined" ? `${window.location.origin}/servicios/mix` : undefined,
+      pageUrl:
+        typeof window !== "undefined"
+          ? `${window.location.origin}/servicios/mix`
+          : undefined,
     };
   }
 
   async function createDummy(kind: "single" | "album") {
     try {
       setIsCreatingDummy(true);
-      const payload = kind === "single" ? buildSinglePayload() : buildAlbumPayload();
+      const payload =
+        kind === "single" ? buildSinglePayload() : buildAlbumPayload();
       const res = await fetch("/api/services/mix", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -445,8 +558,10 @@ export default function RequestsAdminClient(props: {
         <input
           type="checkbox"
           checked={allSelected}
-          onChange={(event) => setSelectedIds(selectAllOrNone(selectableIds, event.target.checked))}
-          className="h-4 w-4 rounded border-border bg-background"
+          onChange={(event) =>
+            setSelectedIds(selectAllOrNone(selectableIds, event.target.checked))
+          }
+          className="border-border bg-background h-4 w-4 rounded"
           aria-label="Seleccionar todas las solicitudes"
         />
       ),
@@ -455,8 +570,10 @@ export default function RequestsAdminClient(props: {
         <input
           type="checkbox"
           checked={selectedSet.has(row.id)}
-          onChange={() => setSelectedIds((current) => toggleSelection(current, row.id))}
-          className="h-4 w-4 rounded border-border bg-background"
+          onChange={() =>
+            setSelectedIds((current) => toggleSelection(current, row.id))
+          }
+          className="border-border bg-background h-4 w-4 rounded"
           aria-label={`Seleccionar solicitud ${row.id}`}
         />
       ),
@@ -466,7 +583,9 @@ export default function RequestsAdminClient(props: {
       label: "Cliente",
       render: (row) => (
         <div className="flex flex-col">
-          <span className="text-sm font-medium text-foreground">{row.name}</span>
+          <span className="text-foreground text-sm font-medium">
+            {row.name}
+          </span>
           <CopyEmail email={row.email} />
         </div>
       ),
@@ -474,17 +593,25 @@ export default function RequestsAdminClient(props: {
     {
       key: "proyecto",
       label: "Proyecto",
-      render: (row) => <span className="text-xs text-foreground">{projectSummary(row)}</span>,
+      render: (row) => (
+        <span className="text-foreground text-xs">{projectSummary(row)}</span>
+      ),
     },
     {
       key: "metadata",
       label: "Metadata",
-      render: (row) => <span className="text-xs text-muted-foreground">{metadataSummary(row)}</span>,
+      render: (row) => (
+        <span className="text-muted-foreground text-xs">
+          {metadataSummary(row)}
+        </span>
+      ),
     },
     {
       key: "total",
       label: "Total",
-      render: (row) => <span className="text-xs font-semibold">{formatPrice(row)}</span>,
+      render: (row) => (
+        <span className="text-xs font-semibold">{formatPrice(row)}</span>
+      ),
     },
     {
       key: "estado",
@@ -499,79 +626,93 @@ export default function RequestsAdminClient(props: {
     {
       key: "creado",
       label: "Creado",
-      render: (row) => <span className="text-xs text-muted-foreground tabular-nums">{fmtDate(row.createdAt)}</span>,
+      render: (row) => (
+        <span className="text-muted-foreground text-xs tabular-nums">
+          {fmtDate(row.createdAt)}
+        </span>
+      ),
     },
     {
       key: "deadline",
       label: "Deadline",
-      render: (row) => <span className="text-xs text-muted-foreground tabular-nums">{fmtDate(row.deadlineAt)}</span>,
+      render: (row) => (
+        <span className="text-muted-foreground text-xs tabular-nums">
+          {fmtDate(row.deadlineAt)}
+        </span>
+      ),
     },
     {
       key: "acciones",
       label: "Acciones",
       align: "right",
       render: (row) => (
-        <Link
-          href={`/admin/requests/${row.id}`}
-          className="inline-flex h-8 items-center rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-muted/45"
-        >
-          Ver detalle
-        </Link>
+        <AdminListButton asChild size="row">
+          <Link href={`/admin/requests/${row.id}`}>Ver detalle</Link>
+        </AdminListButton>
       ),
     },
   ];
 
   return (
     <div className="space-y-4">
-      <AdminListShell className="rounded-[2px] bg-card/80">
+      <AdminListShell className="bg-card/80 rounded-[2px]">
         <AdminListHeader
           title="Solicitudes"
           subtitle="Bandeja única"
           count={<AdminStatusBadge>Total {props.total}</AdminStatusBadge>}
-          statusBadge={<AdminStatusBadge className="capitalize">{selectedCount > 0 ? `${selectedCount} seleccionados` : "sin selección"}</AdminStatusBadge>}
+          statusBadge={
+            <AdminStatusBadge className="capitalize">
+              {selectedCount > 0
+                ? `${selectedCount} seleccionados`
+                : "sin selección"}
+            </AdminStatusBadge>
+          }
           actionSlot={
             <div className="flex flex-wrap gap-2">
               <Link
                 href="/admin/requests/mix"
-                className="rounded-[2px] border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted/45"
+                className="border-border bg-card hover:bg-muted/45 inline-flex h-8 items-center rounded-md border px-2.5 text-xs transition-colors"
               >
                 Ver solo Mix/Master
               </Link>
-              <button
+              <AdminListButton
                 type="button"
                 disabled={isCreatingDummy}
-                className="inline-flex h-8 items-center rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-muted/45 disabled:cursor-not-allowed disabled:opacity-50"
                 onClick={() => {
                   void createDummy("single");
                 }}
               >
                 Dummy Single
-              </button>
-              <button
+              </AdminListButton>
+              <AdminListButton
                 type="button"
                 disabled={isCreatingDummy}
-                className="inline-flex h-8 items-center rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-muted/45 disabled:cursor-not-allowed disabled:opacity-50"
                 onClick={() => {
                   void createDummy("album");
                 }}
               >
                 Dummy Álbum
-              </button>
-              <button
+              </AdminListButton>
+              <AdminListButton
                 type="button"
                 onClick={() => router.refresh()}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border transition-colors hover:bg-muted/45"
+                size="rowIcon"
                 aria-label="Refrescar"
               >
                 <RefreshCw className="h-4 w-4" />
-              </button>
+              </AdminListButton>
             </div>
           }
         />
 
-        <div className="border-b border-border px-3 py-2 sm:px-4">
+        <div className="border-border border-b px-3 py-2 sm:px-4">
           <div className="grid gap-2 xl:grid-cols-2">
-            <form method="GET" action="/admin/requests" className="min-w-0" onSubmit={(event) => event.preventDefault()}>
+            <form
+              method="GET"
+              action="/admin/requests"
+              className="min-w-0"
+              onSubmit={(event) => event.preventDefault()}
+            >
               <AdminFilterPanel
                 title={
                   <>
@@ -581,34 +722,46 @@ export default function RequestsAdminClient(props: {
                 }
                 statusSlot={
                   <>
-                    <span className="text-[11px] text-muted-foreground">·</span>
+                    <span className="text-muted-foreground text-[11px]">·</span>
                     <AdminStatusBadge className="capitalize">
-                      {activeFilters === 0 ? "Sin filtros" : `${activeFilters} filtros activos`}
+                      {activeFilters === 0
+                        ? "Sin filtros"
+                        : `${activeFilters} filtros activos`}
                     </AdminStatusBadge>
                   </>
                 }
                 actionSlot={
-                  <button
+                  <AdminListButton
                     type="button"
                     onClick={() => {
                       void handleCopyFilter();
                     }}
+                    size="pill"
+                    surface="background"
                     className={cn(
-                      "inline-flex items-center rounded-full border border-border bg-background px-2 py-1 text-[11px] capitalize",
-                      "transition-colors hover:bg-muted/45",
-                      copyState === "copied" ? "border-emerald-500/50 text-emerald-300" : "",
-                      copyState === "error" ? "border-destructive/60 text-destructive" : "",
+                      copyState === "copied"
+                        ? "border-emerald-500/50 text-emerald-300"
+                        : "",
+                      copyState === "error"
+                        ? "border-destructive/60 text-destructive"
+                        : "",
                     )}
                   >
-                    {copyState === "copied" ? "Copiado" : copyState === "error" ? "Error" : "Copiar filtro"}
-                  </button>
+                    {copyState === "copied"
+                      ? "Copiado"
+                      : copyState === "error"
+                        ? "Error"
+                        : "Copiar filtro"}
+                  </AdminListButton>
                 }
               >
                 <AdminControlsRow innerClassName="w-full xl:flex-nowrap">
                   <div className="grid min-w-[260px] flex-1 gap-1">
-                    <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">Campo</span>
+                    <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
+                      Campo
+                    </span>
                     <input
-                      className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
+                      className="border-border bg-background h-9 w-full rounded-md border px-3 text-sm"
                       placeholder="Buscar nombre/email/detalle"
                       value={q}
                       onChange={(e) => setQ(e.target.value)}
@@ -638,7 +791,10 @@ export default function RequestsAdminClient(props: {
                     className="h-9 w-full"
                     options={[
                       { value: "", label: "TODOS" },
-                      ...props.serviceOptions.map((value) => ({ value, label: value.toUpperCase() })),
+                      ...props.serviceOptions.map((value) => ({
+                        value,
+                        label: value.toUpperCase(),
+                      })),
                     ]}
                   />
 
@@ -651,23 +807,27 @@ export default function RequestsAdminClient(props: {
                     className="h-9 w-full"
                     options={[
                       { value: "", label: "TODOS" },
-                      ...props.statusOptions.map((value) => ({ value, label: value.replaceAll("_", " ") })),
+                      ...props.statusOptions.map((value) => ({
+                        value,
+                        label: value.replaceAll("_", " "),
+                      })),
                     ]}
                   />
 
                   <div className="grid w-[42px] gap-1">
-                    <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">
+                    <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
                       Acción
                     </span>
-                    <button
+                    <AdminListButton
                       type="button"
                       title="Limpiar"
                       aria-label="Limpiar"
                       onClick={resetFilters}
-                      className="inline-flex h-9 w-full items-center justify-center rounded-md border border-border text-sm transition-colors hover:bg-muted/45"
+                      size="controlIcon"
+                      className="w-full"
                     >
                       <RefreshCcw className="h-4 w-4" />
-                    </button>
+                    </AdminListButton>
                   </div>
                 </AdminControlsRow>
               </AdminFilterPanel>
@@ -680,49 +840,66 @@ export default function RequestsAdminClient(props: {
                   Acciones masivas
                 </>
               }
-              statusSlot={<AdminStatusBadge className="capitalize">{selectedCount > 0 ? `${selectedCount} seleccionados` : "sin selección"}</AdminStatusBadge>}
+              statusSlot={
+                <AdminStatusBadge className="capitalize">
+                  {selectedCount > 0
+                    ? `${selectedCount} seleccionados`
+                    : "sin selección"}
+                </AdminStatusBadge>
+              }
               className="bg-background/30"
             >
               <AdminControlsRow>
                 <div className="grid gap-1">
-                  <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">Campo</span>
-                  <label className="inline-flex h-8 items-center gap-2 rounded-md border border-border px-2 py-1 text-xs">
+                  <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
+                    Campo
+                  </span>
+                  <label className="border-border inline-flex h-8 items-center gap-2 rounded-md border px-2 py-1 text-xs">
                     <input
                       type="checkbox"
                       checked={allSelected}
-                      onChange={(event) => setSelectedIds(selectAllOrNone(selectableIds, event.target.checked))}
-                      className="h-4 w-4 rounded border-border bg-background"
+                      onChange={(event) =>
+                        setSelectedIds(
+                          selectAllOrNone(selectableIds, event.target.checked),
+                        )
+                      }
+                      className="border-border bg-background h-4 w-4 rounded"
                     />
                     Todo
                   </label>
                 </div>
 
                 <div className="grid gap-1">
-                  <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">Campo</span>
-                  <button
+                  <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
+                    Campo
+                  </span>
+                  <AdminListButton
                     type="button"
                     disabled={selectedCount === 0 || isDeleting}
                     onClick={() => setConfirmOpen(true)}
-                    className="inline-flex h-8 items-center gap-1 rounded-md border border-destructive/60 bg-destructive/10 px-2.5 text-xs text-destructive transition-colors hover:bg-destructive/20 disabled:cursor-not-allowed disabled:opacity-50"
+                    tone="danger"
+                    className="gap-1"
                     aria-label="Eliminar seleccionados"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                     Eliminar
-                  </button>
+                  </AdminListButton>
                 </div>
 
                 <div className="grid gap-1">
-                  <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">Campo</span>
-                  <button
+                  <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
+                    Campo
+                  </span>
+                  <AdminListButton
                     type="button"
                     onClick={() => setSelectedIds([])}
                     disabled={selectedCount === 0}
-                    className="inline-flex h-8 items-center rounded-md border border-border px-2 text-xs transition-colors hover:bg-muted/45 disabled:cursor-not-allowed disabled:opacity-50"
+                    size="rowIcon"
                     title="Limpiar selección"
                     aria-label="Limpiar selección"
                   >
                     <RefreshCcw className="h-4 w-4" />
-                  </button>
+                  </AdminListButton>
                 </div>
               </AdminControlsRow>
             </AdminBulkPanel>
@@ -738,13 +915,15 @@ export default function RequestsAdminClient(props: {
                 <article
                   key={row.id}
                   className={cn(
-                    "space-y-3 rounded-lg border border-border/70 bg-card p-3 transition-colors",
+                    "border-border/70 bg-card space-y-3 rounded-lg border p-3 transition-colors",
                     selectedSet.has(row.id) && "bg-accent/20",
                   )}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-foreground">{row.name}</p>
+                      <p className="text-foreground truncate text-sm font-semibold">
+                        {row.name}
+                      </p>
                       <CopyEmail email={row.email} />
                     </div>
                     <Checkbox
@@ -752,7 +931,11 @@ export default function RequestsAdminClient(props: {
                       checked={selectedSet.has(row.id)}
                       onCheckedChange={(checked) => {
                         const isChecked = checked === true;
-                        setSelectedIds((current) => (isChecked ? toggleSelection(current, row.id) : current.filter((id) => id !== row.id)));
+                        setSelectedIds((current) =>
+                          isChecked
+                            ? toggleSelection(current, row.id)
+                            : current.filter((id) => id !== row.id),
+                        );
                       }}
                     />
                   </div>
@@ -762,35 +945,45 @@ export default function RequestsAdminClient(props: {
                     <UrgencyBadge value={row.urgency} />
                   </div>
 
-                  <div className="space-y-1 text-xs text-muted-foreground">
+                  <div className="text-muted-foreground space-y-1 text-xs">
                     <p>
-                      Proyecto: <span className="text-foreground">{projectSummary(row)}</span>
+                      Proyecto:{" "}
+                      <span className="text-foreground">
+                        {projectSummary(row)}
+                      </span>
                     </p>
                     <p>
-                      Metadata: <span className="text-foreground">{metadataSummary(row)}</span>
+                      Metadata:{" "}
+                      <span className="text-foreground">
+                        {metadataSummary(row)}
+                      </span>
                     </p>
                     <p>
-                      Total: <span className="text-foreground">{formatPrice(row)}</span>
+                      Total:{" "}
+                      <span className="text-foreground">
+                        {formatPrice(row)}
+                      </span>
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 border-t border-border/50 pt-2 text-xs text-muted-foreground">
+                  <div className="border-border/50 text-muted-foreground grid grid-cols-2 gap-2 border-t pt-2 text-xs">
                     <div>
-                      <p className="text-[10px] uppercase tracking-wide">Creado</p>
+                      <p className="text-[10px] tracking-wide uppercase">
+                        Creado
+                      </p>
                       <p className="tabular-nums">{fmtDate(row.createdAt)}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase tracking-wide">Deadline</p>
+                      <p className="text-[10px] tracking-wide uppercase">
+                        Deadline
+                      </p>
                       <p className="tabular-nums">{fmtDate(row.deadlineAt)}</p>
                     </div>
                   </div>
 
-                  <Link
-                    href={`/admin/requests/${row.id}`}
-                    className="inline-flex h-8 w-full items-center justify-center rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-muted/45"
-                  >
-                    Ver detalle
-                  </Link>
+                  <AdminListButton asChild size="row" className="w-full">
+                    <Link href={`/admin/requests/${row.id}`}>Ver detalle</Link>
+                  </AdminListButton>
                 </article>
               ))}
             </div>
@@ -803,7 +996,8 @@ export default function RequestsAdminClient(props: {
                 rowClassName={(row) =>
                   cn(
                     "border-t border-border/70 hover:bg-muted/60",
-                    selectedSet.has(row.id) && "bg-accent/20 hover:bg-accent/25",
+                    selectedSet.has(row.id) &&
+                      "bg-accent/20 hover:bg-accent/25",
                   )
                 }
                 tableClassName="w-full table-auto min-w-[1320px]"
@@ -813,27 +1007,29 @@ export default function RequestsAdminClient(props: {
           </TooltipProvider>
         )}
 
-        <footer className="flex items-center justify-between gap-3 border-t border-border px-3 py-3 text-sm text-muted-foreground sm:px-4">
+        <footer className="border-border text-muted-foreground flex items-center justify-between gap-3 border-t px-3 py-3 text-sm sm:px-4">
           <span>
             Página {page} · {props.rows.length} de {props.total}
           </span>
           <div className="flex gap-2">
-            <button
+            <AdminListButton
               type="button"
               disabled={!canPrev}
               onClick={() => applyFilters(page - 1)}
-              className="inline-flex items-center justify-center rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-muted/45 disabled:cursor-not-allowed disabled:opacity-50"
+              size="control"
+              surface="background"
             >
               Anterior
-            </button>
-            <button
+            </AdminListButton>
+            <AdminListButton
               type="button"
               disabled={!canNext}
               onClick={() => applyFilters(page + 1)}
-              className="inline-flex items-center justify-center rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-muted/45 disabled:cursor-not-allowed disabled:opacity-50"
+              size="control"
+              surface="background"
             >
               Siguiente
-            </button>
+            </AdminListButton>
           </div>
         </footer>
       </AdminListShell>
@@ -841,9 +1037,12 @@ export default function RequestsAdminClient(props: {
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="border-border bg-card text-foreground">
           <DialogHeader>
-            <DialogTitle className="text-destructive">Eliminar solicitudes</DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              Vas a eliminar {selectedCount} solicitud(es). Esta acción no se puede deshacer.
+            <DialogTitle className="text-destructive">
+              Eliminar solicitudes
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-xs">
+              Vas a eliminar {selectedCount} solicitud(es). Esta acción no se
+              puede deshacer.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-4 w-full">

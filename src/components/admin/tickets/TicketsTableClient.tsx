@@ -20,6 +20,7 @@ import { LabeledSelect } from "@/components/admin/ui/LabeledSelect";
 import {
   allSelected as computeAllSelected,
   AdminBulkPanel,
+  AdminListButton,
   AdminControlsRow,
   AdminDataTable,
   AdminFilterPanel,
@@ -72,35 +73,95 @@ function truncate(text: string, max = 88) {
 
 function statusBadge(status: TicketRow["status"]) {
   if (status === "OPEN") {
-    return <AdminIconBadge tone="warning" icon={<Clock3 aria-hidden="true" />} label="OPEN" />;
+    return (
+      <AdminIconBadge
+        tone="warning"
+        icon={<Clock3 aria-hidden="true" />}
+        label="OPEN"
+      />
+    );
   }
   if (status === "IN_PROGRESS") {
-    return <AdminIconBadge tone="neutral" icon={<Wrench aria-hidden="true" />} label="IN PROGRESS" />;
+    return (
+      <AdminIconBadge
+        tone="neutral"
+        icon={<Wrench aria-hidden="true" />}
+        label="IN PROGRESS"
+      />
+    );
   }
   if (status === "RESOLVED") {
-    return <AdminIconBadge tone="success" icon={<Check aria-hidden="true" />} label="RESOLVED" />;
+    return (
+      <AdminIconBadge
+        tone="success"
+        icon={<Check aria-hidden="true" />}
+        label="RESOLVED"
+      />
+    );
   }
-  return <AdminIconBadge tone="danger" icon={<Ban aria-hidden="true" />} label="SPAM" />;
+  return (
+    <AdminIconBadge
+      tone="danger"
+      icon={<Ban aria-hidden="true" />}
+      label="SPAM"
+    />
+  );
 }
 
 function severityBadge(severity: TicketRow["severity"]) {
   if (severity === "HIGH") {
-    return <AdminIconBadge tone="danger" icon={<AlertTriangle aria-hidden="true" />} label="HIGH" />;
+    return (
+      <AdminIconBadge
+        tone="danger"
+        icon={<AlertTriangle aria-hidden="true" />}
+        label="HIGH"
+      />
+    );
   }
   if (severity === "MEDIUM") {
-    return <AdminIconBadge tone="warning" icon={<AlertTriangle aria-hidden="true" />} label="MEDIUM" />;
+    return (
+      <AdminIconBadge
+        tone="warning"
+        icon={<AlertTriangle aria-hidden="true" />}
+        label="MEDIUM"
+      />
+    );
   }
-  return <AdminIconBadge tone="neutral" icon={<Bug aria-hidden="true" />} label="LOW" />;
+  return (
+    <AdminIconBadge
+      tone="neutral"
+      icon={<Bug aria-hidden="true" />}
+      label="LOW"
+    />
+  );
 }
 
 function sourceBadge(source: TicketRow["source"]) {
   if (source === "NOT_FOUND") {
-    return <AdminIconBadge tone="warning" icon={<Search aria-hidden="true" />} label="404" />;
+    return (
+      <AdminIconBadge
+        tone="warning"
+        icon={<Search aria-hidden="true" />}
+        label="404"
+      />
+    );
   }
   if (source === "ERROR_PAGE") {
-    return <AdminIconBadge tone="danger" icon={<AlertTriangle aria-hidden="true" />} label="ERROR PAGE" />;
+    return (
+      <AdminIconBadge
+        tone="danger"
+        icon={<AlertTriangle aria-hidden="true" />}
+        label="ERROR PAGE"
+      />
+    );
   }
-  return <AdminIconBadge tone="neutral" icon={<Bug aria-hidden="true" />} label="MANUAL" />;
+  return (
+    <AdminIconBadge
+      tone="neutral"
+      icon={<Bug aria-hidden="true" />}
+      label="MANUAL"
+    />
+  );
 }
 
 export function TicketsTableClient({ rows, filters }: TicketsTableClientProps) {
@@ -113,10 +174,13 @@ export function TicketsTableClient({ rows, filters }: TicketsTableClientProps) {
   const [localStatus, setLocalStatus] = useState(filters.status);
   const [localSeverity, setLocalSeverity] = useState(filters.severity);
   const [localSource, setLocalSource] = useState(filters.source);
-  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
-  const [bulkState, setBulkState] = useState<{ type: "idle" | "running" | "success" | "error"; message: string }>(
-    { type: "idle", message: "" },
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">(
+    "idle",
   );
+  const [bulkState, setBulkState] = useState<{
+    type: "idle" | "running" | "success" | "error";
+    message: string;
+  }>({ type: "idle", message: "" });
 
   const copyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bulkResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -212,24 +276,37 @@ export function TicketsTableClient({ rows, filters }: TicketsTableClientProps) {
         }),
       });
 
-      const payload = (await response.json().catch(() => null)) as
-        | { ok?: boolean; affected?: number }
-        | null;
+      const payload = (await response.json().catch(() => null)) as {
+        ok?: boolean;
+        affected?: number;
+      } | null;
 
       if (!response.ok || !payload?.ok) {
-        setBulkState({ type: "error", message: "No se pudo aplicar la accion masiva." });
+        setBulkState({
+          type: "error",
+          message: "No se pudo aplicar la accion masiva.",
+        });
       } else {
         const affected = payload.affected ?? 0;
-        setBulkState({ type: "success", message: `Accion aplicada en ${affected} ticket(s).` });
+        setBulkState({
+          type: "success",
+          message: `Accion aplicada en ${affected} ticket(s).`,
+        });
         setSelectedIds([]);
         router.refresh();
       }
     } catch {
-      setBulkState({ type: "error", message: "No se pudo aplicar la accion masiva." });
+      setBulkState({
+        type: "error",
+        message: "No se pudo aplicar la accion masiva.",
+      });
     }
 
     if (bulkResetRef.current) clearTimeout(bulkResetRef.current);
-    bulkResetRef.current = setTimeout(() => setBulkState({ type: "idle", message: "" }), 2500);
+    bulkResetRef.current = setTimeout(
+      () => setBulkState({ type: "idle", message: "" }),
+      2500,
+    );
   }
 
   const columns: AdminColumnDef<TicketRow>[] = [
@@ -239,8 +316,10 @@ export function TicketsTableClient({ rows, filters }: TicketsTableClientProps) {
         <input
           type="checkbox"
           checked={allSelected}
-          onChange={(event) => setSelectedIds(selectAllOrNone(selectableIds, event.target.checked))}
-          className="h-4 w-4 rounded border-border bg-background"
+          onChange={(event) =>
+            setSelectedIds(selectAllOrNone(selectableIds, event.target.checked))
+          }
+          className="border-border bg-background h-4 w-4 rounded"
           aria-label="Seleccionar todos"
         />
       ),
@@ -249,8 +328,10 @@ export function TicketsTableClient({ rows, filters }: TicketsTableClientProps) {
         <input
           type="checkbox"
           checked={selectedSet.has(row.id)}
-          onChange={() => setSelectedIds((current) => toggleSelection(current, row.id))}
-          className="h-4 w-4 rounded border-border bg-background"
+          onChange={() =>
+            setSelectedIds((current) => toggleSelection(current, row.id))
+          }
+          className="border-border bg-background h-4 w-4 rounded"
           aria-label={`Seleccionar ticket ${row.id}`}
         />
       ),
@@ -260,9 +341,13 @@ export function TicketsTableClient({ rows, filters }: TicketsTableClientProps) {
       label: "Ticket",
       render: (row) => (
         <div className="space-y-1">
-          <p className="text-sm font-medium leading-tight">{row.summary}</p>
-          <p className="text-muted-foreground text-xs">{truncate(row.details)}</p>
-          <p className="text-muted-foreground font-mono text-[10px]">ID: {row.id}</p>
+          <p className="text-sm leading-tight font-medium">{row.summary}</p>
+          <p className="text-muted-foreground text-xs">
+            {truncate(row.details)}
+          </p>
+          <p className="text-muted-foreground font-mono text-[10px]">
+            ID: {row.id}
+          </p>
         </div>
       ),
     },
@@ -289,7 +374,9 @@ export function TicketsTableClient({ rows, filters }: TicketsTableClientProps) {
       render: (row) => (
         <div className="space-y-1">
           <p className="text-xs">{row.email || "sin email"}</p>
-          <p className="text-muted-foreground text-[11px]">{row.pageUrl || "sin URL"}</p>
+          <p className="text-muted-foreground text-[11px]">
+            {row.pageUrl || "sin URL"}
+          </p>
         </div>
       ),
       hideOnMobile: true,
@@ -297,7 +384,9 @@ export function TicketsTableClient({ rows, filters }: TicketsTableClientProps) {
     {
       key: "createdAt",
       label: "Fecha",
-      render: (row) => <span className="text-xs">{formatDate(row.createdAtIso)}</span>,
+      render: (row) => (
+        <span className="text-xs">{formatDate(row.createdAtIso)}</span>
+      ),
       hideOnMobile: true,
     },
     {
@@ -305,22 +394,26 @@ export function TicketsTableClient({ rows, filters }: TicketsTableClientProps) {
       label: "Acciones",
       align: "right",
       render: (row) => (
-        <Link
-          href={`/admin/tickets/${row.id}`}
-          className="inline-flex items-center justify-end gap-1 rounded-md border border-border px-2 py-1 text-xs transition-colors hover:bg-muted/45"
-        >
-          <Eye className="h-3.5 w-3.5" aria-hidden="true" />
-          Ver
-        </Link>
+        <AdminListButton asChild size="row" className="justify-end gap-1">
+          <Link href={`/admin/tickets/${row.id}`}>
+            <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+            Ver
+          </Link>
+        </AdminListButton>
       ),
     },
   ];
 
   return (
     <>
-      <div className="border-b border-border px-3 py-2 sm:px-4">
+      <div className="border-border border-b px-3 py-2 sm:px-4">
         <div className="grid gap-2 xl:grid-cols-2">
-          <form method="GET" action="/admin/tickets" className="min-w-0" onSubmit={(event) => event.preventDefault()}>
+          <form
+            method="GET"
+            action="/admin/tickets"
+            className="min-w-0"
+            onSubmit={(event) => event.preventDefault()}
+          >
             <AdminFilterPanel
               title={
                 <>
@@ -330,30 +423,42 @@ export function TicketsTableClient({ rows, filters }: TicketsTableClientProps) {
               }
               statusSlot={
                 <>
-                  <span className="text-[11px] text-muted-foreground">·</span>
-                  <AdminStatusBadge className="capitalize">{filterStateLabel}</AdminStatusBadge>
+                  <span className="text-muted-foreground text-[11px]">·</span>
+                  <AdminStatusBadge className="capitalize">
+                    {filterStateLabel}
+                  </AdminStatusBadge>
                 </>
               }
               actionSlot={
-                <button
+                <AdminListButton
                   type="button"
                   onClick={() => void handleCopyFilter()}
+                  size="pill"
+                  surface="background"
                   className={cn(
-                    "inline-flex items-center rounded-full border border-border bg-background px-2 py-1 text-[11px] capitalize",
-                    "transition-colors hover:bg-muted/45",
-                    copyState === "copied" ? "border-emerald-500/50 text-emerald-300" : "",
-                    copyState === "error" ? "border-destructive/60 text-destructive" : "",
+                    copyState === "copied"
+                      ? "border-emerald-500/50 text-emerald-300"
+                      : "",
+                    copyState === "error"
+                      ? "border-destructive/60 text-destructive"
+                      : "",
                   )}
                 >
-                  {copyState === "copied" ? "Copiado" : copyState === "error" ? "Error" : "Copiar filtro"}
-                </button>
+                  {copyState === "copied"
+                    ? "Copiado"
+                    : copyState === "error"
+                      ? "Error"
+                      : "Copiar filtro"}
+                </AdminListButton>
               }
             >
               <AdminControlsRow innerClassName="w-full xl:flex-nowrap">
                 <div className="grid min-w-0 flex-[1_1_220px] gap-1">
-                  <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">Campo</span>
+                  <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
+                    Campo
+                  </span>
                   <div className="relative w-full">
-                    <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                     <label className="sr-only" htmlFor="ticket-filter-q">
                       Buscar
                     </label>
@@ -364,7 +469,7 @@ export function TicketsTableClient({ rows, filters }: TicketsTableClientProps) {
                       onChange={(event) => setLocalQuery(event.target.value)}
                       autoComplete="off"
                       placeholder="Buscar por resumen, detalle, email o URL"
-                      className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm"
+                      className="border-border bg-background h-9 w-full rounded-md border pr-3 pl-9 text-sm"
                     />
                   </div>
                 </div>
@@ -409,7 +514,7 @@ export function TicketsTableClient({ rows, filters }: TicketsTableClientProps) {
                   ]}
                 />
 
-                <button
+                <AdminListButton
                   type="button"
                   onClick={() => {
                     setLocalQuery("");
@@ -417,12 +522,14 @@ export function TicketsTableClient({ rows, filters }: TicketsTableClientProps) {
                     setLocalSeverity("");
                     setLocalSource("");
                   }}
-                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center self-end rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-muted/45"
+                  size="controlIcon"
+                  surface="background"
+                  className="text-muted-foreground shrink-0 self-end"
                   aria-label="Limpiar"
                   title="Limpiar"
                 >
                   <RefreshCcw className="h-4 w-4" aria-hidden="true" />
-                </button>
+                </AdminListButton>
               </AdminControlsRow>
             </AdminFilterPanel>
           </form>
@@ -434,15 +541,23 @@ export function TicketsTableClient({ rows, filters }: TicketsTableClientProps) {
                 Acciones masivas
               </>
             }
-            statusSlot={<AdminStatusBadge className="capitalize">{selectionStateLabel}</AdminStatusBadge>}
+            statusSlot={
+              <AdminStatusBadge className="capitalize">
+                {selectionStateLabel}
+              </AdminStatusBadge>
+            }
           >
             <AdminControlsRow>
-              <label className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-background px-3 text-sm">
+              <label className="border-border bg-background inline-flex h-9 items-center gap-2 rounded-md border px-3 text-sm">
                 <input
                   type="checkbox"
                   checked={allSelected}
-                  onChange={(event) => setSelectedIds(selectAllOrNone(selectableIds, event.target.checked))}
-                  className="h-4 w-4 rounded border-border bg-background"
+                  onChange={(event) =>
+                    setSelectedIds(
+                      selectAllOrNone(selectableIds, event.target.checked),
+                    )
+                  }
+                  className="border-border bg-background h-4 w-4 rounded"
                 />
                 Todo
               </label>
@@ -450,7 +565,9 @@ export function TicketsTableClient({ rows, filters }: TicketsTableClientProps) {
               <LabeledSelect
                 label="Accion"
                 value={bulkAction}
-                onChange={(event) => setBulkAction(event.target.value as BulkAction)}
+                onChange={(event) =>
+                  setBulkAction(event.target.value as BulkAction)
+                }
                 rootClassName="min-w-[150px] flex-[0_0_150px]"
                 options={[
                   { value: "set_status", label: "Cambiar estado" },
@@ -461,7 +578,9 @@ export function TicketsTableClient({ rows, filters }: TicketsTableClientProps) {
               <LabeledSelect
                 label="Estado"
                 value={bulkStatus}
-                onChange={(event) => setBulkStatus(event.target.value as BulkStatus)}
+                onChange={(event) =>
+                  setBulkStatus(event.target.value as BulkStatus)
+                }
                 rootClassName="min-w-[160px] flex-[0_0_160px]"
                 options={[
                   { value: "OPEN", label: "OPEN" },
@@ -472,21 +591,29 @@ export function TicketsTableClient({ rows, filters }: TicketsTableClientProps) {
                 disabled={bulkAction !== "set_status"}
               />
 
-              <button
+              <AdminListButton
                 type="button"
                 onClick={() => void handleBulkApply()}
-                disabled={selectedIds.length === 0 || bulkState.type === "running"}
-                className="inline-flex h-9 min-w-[124px] items-center justify-center rounded-md border border-border bg-background px-3 text-sm transition-colors hover:bg-muted/45 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={
+                  selectedIds.length === 0 || bulkState.type === "running"
+                }
+                size="control"
+                surface="background"
+                className="min-w-[124px]"
               >
                 {bulkState.type === "running" ? "Aplicando..." : "Aplicar"}
-              </button>
+              </AdminListButton>
             </AdminControlsRow>
 
             {bulkState.type === "success" ? (
-              <p className="mt-2 text-xs text-emerald-300">{bulkState.message}</p>
+              <p className="mt-2 text-xs text-emerald-300">
+                {bulkState.message}
+              </p>
             ) : null}
             {bulkState.type === "error" ? (
-              <p className="mt-2 text-xs text-destructive">{bulkState.message}</p>
+              <p className="text-destructive mt-2 text-xs">
+                {bulkState.message}
+              </p>
             ) : null}
           </AdminBulkPanel>
         </div>
@@ -498,7 +625,9 @@ export function TicketsTableClient({ rows, filters }: TicketsTableClientProps) {
         rowKey={(row) => row.id}
         rowClassName="border-t border-border/70 hover:bg-muted/60"
         minWidthClassName="min-w-full"
-        emptyState={<AdminListEmptyState message="No hay tickets con los filtros actuales." />}
+        emptyState={
+          <AdminListEmptyState message="No hay tickets con los filtros actuales." />
+        }
       />
     </>
   );

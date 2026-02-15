@@ -2,7 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ban, Check, Clock3, Copy, Filter, Loader2, RefreshCcw, Search, ShieldCheck } from "lucide-react";
+import {
+  Ban,
+  Check,
+  Clock3,
+  Copy,
+  Filter,
+  Loader2,
+  RefreshCcw,
+  Search,
+  ShieldCheck,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import AnalyzeActions from "@/components/admin/AnalyzeActions";
 import {
@@ -12,6 +22,7 @@ import {
   AdminDataTable,
   AdminFilterPanel,
   AdminIconBadge,
+  AdminListButton,
   AdminListEmptyState,
   AdminStatusBadge,
   countActiveFilters,
@@ -58,32 +69,66 @@ function trackStatus(row: TrackListRow): "NO_AUDIO" | "PENDING" | "ANALYZED" {
 function statusBadge(row: TrackListRow) {
   const status = trackStatus(row);
   if (status === "NO_AUDIO") {
-    return <AdminIconBadge tone="danger" icon={<Ban aria-hidden="true" />} label="SIN AUDIO" />;
+    return (
+      <AdminIconBadge
+        tone="danger"
+        icon={<Ban aria-hidden="true" />}
+        label="SIN AUDIO"
+      />
+    );
   }
   if (status === "PENDING") {
-    return <AdminIconBadge tone="warning" icon={<Clock3 aria-hidden="true" />} label="SIN ANÁLISIS" />;
+    return (
+      <AdminIconBadge
+        tone="warning"
+        icon={<Clock3 aria-hidden="true" />}
+        label="SIN ANÁLISIS"
+      />
+    );
   }
-  return <AdminIconBadge tone="success" icon={<ShieldCheck aria-hidden="true" />} label="ANALIZADO" />;
+  return (
+    <AdminIconBadge
+      tone="success"
+      icon={<ShieldCheck aria-hidden="true" />}
+      label="ANALIZADO"
+    />
+  );
 }
 
 function analysisBadge(row: TrackListRow) {
   if (row.analysisAtIso) {
     return (
       <div className="flex flex-col items-start gap-1">
-        <AdminIconBadge tone="success" icon={<ShieldCheck aria-hidden="true" />} label="ANALIZADO" />
-        <span className="text-[11px] text-muted-foreground">{formatDateTime(row.analysisAtIso)}</span>
+        <AdminIconBadge
+          tone="success"
+          icon={<ShieldCheck aria-hidden="true" />}
+          label="ANALIZADO"
+        />
+        <span className="text-muted-foreground text-[11px]">
+          {formatDateTime(row.analysisAtIso)}
+        </span>
       </div>
     );
   }
-  return <AdminIconBadge tone="warning" icon={<Clock3 aria-hidden="true" />} label="PENDIENTE" />;
+  return (
+    <AdminIconBadge
+      tone="warning"
+      icon={<Clock3 aria-hidden="true" />}
+      label="PENDIENTE"
+    />
+  );
 }
 
 export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
   const router = useRouter();
   const [rows, setRows] = useState<TrackListRow[]>(tracks);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [idCopyState, setIdCopyState] = useState<"idle" | "copied" | "error">("idle");
-  const [filterCopyState, setFilterCopyState] = useState<"idle" | "copied" | "error">("idle");
+  const [idCopyState, setIdCopyState] = useState<"idle" | "copied" | "error">(
+    "idle",
+  );
+  const [filterCopyState, setFilterCopyState] = useState<
+    "idle" | "copied" | "error"
+  >("idle");
   const [localQuery, setLocalQuery] = useState(filters.q);
   const [localAnalysis, setLocalAnalysis] = useState(filters.analysis);
   const [localPer, setLocalPer] = useState(String(filters.per));
@@ -102,7 +147,11 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
     selectedIds.length > 0
       ? `${selectedIds.length} ${selectedIds.length === 1 ? "seleccionado" : "seleccionados"}`
       : "sin selección";
-  const localActiveCount = countActiveFilters([localQuery.trim().toLowerCase(), localAnalysis, localPer !== "50" ? localPer : ""]);
+  const localActiveCount = countActiveFilters([
+    localQuery.trim().toLowerCase(),
+    localAnalysis,
+    localPer !== "50" ? localPer : "",
+  ]);
   const filterStateLabel =
     localActiveCount === 0
       ? "sin filtros"
@@ -163,7 +212,10 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
     if (filterCopyResetRef.current) {
       clearTimeout(filterCopyResetRef.current);
     }
-    filterCopyResetRef.current = setTimeout(() => setFilterCopyState("idle"), 1600);
+    filterCopyResetRef.current = setTimeout(
+      () => setFilterCopyState("idle"),
+      1600,
+    );
   }
 
   async function handleCopySelected() {
@@ -182,7 +234,10 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
 
   async function handleAnalyzeSelected() {
     if (selectedIds.length === 0) return;
-    setAnalyzeState({ type: "running", message: `Analizando ${selectedIds.length} track(s)...` });
+    setAnalyzeState({
+      type: "running",
+      message: `Analizando ${selectedIds.length} track(s)...`,
+    });
 
     let okCount = 0;
     let failCount = 0;
@@ -190,11 +245,14 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
 
     for (const id of selectedIds) {
       try {
-        const response = await fetch(`/api/tracks/${encodeURIComponent(id)}/analyze`, {
-          method: "POST",
-          credentials: "include",
-          cache: "no-store",
-        });
+        const response = await fetch(
+          `/api/tracks/${encodeURIComponent(id)}/analyze`,
+          {
+            method: "POST",
+            credentials: "include",
+            cache: "no-store",
+          },
+        );
         const payload = await response.json().catch(() => null);
 
         if (!response.ok || !payload?.ok) {
@@ -241,15 +299,24 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
       clearTimeout(analyzeResetRef.current);
     }
     if (failCount === 0) {
-      setAnalyzeState({ type: "success", message: `Analizados: ${okCount}/${selectedIds.length}` });
-      analyzeResetRef.current = setTimeout(() => setAnalyzeState({ type: "idle", message: "" }), 2000);
+      setAnalyzeState({
+        type: "success",
+        message: `Analizados: ${okCount}/${selectedIds.length}`,
+      });
+      analyzeResetRef.current = setTimeout(
+        () => setAnalyzeState({ type: "idle", message: "" }),
+        2000,
+      );
       return;
     }
     setAnalyzeState({
       type: "error",
       message: `Analizados: ${okCount}/${selectedIds.length} · errores: ${failCount}`,
     });
-    analyzeResetRef.current = setTimeout(() => setAnalyzeState({ type: "idle", message: "" }), 3500);
+    analyzeResetRef.current = setTimeout(
+      () => setAnalyzeState({ type: "idle", message: "" }),
+      3500,
+    );
   }
 
   const desktopColumns: AdminColumnDef<TrackListRow>[] = [
@@ -259,8 +326,10 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
         <input
           type="checkbox"
           checked={allSelected}
-          onChange={(event) => setSelectedIds(selectAllOrNone(selectableIds, event.target.checked))}
-          className="h-4 w-4 rounded border-border bg-background"
+          onChange={(event) =>
+            setSelectedIds(selectAllOrNone(selectableIds, event.target.checked))
+          }
+          className="border-border bg-background h-4 w-4 rounded"
           aria-label="Seleccionar todos los tracks"
         />
       ),
@@ -269,8 +338,10 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
         <input
           type="checkbox"
           checked={selectedSet.has(track.id)}
-          onChange={() => setSelectedIds((current) => toggleSelection(current, track.id))}
-          className="h-4 w-4 rounded border-border bg-background"
+          onChange={() =>
+            setSelectedIds((current) => toggleSelection(current, track.id))
+          }
+          className="border-border bg-background h-4 w-4 rounded"
           aria-label={`Seleccionar track ${track.title ?? track.id}`}
         />
       ),
@@ -280,9 +351,15 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
       label: "Track",
       render: (track) => (
         <div className="flex flex-col">
-          <span className="text-sm font-medium text-foreground">{track.title || "(sin título)"}</span>
-          <span className="text-xs text-muted-foreground">{track.artist || "(sin artista)"}</span>
-          <span className="mt-1 font-mono text-[10px] break-words text-muted-foreground">ID: {track.id}</span>
+          <span className="text-foreground text-sm font-medium">
+            {track.title || "(sin título)"}
+          </span>
+          <span className="text-muted-foreground text-xs">
+            {track.artist || "(sin artista)"}
+          </span>
+          <span className="text-muted-foreground mt-1 font-mono text-[10px] break-words">
+            ID: {track.id}
+          </span>
         </div>
       ),
     },
@@ -324,9 +401,14 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
 
   return (
     <>
-      <div className="border-b border-border px-3 py-2 sm:px-4">
+      <div className="border-border border-b px-3 py-2 sm:px-4">
         <div className="grid gap-2 xl:grid-cols-2">
-          <form method="GET" action="/admin/tracks" className="min-w-0" onSubmit={(event) => event.preventDefault()}>
+          <form
+            method="GET"
+            action="/admin/tracks"
+            className="min-w-0"
+            onSubmit={(event) => event.preventDefault()}
+          >
             <AdminFilterPanel
               title={
                 <>
@@ -336,100 +418,111 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
               }
               statusSlot={
                 <>
-                  <span className="text-[11px] text-muted-foreground">·</span>
-                  <AdminStatusBadge className="capitalize">{filterStateLabel}</AdminStatusBadge>
+                  <span className="text-muted-foreground text-[11px]">·</span>
+                  <AdminStatusBadge className="capitalize">
+                    {filterStateLabel}
+                  </AdminStatusBadge>
                 </>
               }
               actionSlot={
-                <button
+                <AdminListButton
                   type="button"
                   onClick={() => void handleCopyFilter()}
+                  size="pill"
+                  surface="background"
                   className={cn(
-                    "inline-flex items-center rounded-full border border-border bg-background px-2 py-1 text-[11px] capitalize",
-                    "transition-colors hover:bg-muted/45",
-                    filterCopyState === "copied" ? "border-emerald-500/50 text-emerald-300" : "",
-                    filterCopyState === "error" ? "border-destructive/60 text-destructive" : "",
+                    filterCopyState === "copied"
+                      ? "border-emerald-500/50 text-emerald-300"
+                      : "",
+                    filterCopyState === "error"
+                      ? "border-destructive/60 text-destructive"
+                      : "",
                   )}
                 >
-                  {filterCopyState === "copied" ? "Copiado" : filterCopyState === "error" ? "Error" : "Copiar filtro"}
-                </button>
+                  {filterCopyState === "copied"
+                    ? "Copiado"
+                    : filterCopyState === "error"
+                      ? "Error"
+                      : "Copiar filtro"}
+                </AdminListButton>
               }
             >
               <AdminControlsRow innerClassName="w-full xl:flex-nowrap">
-                  <div className="grid min-w-0 flex-[1_1_220px] gap-1">
-                    <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">
-                      Campo
-                    </span>
-                    <div className="relative w-full">
-                      <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <input
-                        id="filter-tracks-q"
-                        type="text"
-                        name="q"
-                        value={localQuery}
-                        onChange={(event) => setLocalQuery(event.target.value)}
-                        placeholder="Buscar título o artista"
-                        className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm"
-                        autoComplete="off"
-                      />
-                    </div>
+                <div className="grid min-w-0 flex-[1_1_220px] gap-1">
+                  <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
+                    Campo
+                  </span>
+                  <div className="relative w-full">
+                    <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                    <input
+                      id="filter-tracks-q"
+                      type="text"
+                      name="q"
+                      value={localQuery}
+                      onChange={(event) => setLocalQuery(event.target.value)}
+                      placeholder="Buscar título o artista"
+                      className="border-border bg-background h-9 w-full rounded-md border pr-3 pl-9 text-sm"
+                      autoComplete="off"
+                    />
                   </div>
+                </div>
 
-                  <div className="grid w-[132px] gap-1">
-                    <span className="text-center text-[10px] font-semibold tracking-wide uppercase text-muted-foreground">
-                      ESTADO
-                    </span>
-                    <select
-                      id="filter-tracks-status"
-                      name="analysis"
-                      value={localAnalysis}
-                      onChange={(event) => setLocalAnalysis(event.target.value)}
-                      className="h-9 w-full rounded-md border border-border bg-background px-3 pr-8 text-sm"
-                    >
-                      <option value="">TODOS</option>
-                      <option value="analyzed">ANALIZADO</option>
-                      <option value="pending">SIN ANÁLISIS</option>
-                      <option value="no_audio">SIN AUDIO</option>
-                    </select>
-                  </div>
+                <div className="grid w-[132px] gap-1">
+                  <span className="text-muted-foreground text-center text-[10px] font-semibold tracking-wide uppercase">
+                    ESTADO
+                  </span>
+                  <select
+                    id="filter-tracks-status"
+                    name="analysis"
+                    value={localAnalysis}
+                    onChange={(event) => setLocalAnalysis(event.target.value)}
+                    className="border-border bg-background h-9 w-full rounded-md border px-3 pr-8 text-sm"
+                  >
+                    <option value="">TODOS</option>
+                    <option value="analyzed">ANALIZADO</option>
+                    <option value="pending">SIN ANÁLISIS</option>
+                    <option value="no_audio">SIN AUDIO</option>
+                  </select>
+                </div>
 
-                  <div className="grid w-[104px] gap-1">
-                    <span className="text-center text-[10px] font-semibold tracking-wide uppercase text-muted-foreground">
-                      POR PÁGINA
-                    </span>
-                    <select
-                      id="filter-tracks-per"
-                      name="per"
-                      value={localPer}
-                      onChange={(event) => setLocalPer(event.target.value)}
-                      className="h-9 w-full rounded-md border border-border bg-background px-3 pr-8 text-sm"
-                    >
-                      <option value="10">10</option>
-                      <option value="20">20</option>
-                      <option value="50">50</option>
-                      <option value="100">100</option>
-                    </select>
-                  </div>
+                <div className="grid w-[104px] gap-1">
+                  <span className="text-muted-foreground text-center text-[10px] font-semibold tracking-wide uppercase">
+                    POR PÁGINA
+                  </span>
+                  <select
+                    id="filter-tracks-per"
+                    name="per"
+                    value={localPer}
+                    onChange={(event) => setLocalPer(event.target.value)}
+                    className="border-border bg-background h-9 w-full rounded-md border px-3 pr-8 text-sm"
+                  >
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                </div>
 
-                  <div className="grid w-[42px] gap-1">
-                    <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">
-                      Acción
-                    </span>
-                    <button
-                      id="tracks-limpiar-filtros"
-                      type="button"
-                      title="Limpiar"
-                      aria-label="Limpiar"
-                      onClick={() => {
-                        setLocalQuery("");
-                        setLocalAnalysis("");
-                        setLocalPer("50");
-                      }}
-                      className="inline-flex h-9 w-full items-center justify-center rounded-md border border-border text-sm transition-colors hover:bg-muted/45"
-                    >
-                      <RefreshCcw className="h-4 w-4" />
-                    </button>
-                  </div>
+                <div className="grid w-[42px] gap-1">
+                  <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
+                    Acción
+                  </span>
+                  <AdminListButton
+                    id="tracks-limpiar-filtros"
+                    type="button"
+                    title="Limpiar"
+                    aria-label="Limpiar"
+                    onClick={() => {
+                      setLocalQuery("");
+                      setLocalAnalysis("");
+                      setLocalPer("50");
+                    }}
+                    size="controlIcon"
+                    className="w-full"
+                  >
+                    <RefreshCcw className="h-4 w-4" />
+                  </AdminListButton>
+                </div>
               </AdminControlsRow>
             </AdminFilterPanel>
           </form>
@@ -443,7 +536,9 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
             }
             statusSlot={
               <div className="inline-flex items-center gap-1.5">
-                <AdminStatusBadge className="capitalize">{selectionStateLabel}</AdminStatusBadge>
+                <AdminStatusBadge className="capitalize">
+                  {selectionStateLabel}
+                </AdminStatusBadge>
                 {analyzeState.type !== "idle" ? (
                   <AdminStatusBadge
                     tone={
@@ -462,79 +557,93 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
             className="bg-background/30"
           >
             <AdminControlsRow>
-                <div className="grid gap-1">
-                  <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">
-                    Campo
-                  </span>
-                  <label className="inline-flex h-8 items-center gap-2 rounded-md border border-border px-2 py-1 text-xs">
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      onChange={(event) => setSelectedIds(selectAllOrNone(selectableIds, event.target.checked))}
-                      className="h-4 w-4 rounded border-border bg-background"
-                    />
-                    Todo
-                  </label>
-                </div>
+              <div className="grid gap-1">
+                <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
+                  Campo
+                </span>
+                <label className="border-border inline-flex h-8 items-center gap-2 rounded-md border px-2 py-1 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={(event) =>
+                      setSelectedIds(
+                        selectAllOrNone(selectableIds, event.target.checked),
+                      )
+                    }
+                    className="border-border bg-background h-4 w-4 rounded"
+                  />
+                  Todo
+                </label>
+              </div>
 
-                <div className="grid gap-1">
-                  <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">
-                    Campo
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void handleAnalyzeSelected();
-                    }}
-                    disabled={selectedIds.length === 0 || analyzeState.type === "running"}
-                    className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-muted/45 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {analyzeState.type === "running" ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <ShieldCheck className="h-3.5 w-3.5" />
-                    )}
-                    Analizar
-                  </button>
-                </div>
+              <div className="grid gap-1">
+                <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
+                  Campo
+                </span>
+                <AdminListButton
+                  type="button"
+                  onClick={() => {
+                    void handleAnalyzeSelected();
+                  }}
+                  disabled={
+                    selectedIds.length === 0 || analyzeState.type === "running"
+                  }
+                  size="row"
+                  className="gap-1"
+                >
+                  {analyzeState.type === "running" ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                  )}
+                  Analizar
+                </AdminListButton>
+              </div>
 
-                <div className="grid gap-1">
-                  <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">
-                    Campo
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void handleCopySelected();
-                    }}
-                    disabled={selectedIds.length === 0}
-                    className={cn(
-                      "inline-flex h-8 items-center gap-1 rounded-md border border-border px-2.5 text-xs transition-colors hover:bg-muted/45",
-                      "disabled:cursor-not-allowed disabled:opacity-50",
-                      idCopyState === "copied" ? "border-emerald-500/50 text-emerald-300" : "",
-                      idCopyState === "error" ? "border-destructive/60 text-destructive" : "",
-                    )}
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                    {idCopyState === "copied" ? "Copiado" : idCopyState === "error" ? "Error" : "Copiar IDs"}
-                  </button>
-                </div>
+              <div className="grid gap-1">
+                <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
+                  Campo
+                </span>
+                <AdminListButton
+                  type="button"
+                  onClick={() => {
+                    void handleCopySelected();
+                  }}
+                  disabled={selectedIds.length === 0}
+                  className={cn(
+                    "gap-1",
+                    idCopyState === "copied"
+                      ? "border-emerald-500/50 text-emerald-300"
+                      : "",
+                    idCopyState === "error"
+                      ? "border-destructive/60 text-destructive"
+                      : "",
+                  )}
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  {idCopyState === "copied"
+                    ? "Copiado"
+                    : idCopyState === "error"
+                      ? "Error"
+                      : "Copiar IDs"}
+                </AdminListButton>
+              </div>
 
-                <div className="grid gap-1">
-                  <span className="select-none text-[10px] font-semibold tracking-wide uppercase text-transparent">
-                    Campo
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedIds([])}
-                    disabled={selectedIds.length === 0}
-                    className="inline-flex h-8 items-center rounded-md border border-border px-2 text-xs transition-colors hover:bg-muted/45 disabled:cursor-not-allowed disabled:opacity-50"
-                    title="Limpiar selección"
-                    aria-label="Limpiar selección"
-                  >
-                    <RefreshCcw className="h-4 w-4" />
-                  </button>
-                </div>
+              <div className="grid gap-1">
+                <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
+                  Campo
+                </span>
+                <AdminListButton
+                  type="button"
+                  onClick={() => setSelectedIds([])}
+                  disabled={selectedIds.length === 0}
+                  size="rowIcon"
+                  title="Limpiar selección"
+                  aria-label="Limpiar selección"
+                >
+                  <RefreshCcw className="h-4 w-4" />
+                </AdminListButton>
+              </div>
             </AdminControlsRow>
           </AdminBulkPanel>
         </div>
@@ -545,54 +654,60 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
           <AdminListEmptyState message="Sin resultados para los filtros actuales." />
         ) : (
           rows.map((track) => (
-          <article
-            key={track.id}
-            className={cn(
-              "space-y-3 rounded-lg border border-border/70 bg-card p-3 transition-colors",
-              selectedSet.has(track.id) ? "bg-accent/20" : "",
-            )}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex min-w-0 items-start gap-2">
-                <input
-                  type="checkbox"
-                  checked={selectedSet.has(track.id)}
-                  onChange={() => setSelectedIds((current) => toggleSelection(current, track.id))}
-                  className="mt-0.5 h-4 w-4 rounded border-border bg-background"
-                  aria-label={`Seleccionar track ${track.title ?? track.id}`}
-                />
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-foreground">
-                    {track.title || "(sin título)"}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {track.artist || "(sin artista)"}
-                  </p>
-                  <p className="mt-1 font-mono text-[10px] break-all text-muted-foreground">
-                    ID: {track.id}
-                  </p>
+            <article
+              key={track.id}
+              className={cn(
+                "border-border/70 bg-card space-y-3 rounded-lg border p-3 transition-colors",
+                selectedSet.has(track.id) ? "bg-accent/20" : "",
+              )}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex min-w-0 items-start gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedSet.has(track.id)}
+                    onChange={() =>
+                      setSelectedIds((current) =>
+                        toggleSelection(current, track.id),
+                      )
+                    }
+                    className="border-border bg-background mt-0.5 h-4 w-4 rounded"
+                    aria-label={`Seleccionar track ${track.title ?? track.id}`}
+                  />
+                  <div className="min-w-0">
+                    <p className="text-foreground truncate text-sm font-semibold">
+                      {track.title || "(sin título)"}
+                    </p>
+                    <p className="text-muted-foreground truncate text-xs">
+                      {track.artist || "(sin artista)"}
+                    </p>
+                    <p className="text-muted-foreground mt-1 font-mono text-[10px] break-all">
+                      ID: {track.id}
+                    </p>
+                  </div>
                 </div>
+
+                <div className="shrink-0">{statusBadge(track)}</div>
               </div>
 
-              <div className="shrink-0">{statusBadge(track)}</div>
-            </div>
+              <div className="border-border/60 space-y-2 border-t pt-2">
+                <MetadataSummary row={track} />
+                <AudioInfo row={track} />
+              </div>
 
-            <div className="space-y-2 border-t border-border/60 pt-2">
-              <MetadataSummary row={track} />
-              <AudioInfo row={track} />
-            </div>
+              <div className="border-border/60 border-t pt-2">
+                {analysisBadge(track)}
+              </div>
 
-            <div className="border-t border-border/60 pt-2">{analysisBadge(track)}</div>
-
-            <div className="border-t border-border/60 pt-2">
-              <AnalyzeActions
-                id={track.id}
-                audioUrl={track.audioUrl}
-                iconOnly
-                className="w-full justify-start"
-              />
-            </div>
-          </article>
+              <div className="border-border/60 border-t pt-2">
+                <AnalyzeActions
+                  id={track.id}
+                  audioUrl={track.audioUrl}
+                  iconOnly
+                  className="w-full justify-start"
+                />
+              </div>
+            </article>
           ))
         )}
       </div>
@@ -610,7 +725,9 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
           }
           tableClassName="w-full table-fixed"
           headerClassName="bg-muted/60"
-          emptyState={<AdminListEmptyState message="Sin resultados para los filtros actuales." />}
+          emptyState={
+            <AdminListEmptyState message="Sin resultados para los filtros actuales." />
+          }
         />
       </div>
     </>
@@ -627,28 +744,37 @@ function AudioInfo({ row }: { row: TrackListRow }) {
 
   if (!hasAnalysis) {
     return (
-      <span className="text-xs text-muted-foreground">
+      <span className="text-muted-foreground text-xs">
         Sin análisis. Usa <span className="font-semibold">Analizar</span>.
       </span>
     );
   }
 
-  const lufs = typeof row.loudnessLufs === "number" ? row.loudnessLufs.toFixed(2) : null;
-  const lra = typeof row.loudnessRangeLu === "number" ? row.loudnessRangeLu.toFixed(2) : null;
-  const tp = typeof row.truePeakDbfs === "number" ? row.truePeakDbfs.toFixed(2) : null;
+  const lufs =
+    typeof row.loudnessLufs === "number" ? row.loudnessLufs.toFixed(2) : null;
+  const lra =
+    typeof row.loudnessRangeLu === "number"
+      ? row.loudnessRangeLu.toFixed(2)
+      : null;
+  const tp =
+    typeof row.truePeakDbfs === "number" ? row.truePeakDbfs.toFixed(2) : null;
 
-  const dur = typeof row.durationSec === "number" ? `${Math.round(row.durationSec)} s` : null;
-  const sr = typeof row.sampleRateHz === "number" ? `${row.sampleRateHz} Hz` : null;
+  const dur =
+    typeof row.durationSec === "number"
+      ? `${Math.round(row.durationSec)} s`
+      : null;
+  const sr =
+    typeof row.sampleRateHz === "number" ? `${row.sampleRateHz} Hz` : null;
 
   return (
-    <div className="flex flex-col space-y-1 text-[11px] text-foreground">
+    <div className="text-foreground flex flex-col space-y-1 text-[11px]">
       <div className="flex flex-wrap gap-x-2 gap-y-0.5">
         <span className="font-mono">LUFS: {lufs ?? "–"}</span>
         <span className="font-mono">LRA: {lra ?? "–"}</span>
         <span className="font-mono">TP: {tp ?? "–"}</span>
       </div>
 
-      <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-muted-foreground">
+      <div className="text-muted-foreground flex flex-wrap gap-x-2 gap-y-0.5">
         <span>{dur ? `Dur: ${dur}` : "Dur: –"}</span>
         <span>{sr ? `SR: ${sr}` : "SR: –"}</span>
       </div>
@@ -663,10 +789,12 @@ function MetadataSummary({ row }: { row: TrackListRow }) {
   const mediaBuyLine = formatText(row.mediaBuy);
 
   return (
-    <div className="flex flex-col space-y-1 text-[11px] text-muted-foreground">
+    <div className="text-muted-foreground flex flex-col space-y-1 text-[11px]">
       <span className="line-clamp-2">Moods: {moods ?? "—"}</span>
       <span className="line-clamp-2">Género: {genres ?? "—"}</span>
-      <span className="line-clamp-2">Tipo de licencia: {licenseTypeLabel ?? "—"}</span>
+      <span className="line-clamp-2">
+        Tipo de licencia: {licenseTypeLabel ?? "—"}
+      </span>
       <span className="line-clamp-2">Media buy: {mediaBuyLine ?? "—"}</span>
     </div>
   );
@@ -688,7 +816,10 @@ function formatText(value: string | null | undefined) {
   return trimmed ? trimmed : null;
 }
 
-function formatListShort(values: string[] | null | undefined, maxItems = 3): string | null {
+function formatListShort(
+  values: string[] | null | undefined,
+  maxItems = 3,
+): string | null {
   if (!Array.isArray(values) || values.length === 0) return null;
   const cleaned = values.map((value) => value.trim()).filter(Boolean);
   if (cleaned.length === 0) return null;

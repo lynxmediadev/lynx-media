@@ -49,7 +49,7 @@ export function AdminIconBadge({ label, icon, tone = "neutral", className }: Adm
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-3 py-1 text-[11px] leading-none [&_svg]:block [&_svg]:h-3.5 [&_svg]:w-3.5 [&_svg]:shrink-0",
+        "inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] leading-none [&_svg]:block [&_svg]:h-3 [&_svg]:w-3 [&_svg]:shrink-0",
         iconToneClass(tone),
         className,
       )}
