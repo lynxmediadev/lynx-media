@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { CalendarDays, Mail, Volume1, Volume2, VolumeX } from "lucide-react";
+import { CalendarDays, Info, Mail, Volume1, Volume2, VolumeX } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,30 +31,21 @@ function dbToLinear(db: number) {
   return Math.min(1, Math.max(0, Math.pow(10, db / 20)));
 }
 
-function FieldInfo({ text }: { text: string }) {
+function FieldInfo({ onOpen }: { onOpen: () => void }) {
   return (
-    <details className="relative inline-flex">
-      <summary
-        className={[
-          "inline-flex h-[18px] w-[18px] cursor-pointer list-none items-center justify-center rounded-full",
-          "border border-foreground/45 bg-background/65 text-[10px] font-bold text-foreground/90",
-          "transition-colors hover:border-foreground/70 hover:bg-background/85",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-          "[&::-webkit-details-marker]:hidden",
-        ].join(" ")}
-        aria-label="Ver ayuda"
-      >
-        i
-      </summary>
-      <div
-        className={[
-          "absolute left-0 top-full z-30 mt-2 w-[min(18rem,calc(100vw-3rem))] rounded-lg",
-          "border border-border/70 bg-popover/95 p-3 text-xs leading-relaxed text-popover-foreground shadow-xl backdrop-blur",
-        ].join(" ")}
-      >
-        {text}
-      </div>
-    </details>
+    <button
+      type="button"
+      className={[
+        "inline-flex h-5 w-5 shrink-0 items-center justify-center p-0",
+        "text-muted-foreground transition-colors hover:text-foreground",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+      ].join(" ")}
+      style={{ borderRadius: "9999px" }}
+      aria-label="Ver ayuda"
+      onClick={onOpen}
+    >
+      <Info className="h-4 w-4" />
+    </button>
   );
 }
 
@@ -74,6 +65,10 @@ export default function LandingHero() {
     "idle" | "submitting" | "success" | "error"
   >("idle");
   const [submitMessage, setSubmitMessage] = useState<string>("");
+  const [activeInfo, setActiveInfo] = useState<{
+    title: string;
+    text: string;
+  } | null>(null);
   const urgencyValue = urgency[0] ?? 3;
   const urgencyLabels = [
     "Muy flexible",
@@ -124,6 +119,10 @@ export default function LandingHero() {
 
   function handleOpenChange(nextOpen: boolean) {
     setOpen(nextOpen);
+    if (!nextOpen) {
+      setActiveInfo(null);
+      return;
+    }
     if (nextOpen) {
       setSubmitStatus("idle");
       setSubmitMessage("");
@@ -293,6 +292,9 @@ export default function LandingHero() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="contact-name">Nombre</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Nombre de contacto para dirigir la propuesta.
+                  </p>
                   <Input
                     id="contact-name"
                     name="name"
@@ -306,6 +308,9 @@ export default function LandingHero() {
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="contact-email">Email</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Correo donde te enviaremos respuesta y seguimiento.
+                  </p>
                   <Input
                     id="contact-email"
                     name="email"
@@ -321,10 +326,20 @@ export default function LandingHero() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="grid gap-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-[3px] sm:gap-2">
                     <Label htmlFor="contact-service">Tipo de servicio</Label>
-                    <FieldInfo text="Selecciona el servicio principal que más se parezca a tu necesidad actual." />
+                    <FieldInfo
+                      onOpen={() =>
+                        setActiveInfo({
+                          title: "Tipo de servicio",
+                          text: "Selecciona el servicio principal que más se parezca a tu necesidad actual.",
+                        })
+                      }
+                    />
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    Elige la categoría que mejor describa tu requerimiento.
+                  </p>
                   <Select value={serviceType} onValueChange={setServiceType}>
                     <SelectTrigger
                       id="contact-service"
@@ -356,12 +371,22 @@ export default function LandingHero() {
                 </div>
 
                 <div className="grid gap-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-[3px] sm:gap-2">
                     <Label htmlFor="contact-deadline">
                       Plazo estimado de entrega
                     </Label>
-                    <FieldInfo text="Indica una fecha tentativa. Si no tienes fecha definida, puedes dejar este campo vacío." />
+                    <FieldInfo
+                      onOpen={() =>
+                        setActiveInfo({
+                          title: "Plazo estimado de entrega",
+                          text: "Indica una fecha tentativa. Si no tienes fecha definida, puedes dejar este campo vacío.",
+                        })
+                      }
+                    />
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    Fecha tentativa para organizar tiempos y prioridad.
+                  </p>
                   <div className="relative">
                     <Input
                       ref={deadlineInputRef}
@@ -370,13 +395,13 @@ export default function LandingHero() {
                       type="date"
                       value={deadline}
                       onChange={(event) => setDeadline(event.target.value)}
-                      className="landing-date-input pr-11 focus-visible:border-foreground focus-visible:ring-foreground/40"
+                      className="landing-date-input pr-12 focus-visible:border-foreground focus-visible:ring-foreground/40"
                     />
                     <button
                       type="button"
                       onClick={openDeadlinePicker}
                       className={[
-                        "absolute right-1.5 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md",
+                        "absolute right-3 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md",
                         "text-muted-foreground transition-colors hover:text-foreground",
                         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                       ].join(" ")}
@@ -390,10 +415,20 @@ export default function LandingHero() {
               </div>
 
               <div className="grid gap-2">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-[3px] sm:gap-2">
                   <Label htmlFor="contact-details">Explicacion del proyecto</Label>
-                  <FieldInfo text="Describe el objetivo, referencias, formato y entregables esperados. Mientras más contexto, mejor propuesta." />
+                  <FieldInfo
+                    onOpen={() =>
+                      setActiveInfo({
+                        title: "Explicacion del proyecto",
+                        text: "Describe el objetivo, referencias, formato y entregables esperados. Mientras más contexto, mejor propuesta.",
+                      })
+                    }
+                  />
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Brief breve: objetivo, referencias, formato y entregables.
+                </p>
                 <Textarea
                   id="contact-details"
                   name="details"
@@ -406,19 +441,29 @@ export default function LandingHero() {
 
               <div className="grid gap-3">
                 <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-[3px] sm:gap-2">
                     <Label
                       htmlFor="contact-urgency"
                       className="text-xs uppercase tracking-[0.2em]"
                     >
                       Urgencia
                     </Label>
-                    <FieldInfo text="Marca qué tan ajustado está tu timing. Esto nos ayuda a priorizar y planificar tiempos de respuesta." />
+                    <FieldInfo
+                      onOpen={() =>
+                        setActiveInfo({
+                          title: "Urgencia",
+                          text: "Marca qué tan ajustado está tu timing. Esto nos ayuda a priorizar y planificar tiempos de respuesta.",
+                        })
+                      }
+                    />
                   </div>
                   <span className="text-muted-foreground">
                     {urgencyLabels[urgencyValue - 1]}
                   </span>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Indica qué tan ajustado está el timing de este proyecto.
+                </p>
                 <Slider
                   id="contact-urgency"
                   min={1}
@@ -470,6 +515,44 @@ export default function LandingHero() {
                 </p>
               </div>
               </form>
+
+              {activeInfo ? (
+                <div
+                  className="fixed inset-0 z-[80] bg-background/85 px-4 backdrop-blur-sm"
+                  onClick={() => setActiveInfo(null)}
+                >
+                  <div className="flex min-h-full items-center justify-center py-10">
+                    <div
+                      role="dialog"
+                      aria-modal="true"
+                      aria-label={activeInfo.title}
+                      className={[
+                        "w-full max-w-sm rounded-xl border border-border/90 bg-background p-4 text-left shadow-2xl",
+                        "text-foreground",
+                      ].join(" ")}
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <h4 className="text-sm font-semibold text-foreground">{activeInfo.title}</h4>
+                      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                        {activeInfo.text}
+                      </p>
+                      <div className="mt-4 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setActiveInfo(null)}
+                          className={[
+                            "inline-flex items-center rounded-md border border-border px-2.5 py-1.5 text-[11px] font-medium",
+                            "bg-secondary text-foreground transition-colors hover:bg-secondary/80",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                          ].join(" ")}
+                        >
+                          Cerrar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </DialogContent>
         </Dialog>
