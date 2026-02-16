@@ -17,6 +17,7 @@ import {
   Volume1,
   Volume2,
   VolumeX,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 const VOLUME_PRESETS_DB = [-20, -12, -5, 0] as const;
 const DEFAULT_VOLUME_DB = -5;
+const DEBUG_STICKY_SUCCESS_TOAST = false;
 const SERVICE_OPTIONS = [
   {
     value: "music-original",
@@ -158,6 +160,7 @@ export default function LandingHero() {
     "idle" | "submitting" | "success" | "error"
   >("idle");
   const [submitMessage, setSubmitMessage] = useState<string>("");
+  const [successToastOpen, setSuccessToastOpen] = useState(false);
   const [activeInfo, setActiveInfo] = useState<{
     title: string;
     text: string;
@@ -177,6 +180,7 @@ export default function LandingHero() {
   const selectedDeadlineDate = useMemo(() => parseIsoDate(deadline), [deadline]);
   const todayIso = useMemo(() => toIsoDate(todayDate), [todayDate]);
   const hasTransientOverlayOpen = Boolean(activeInfo || mobileServicePickerOpen || calendarOpen);
+  const shouldShowSuccessToast = successToastOpen || DEBUG_STICKY_SUCCESS_TOAST;
 
   function isMobileViewport() {
     if (typeof window === "undefined") return false;
@@ -209,13 +213,18 @@ export default function LandingHero() {
       }
 
       setSubmitStatus("success");
-      setSubmitMessage("Solicitud enviada. Te contactaremos pronto.");
+      setSubmitMessage("");
       setName("");
       setEmail("");
       setServiceType("");
       setDetails("");
       setDeadline("");
       setUrgency([3]);
+      setActiveInfo(null);
+      setMobileServicePickerOpen(false);
+      setCalendarOpen(false);
+      setSuccessToastOpen(true);
+      handleOpenChange(false);
     } catch (err) {
       setSubmitStatus("error");
       setSubmitMessage(err instanceof Error ? err.message : "No se pudo enviar.");
@@ -415,6 +424,15 @@ export default function LandingHero() {
 
   const weekdayLabels = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"];
 
+  useEffect(() => {
+    if (DEBUG_STICKY_SUCCESS_TOAST) return;
+    if (!successToastOpen) return;
+    const timeoutId = window.setTimeout(() => {
+      setSuccessToastOpen(false);
+    }, 4200);
+    return () => window.clearTimeout(timeoutId);
+  }, [successToastOpen]);
+
   return (
     <section className="landing-hero">
       <video
@@ -494,53 +512,54 @@ export default function LandingHero() {
           Precisión técnica, criterio estético y entrega profesional.
         </p>
 
-        <Dialog open={open} onOpenChange={handleOpenChange}>
-          <DialogTrigger asChild>
-            <Button
-              size="lg"
-              className="mt-8 h-14 w-full gap-3 border border-foreground/80 bg-foreground/95 text-base font-semibold text-background shadow-sm transition-transform hover:scale-[1.005] hover:bg-foreground sm:w-auto sm:px-10"
-            >
-              <Mail className="h-5 w-5" />
-              Contactar proyecto
-            </Button>
-          </DialogTrigger>
+        <div className="relative mx-auto mt-8 w-full sm:w-auto">
+          <Dialog open={open} onOpenChange={handleOpenChange}>
+            <DialogTrigger asChild>
+              <Button
+                size="lg"
+                className="h-14 w-full gap-3 border border-foreground/80 bg-foreground/95 text-base font-semibold text-background shadow-sm transition-transform hover:scale-[1.005] hover:bg-foreground sm:w-auto sm:px-10"
+              >
+                <Mail className="h-5 w-5" />
+                Contactar proyecto
+              </Button>
+            </DialogTrigger>
 
-          <DialogContent
-            className={[
-              "fixed left-0 top-0 h-[100dvh] max-h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0",
-              "overflow-hidden rounded-none border-0 p-0",
-              "sm:left-[50%] sm:top-[50%] sm:h-auto sm:max-h-[85vh] sm:w-full sm:max-w-3xl sm:-translate-x-1/2 sm:-translate-y-1/2",
-              "sm:overflow-y-auto sm:rounded-2xl sm:border sm:p-6",
-            ].join(" ")}
-            onInteractOutside={(event) => {
-              if (activeInfo || mobileServicePickerOpen || calendarOpen) {
-                event.preventDefault();
-                if (activeInfo) {
-                  setActiveInfo(null);
-                  return;
+            <DialogContent
+              className={[
+                "fixed left-0 top-0 h-[100dvh] max-h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0",
+                "overflow-hidden rounded-none border-0 p-0",
+                "sm:left-[50%] sm:top-[50%] sm:h-auto sm:max-h-[85vh] sm:w-full sm:max-w-3xl sm:-translate-x-1/2 sm:-translate-y-1/2",
+                "sm:overflow-y-auto sm:rounded-2xl sm:border sm:p-6",
+              ].join(" ")}
+              onInteractOutside={(event) => {
+                if (activeInfo || mobileServicePickerOpen || calendarOpen) {
+                  event.preventDefault();
+                  if (activeInfo) {
+                    setActiveInfo(null);
+                    return;
+                  }
+                  if (mobileServicePickerOpen) {
+                    setMobileServicePickerOpen(false);
+                    return;
+                  }
+                  setCalendarOpen(false);
                 }
-                if (mobileServicePickerOpen) {
-                  setMobileServicePickerOpen(false);
-                  return;
+              }}
+              onEscapeKeyDown={(event) => {
+                if (activeInfo || mobileServicePickerOpen || calendarOpen) {
+                  event.preventDefault();
+                  if (activeInfo) {
+                    setActiveInfo(null);
+                    return;
+                  }
+                  if (mobileServicePickerOpen) {
+                    setMobileServicePickerOpen(false);
+                    return;
+                  }
+                  setCalendarOpen(false);
                 }
-                setCalendarOpen(false);
-              }
-            }}
-            onEscapeKeyDown={(event) => {
-              if (activeInfo || mobileServicePickerOpen || calendarOpen) {
-                event.preventDefault();
-                if (activeInfo) {
-                  setActiveInfo(null);
-                  return;
-                }
-                if (mobileServicePickerOpen) {
-                  setMobileServicePickerOpen(false);
-                  return;
-                }
-                setCalendarOpen(false);
-              }
-            }}
-          >
+              }}
+            >
             <div className="flex h-full min-h-0 flex-col">
               <DialogHeader className="shrink-0 px-4 pt-[calc(env(safe-area-inset-top)+0.25rem)] sm:px-0 sm:pt-0">
                 <DialogTitle>Formulario de contacto</DialogTitle>
@@ -788,10 +807,8 @@ export default function LandingHero() {
                 <p
                   className={[
                     "text-sm",
-                    submitStatus === "success"
-                      ? "text-foreground"
-                      : "text-destructive",
-                    submitStatus === "idle" ? "hidden" : "block",
+                    "text-destructive",
+                    submitStatus === "error" && submitMessage ? "block" : "hidden",
                   ].join(" ")}
                   role="status"
                   aria-live="polite"
@@ -1030,8 +1047,64 @@ export default function LandingHero() {
                 </div>
               ) : null}
             </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+
+          {shouldShowSuccessToast ? (
+            <div
+              className="pointer-events-none absolute inset-0 z-20 sm:hidden"
+              role="status"
+              aria-live="polite"
+            >
+              <div
+                className={[
+                  "flex h-full w-full items-center gap-2 rounded-md border border-success/35",
+                  "bg-card/95 px-4 text-foreground shadow-2xl backdrop-blur-md",
+                  "animate-in fade-in-0 zoom-in-95 duration-200",
+                ].join(" ")}
+              >
+                <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-success/20 text-success">
+                  <Check className="h-4 w-4" />
+                </span>
+                <p className="min-w-0 flex-1 truncate text-left text-sm">
+                  Solicitud enviada exitosamente.
+                </p>
+              </div>
+            </div>
+          ) : null}
+        </div>
+        {shouldShowSuccessToast ? (
+          <div className="mt-4 hidden justify-center sm:flex" role="status" aria-live="polite">
+            <div
+              className={[
+                "pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-xl border border-success/35",
+                "bg-card/95 px-4 py-3 text-foreground shadow-2xl backdrop-blur-md",
+                "animate-in fade-in-0 slide-in-from-top-2 duration-200",
+              ].join(" ")}
+            >
+              <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-success/20 text-success">
+                <Check className="h-4 w-4" />
+              </span>
+              <p className="min-w-0 flex-1 text-sm leading-tight">
+                Solicitud enviada exitosamente. Te contactaremos pronto.
+              </p>
+              {!DEBUG_STICKY_SUCCESS_TOAST ? (
+                <button
+                  type="button"
+                  onClick={() => setSuccessToastOpen(false)}
+                  className={[
+                    "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors",
+                    "hover:bg-secondary hover:text-foreground",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                  ].join(" ")}
+                  aria-label="Cerrar confirmacion"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
       </div>
     </section>
   );
