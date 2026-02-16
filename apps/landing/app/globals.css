@@ -1,10 +1,8 @@
-@import "../../../src/styles/globals.css";
+@import "../src/styles/globals.base.css";
 
-/* Tailwind v4: incluir clases usadas desde código compartido fuera de apps/landing */
-@source "../../../src/app/**/*.{ts,tsx,js,jsx,mdx}";
-@source "../../../src/components/**/*.{ts,tsx,js,jsx,mdx}";
-@source "../../../src/lib/**/*.{ts,tsx,js,jsx,mdx}";
+/* Tailwind v4: incluir clases usadas dentro de Landing */
 @source "./**/*.{ts,tsx,js,jsx,mdx}";
+@source "../src/**/*.{ts,tsx,js,jsx,mdx}";
 
 .landing-hero {
   position: relative;
