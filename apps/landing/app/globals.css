@@ -75,3 +75,38 @@
 .landing-form-scroll {
   -webkit-overflow-scrolling: touch;
 }
+
+.landing-dialog-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
+  touch-action: pan-y;
+}
+
+.landing-dialog-lock-scroll {
+  overflow: hidden !important;
+}
+
+.landing-textarea-fixed {
+  field-sizing: fixed !important;
+}
+
+html.landing-no-overscroll,
+body.landing-no-overscroll {
+  overscroll-behavior-y: none;
+}
+
+.landing-form-section {
+  border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
+  background: color-mix(in oklab, var(--secondary) 42%, transparent);
+  border-radius: calc(var(--radius) + 2px);
+  padding: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .landing-form-section {
+    border: 0;
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+  }
+}
