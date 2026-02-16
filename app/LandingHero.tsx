@@ -33,13 +33,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -53,11 +46,6 @@ const SERVICE_OPTIONS = [
     icon: Music2,
   },
   {
-    value: "music-production",
-    label: "Producción Musical (Mix & Master)",
-    icon: SlidersHorizontal,
-  },
-  {
     value: "post-audio",
     label: "Diseño Sonoro Audiovisual",
     icon: Film,
@@ -68,16 +56,60 @@ const SERVICE_OPTIONS = [
     icon: MicVocal,
   },
   {
-    value: "beat",
-    label: "Beat Personalizado para Producción Musical",
+    value: "music-production",
+    label: "Mix & Master",
+    icon: SlidersHorizontal,
+  },
+  {
+    value: "music-composition",
+    label: "Custom Beats | Ghost Writting",
     icon: Disc3,
   },
   {
     value: "live-sound",
-    label: "Amplificación y Soporte Técnico",
+    label: "Amplificación de eventos corporativos",
+    icon: Volume2,
+  },
+  {
+    value: "live-sound-wedding",
+    label: "Amplificación e Instrumentación de Ceremonia de Matrimonio",
+    icon: Volume2,
+  },
+  {
+    value: "debug-long-option",
+    label:
+      "Botón debug: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua",
     icon: Volume2,
   },
 ] as const;
+const VISIBLE_SERVICE_OPTIONS = SERVICE_OPTIONS.filter((option) =>
+  option.value !== "debug-long-option"
+);
+const SERVICE_OPTION_GROUP_DEFINITIONS = [
+  {
+    id: "audiovisual",
+    title: "Audiovisual",
+    values: ["music-original", "post-audio", "location-sound"],
+  },
+  {
+    id: "music",
+    title: "Musica",
+    values: ["music-production", "music-composition"],
+  },
+  {
+    id: "live-sound",
+    title: "Sonido en vivo",
+    values: ["live-sound", "live-sound-wedding"],
+  },
+] as const;
+const SERVICE_OPTION_GROUPS = SERVICE_OPTION_GROUP_DEFINITIONS
+  .map((group) => ({
+    ...group,
+    options: group.values
+      .map((value) => VISIBLE_SERVICE_OPTIONS.find((option) => option.value === value))
+      .filter((option): option is (typeof VISIBLE_SERVICE_OPTIONS)[number] => Boolean(option)),
+  }))
+  .filter((group) => group.options.length > 0);
 
 function dbToLinear(db: number) {
   return Math.min(1, Math.max(0, Math.pow(10, db / 20)));
@@ -649,7 +681,7 @@ export default function LandingHero() {
         aria-hidden="true"
       >
         <Image
-          src="/images/logo/lynx-logo.svg"
+          src="/images/logo/lynx-logo-1.svg"
           alt="Lynx Media"
           width={1124}
           height={328}
@@ -733,7 +765,7 @@ export default function LandingHero() {
               <DialogHeader className="px-4 pt-[calc(env(safe-area-inset-top)+0.9rem)] text-left sm:px-0 sm:pt-0">
                 <div className="mb-3 flex justify-center">
                   <Image
-                    src="/images/logo/lynx-logo.svg"
+                    src="/images/logo/lynx-logo-2.svg"
                     alt="Lynx Media"
                     width={1124}
                     height={328}
@@ -836,51 +868,35 @@ export default function LandingHero() {
                   <p className="text-xs text-muted-foreground">
                     Elige la categoría que mejor describa tu requerimiento.
                   </p>
-                  <div className="hidden sm:block">
-                    <Select value={serviceType} onValueChange={setServiceType}>
-                      <SelectTrigger
-                        id="contact-service"
-                        className="w-full focus-visible:border-foreground focus-visible:ring-foreground/40"
+                  <Button
+                    type="button"
+                    id="contact-service"
+                    variant="outline"
+                    onClick={() => {
+                      setActiveInfo(null);
+                      setCalendarOpen(false);
+                      setMobileServicePickerOpen(true);
+                    }}
+                    className="h-auto min-h-9 w-full items-start justify-between gap-2 border-input bg-transparent px-3 py-2 text-sm font-normal text-foreground hover:bg-secondary/80 hover:text-foreground"
+                  >
+                    <span className="inline-flex min-w-0 items-start gap-2 text-left">
+                      {selectedServiceOption ? (
+                        <selectedServiceOption.icon className="mt-0.5 h-4 w-4 shrink-0" />
+                      ) : (
+                        <SlidersHorizontal className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                      )}
+                      <span
+                        className={
+                          selectedServiceOption
+                            ? "whitespace-normal break-words leading-snug"
+                            : "whitespace-normal break-words leading-snug text-muted-foreground"
+                        }
                       >
-                        <SelectValue placeholder="Selecciona un servicio" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SERVICE_OPTIONS.map(({ value, label, icon: Icon }) => (
-                          <SelectItem key={value} value={value} textValue={label}>
-                            <span className="inline-flex items-center gap-2">
-                              <Icon className="h-4 w-4" />
-                              <span>{label}</span>
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="sm:hidden">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setActiveInfo(null);
-                        setCalendarOpen(false);
-                        setMobileServicePickerOpen(true);
-                      }}
-                      className="h-9 w-full justify-between border-input bg-transparent px-3 text-sm font-normal text-foreground hover:bg-secondary/80"
-                    >
-                      <span className="inline-flex items-center gap-2 truncate">
-                        {selectedServiceOption ? (
-                          <selectedServiceOption.icon className="h-4 w-4 shrink-0" />
-                        ) : (
-                          <SlidersHorizontal className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        )}
-                        <span className={selectedServiceOption ? "truncate" : "truncate text-muted-foreground"}>
-                          {selectedServiceOption?.label ?? "Selecciona un servicio"}
-                        </span>
+                        {selectedServiceOption?.label ?? "Selecciona un servicio"}
                       </span>
-                      <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    </Button>
-                  </div>
+                    </span>
+                    <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </Button>
                 </div>
 
                 <div className="landing-form-section grid gap-1.5">
@@ -952,7 +968,9 @@ export default function LandingHero() {
                   onChange={(event) => setDetails(event.target.value)}
                   onFocus={handleDetailsFocus}
                   onBlur={handleDetailsBlur}
-                  className="landing-textarea-fixed h-[160px] min-h-[160px] max-h-[160px] resize-none overflow-y-auto [field-sizing:fixed] focus-visible:border-foreground focus-visible:ring-foreground/40"
+                  onTouchStart={(event) => event.stopPropagation()}
+                  onTouchMove={(event) => event.stopPropagation()}
+                  className="landing-textarea-fixed h-[160px] min-h-[160px] max-h-[160px] resize-none overflow-y-auto touch-auto select-text [field-sizing:fixed] focus-visible:border-foreground focus-visible:ring-foreground/40"
                 />
               </div>
 
@@ -1168,47 +1186,60 @@ export default function LandingHero() {
                 {mobileServicePickerOpen ? (
                   <div
                     data-landing-transient-overlay="true"
-                    className="pointer-events-auto fixed inset-0 z-[65] flex items-center justify-center bg-background/85 px-4 py-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur-sm sm:hidden"
+                    className="pointer-events-auto fixed inset-0 z-[65] flex items-center justify-center bg-background/85 px-4 py-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur-sm"
                     onClick={() => setMobileServicePickerOpen(false)}
                   >
                     <div
                       role="dialog"
                       aria-modal="true"
                       aria-label="Selecciona tipo de servicio"
-                      className="flex max-h-[86dvh] w-full max-w-sm flex-col rounded-xl border border-border/90 bg-background p-4 text-left shadow-2xl"
+                      className="flex max-h-[86dvh] w-full max-w-sm flex-col rounded-xl border border-border/90 bg-background p-4 text-left shadow-2xl sm:max-w-md"
                       onClick={(event) => event.stopPropagation()}
                     >
                       <h4 className="text-sm font-semibold text-foreground">Tipo de servicio</h4>
                       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                         Elige la opción que mejor represente tu proyecto.
                       </p>
-                      <div className="mt-4 grid gap-2 overflow-y-auto pr-1">
-                        {SERVICE_OPTIONS.map(({ value, label, icon: Icon }) => {
-                          const isSelected = serviceType === value;
-                          return (
-                            <button
-                              key={value}
-                              type="button"
-                              onClick={() => {
-                                setServiceType(value);
-                                setMobileServicePickerOpen(false);
-                              }}
-                              className={[
-                                "inline-flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition-colors",
-                                isSelected
-                                  ? "border-foreground/60 bg-secondary text-foreground"
-                                  : "border-border bg-background text-foreground hover:bg-secondary/70",
-                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                              ].join(" ")}
-                            >
-                              <span className="inline-flex min-w-0 items-center gap-2">
-                                <Icon className="h-4 w-4 shrink-0" />
-                                <span className="truncate">{label}</span>
-                              </span>
-                              {isSelected ? <Check className="h-4 w-4 shrink-0" /> : null}
-                            </button>
-                          );
-                        })}
+                      <div className="mt-4 grid gap-3 overflow-y-auto overflow-x-hidden overscroll-y-contain pr-0.5">
+                        {SERVICE_OPTION_GROUPS.map((group) => (
+                          <section
+                            key={group.id}
+                            className="rounded-lg border border-border/65 bg-card/35 p-2"
+                            aria-label={`Grupo ${group.title}`}
+                          >
+                            <p className="px-1 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/85">
+                              {group.title}
+                            </p>
+                            <div className="grid gap-2">
+                              {group.options.map(({ value, label, icon: Icon }) => {
+                                const isSelected = serviceType === value;
+                                return (
+                                  <button
+                                    key={value}
+                                    type="button"
+                                    onClick={() => {
+                                      setServiceType(value);
+                                      setMobileServicePickerOpen(false);
+                                    }}
+                                    className={[
+                                      "inline-flex w-full items-start justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm transition-colors",
+                                      isSelected
+                                        ? "border-foreground/60 bg-secondary text-foreground"
+                                        : "border-border bg-background text-foreground hover:bg-secondary/70",
+                                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 focus-visible:ring-offset-background",
+                                    ].join(" ")}
+                                  >
+                                    <span className="inline-flex min-w-0 items-start gap-2">
+                                      <Icon className="mt-0.5 h-4 w-4 shrink-0" />
+                                      <span className="whitespace-normal break-words leading-snug">{label}</span>
+                                    </span>
+                                    {isSelected ? <Check className="mt-0.5 h-4 w-4 shrink-0" /> : null}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </section>
+                        ))}
                       </div>
                       <div className="mt-4 flex justify-end">
                         <button

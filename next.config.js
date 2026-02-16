@@ -14,10 +14,6 @@ const nextConfig = {
     allowedDevOriginsFromEnv.length > 0
       ? allowedDevOriginsFromEnv
       : defaultAllowedDevOrigins,
-  experimental: {
-    externalDir: true,
-  },
-  transpilePackages: ["@lynx/brand-ui", "@lynx/brand-tokens"],
 };
 
 export default nextConfig;
