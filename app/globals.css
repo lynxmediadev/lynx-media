@@ -47,3 +47,52 @@
   max-width: 54rem;
   text-align: center;
 }
+
+.landing-audio-controls {
+  top: calc(env(safe-area-inset-top) + 1rem);
+  left: calc(env(safe-area-inset-left) + 1rem);
+}
+
+.landing-logo-badge {
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + 1rem);
+  transform: translateX(-50%);
+}
+
+@media (min-width: 768px) {
+  .landing-audio-controls {
+    top: auto;
+    left: auto;
+    right: calc(env(safe-area-inset-right) + 1rem);
+    bottom: calc(env(safe-area-inset-bottom) + 1rem);
+  }
+
+  .landing-logo-badge {
+    bottom: calc(env(safe-area-inset-bottom) + 0.25rem);
+  }
+}
+
+.landing-form-scroll {
+  -webkit-overflow-scrolling: touch;
+}
+
+.landing-date-input {
+  color-scheme: dark;
+}
+
+html.light .landing-date-input {
+  color-scheme: light;
+}
+
+.landing-date-input::-webkit-calendar-picker-indicator {
+  opacity: 0;
+}
+
+.landing-date-input::-webkit-datetime-edit,
+.landing-date-input::-webkit-datetime-edit-fields-wrapper,
+.landing-date-input::-webkit-datetime-edit-text,
+.landing-date-input::-webkit-datetime-edit-month-field,
+.landing-date-input::-webkit-datetime-edit-day-field,
+.landing-date-input::-webkit-datetime-edit-year-field {
+  color: var(--foreground);
+}
