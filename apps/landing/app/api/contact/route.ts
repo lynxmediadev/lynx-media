@@ -24,6 +24,10 @@ type BrevoSendInput = {
   text: string;
   html: string;
   tags: string[];
+  replyTo?: {
+    email: string;
+    name?: string;
+  };
 };
 
 const RATE_WINDOW_MS = Number(process.env.LANDING_CONTACT_RATE_LIMIT_WINDOW_MS ?? 10 * 60 * 1000);
@@ -169,6 +173,11 @@ function getBrevoConfig() {
   return { apiKey, fromEmail, fromName };
 }
 
+function normalizeEmailAddress(input: unknown) {
+  if (typeof input !== "string") return "";
+  return input.trim().toLowerCase();
+}
+
 async function sendBrevoEmail(input: BrevoSendInput) {
   const config = getBrevoConfig();
   if (!config) {
@@ -189,6 +198,7 @@ async function sendBrevoEmail(input: BrevoSendInput) {
           name: config.fromName,
         },
         to: [{ email: input.to }],
+        replyTo: input.replyTo,
         subject: input.subject,
         textContent: input.text,
         htmlContent: input.html,
@@ -295,12 +305,25 @@ async function sendContactNotification(input: {
   const provider = getLandingEmailProvider();
   const message = buildNotification(input);
   if (provider === "brevo") {
+    const brevoConfig = getBrevoConfig();
+    const normalizedNotify = normalizeEmailAddress(notifyTarget);
+    const normalizedFrom = normalizeEmailAddress(brevoConfig?.fromEmail);
+    if (normalizedFrom && normalizedNotify && normalizedFrom === normalizedNotify) {
+      console.warn(
+        "[landing-contact] notify email is equal to sender email; this can increase spam classification",
+      );
+    }
+
     await sendBrevoEmail({
       to: notifyTarget,
       subject: `[Landing] Nuevo contacto: ${input.name}`,
       text: message.text,
       html: message.html,
       tags: ["landing_contact"],
+      replyTo: {
+        email: input.email,
+        name: input.name,
+      },
     });
     return;
   }
