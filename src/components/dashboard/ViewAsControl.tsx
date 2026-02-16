@@ -6,6 +6,7 @@ const roleOptions: Array<{ value: UserRole; label: string }> = [
   { value: "ADMIN", label: "Admin" },
   { value: "STAFF", label: "Staff" },
   { value: "CREATOR", label: "Creator" },
+  { value: "CLIENT", label: "Client" },
 ];
 
 export function ViewAsControl({
@@ -22,7 +23,7 @@ export function ViewAsControl({
   const currentRole = effectiveRole ?? "ADMIN";
   const formClassName = compact
     ? "space-y-2"
-    : "hidden items-center gap-2 rounded-md border border-border/70 px-2 py-1 md:flex";
+    : "inline-flex shrink-0 items-center gap-2 rounded-md border border-border/70 px-2 py-1";
 
   const selectClassName = compact
     ? "h-9 w-full rounded-md border border-border bg-background px-2 text-xs uppercase tracking-wide"

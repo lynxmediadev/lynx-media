@@ -2,6 +2,7 @@ import "server-only";
 import crypto from "node:crypto";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { ensureDefaultAllTracksPlaylistForUser } from "@/lib/playlists/service";
 
 type CreateInviteInput = {
   email: string;
@@ -69,6 +70,11 @@ export async function createInvite(input: CreateInviteInput) {
     select: { id: true, email: true, role: true },
   });
 
+  await ensureDefaultAllTracksPlaylistForUser({
+    userId: invitedUser.id,
+    role: invitedUser.role,
+  });
+
   const rawToken = crypto.randomBytes(24).toString("base64url");
   const expiresAt = new Date(Date.now() + normalized.expiresDays * 24 * 60 * 60 * 1000);
 
@@ -88,4 +94,3 @@ export async function createInvite(input: CreateInviteInput) {
     expiresAt,
   };
 }
-

@@ -22,8 +22,8 @@ import TrackHero, { type TrackHeroDetailSection } from "./TrackHero";
 export const dynamic = "force-dynamic";
 
 type PageProps = {
-  params: Promise<{ id: string; catalog?: string }> | { id: string; catalog?: string };
-  searchParams?: Promise<{ [key: string]: string | string[] | undefined }> | { [key: string]: string | string[] | undefined };
+  params: Promise<{ id: string; catalog?: string }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
 /** Buffer(Bytes) → base64 para entregar al canvas del cliente */
@@ -318,16 +318,8 @@ function pickCatalogSlug(
 }
 
 export default async function TrackPublicPage({ params, searchParams }: PageProps) {
-  // ✅ Next 15: `params` puede venir como Promise → lo resolvemos.
-  const { id, catalog: routeCatalog } =
-    "then" in (params as any)
-      ? await (params as Promise<{ id: string; catalog?: string }>)
-      : (params as { id: string; catalog?: string });
-
-  const sp =
-    searchParams && "then" in (searchParams as any)
-      ? await (searchParams as Promise<{ [key: string]: string | string[] | undefined }>)
-      : (searchParams as { [key: string]: string | string[] | undefined } | undefined);
+  const { id, catalog: routeCatalog } = await params;
+  const sp = searchParams ? await searchParams : undefined;
 
   const catalogParam =
     (Array.isArray(sp?.c) ? sp?.c[0] : sp?.c) ??

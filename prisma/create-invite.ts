@@ -25,7 +25,13 @@ function normalizeBaseUrl(raw: string | undefined) {
 async function main() {
   const email = (process.env.INVITE_EMAIL ?? "").trim().toLowerCase();
   const roleRaw = (process.env.INVITE_ROLE ?? "CREATOR").trim().toUpperCase();
-  const role = roleRaw === "ADMIN" || roleRaw === "STAFF" || roleRaw === "CREATOR" ? roleRaw : "CREATOR";
+  const role =
+    roleRaw === "ADMIN" ||
+    roleRaw === "STAFF" ||
+    roleRaw === "CREATOR" ||
+    roleRaw === "CLIENT"
+      ? roleRaw
+      : "CREATOR";
   const expiresDays = Math.max(1, Number(process.env.INVITE_EXPIRES_DAYS ?? "7"));
 
   if (!email) {

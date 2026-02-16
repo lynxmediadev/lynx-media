@@ -20,6 +20,7 @@ import type { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import {
   AdminListHeader,
+  AdminListButton,
   AdminListShell,
   AdminStatusBadge,
   countActiveFilters,
@@ -41,7 +42,10 @@ export default async function Page(props: {
   const q = (first(sp.q) ?? "").trim();
   const analysis = (first(sp.analysis) ?? "").trim().toLowerCase();
   const page = Math.max(1, parseInt(first(sp.page) ?? "1", 10) || 1);
-  const per = Math.min(100, Math.max(10, parseInt(first(sp.per) ?? "50", 10) || 50));
+  const per = Math.min(
+    100,
+    Math.max(10, parseInt(first(sp.per) ?? "50", 10) || 50),
+  );
   const skip = (page - 1) * per;
   const activeFilterCount = countActiveFilters([q, analysis]);
 
@@ -68,7 +72,8 @@ export default async function Page(props: {
     whereAND.push({ audioUrl: "" });
   }
 
-  const where: Prisma.TrackWhereInput = whereAND.length > 0 ? { AND: whereAND } : {};
+  const where: Prisma.TrackWhereInput =
+    whereAND.length > 0 ? { AND: whereAND } : {};
 
   const [tracks, total] = await Promise.all([
     prisma.track.findMany({
@@ -143,32 +148,37 @@ export default async function Page(props: {
 
   return (
     <section>
-      <AdminListShell className="relative bg-muted/30 backdrop-blur">
+      <AdminListShell>
         <AdminListHeader
-          icon={<Music2 className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
+          icon={
+            <Music2
+              className="text-muted-foreground h-4 w-4"
+              aria-hidden="true"
+            />
+          }
           title="Análisis técnico de tracks"
           subtitle="Estado técnico, métricas de audio y acceso rápido a ficha"
           count={
             <AdminStatusBadge>
-              Página {page} de {totalPages} · {total} track{total === 1 ? "" : "s"}
+              Página {page} de {totalPages} · {total} track
+              {total === 1 ? "" : "s"}
             </AdminStatusBadge>
           }
           actionSlot={
             <div className="flex items-center gap-2">
-              <Link
-                href={buildHref(prevPage)}
-                className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/45"
-                aria-disabled={page <= 1}
-              >
-                ← Anterior
-              </Link>
-              <Link
-                href={buildHref(nextPage)}
-                className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/45"
-                aria-disabled={page >= totalPages}
-              >
-                Siguiente →
-              </Link>
+              <AdminListButton asChild size="pill" surface="background">
+                <Link href={buildHref(prevPage)} aria-disabled={page <= 1}>
+                  ← Anterior
+                </Link>
+              </AdminListButton>
+              <AdminListButton asChild size="pill" surface="background">
+                <Link
+                  href={buildHref(nextPage)}
+                  aria-disabled={page >= totalPages}
+                >
+                  Siguiente →
+                </Link>
+              </AdminListButton>
             </div>
           }
         />

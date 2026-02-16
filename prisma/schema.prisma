@@ -21,6 +21,7 @@ enum UserRole {
   ADMIN
   STAFF
   CREATOR
+  CLIENT
 }
 
 enum UserStatus {
@@ -49,6 +50,7 @@ model User {
   ownedTracks     Track[]            @relation("TrackOwner")
   ownedLicensing  LicensingRequest[] @relation("LicensingOwner")
   ownedPlaylists  Playlist[]         @relation("PlaylistOwner")
+  sharedPlaylists PlaylistViewer[]   @relation("PlaylistViewerUser")
   ownedSoundKits  SoundKit[]         @relation("SoundKitOwner")
   ownedServices   ServiceOffer[]     @relation("ServiceOwner")
   ownedContracts  ContractRecord[]   @relation("ContractOwner")
@@ -566,19 +568,26 @@ model Playlist {
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
   name        String
+  publicId    String             @unique @db.Citext
   slug        String             @unique @db.Citext
   description String?
   status      PlaylistStatus     @default(DRAFT)
   visibility  PlaylistVisibility @default(INTERNAL)
+  isMainCatalog Boolean          @default(false)
+  embedEnabled  Boolean          @default(true)
+  isAutoAllTracks Boolean        @default(false)
   coverUrl    String?
   featured    Boolean            @default(false)
   sortOrder   Int                @default(0)
   ownerUserId String?
   owner       User?              @relation("PlaylistOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
   tracks      PlaylistTrack[]
+  sharedWith  PlaylistViewer[]
 
   @@index([status, updatedAt])
   @@index([visibility, updatedAt])
+  @@index([isMainCatalog, visibility, status, updatedAt])
+  @@index([publicId])
   @@index([ownerUserId, updatedAt])
 }
 
@@ -593,6 +602,20 @@ model PlaylistTrack {
   @@id([playlistId, trackId])
   @@index([trackId])
   @@index([playlistId, sortOrder])
+}
+
+model PlaylistViewer {
+  playlistId String
+  userId     String
+  canEdit    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  user     User     @relation("PlaylistViewerUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([playlistId, userId])
+  @@index([userId, createdAt])
 }
 
 model SoundKit {

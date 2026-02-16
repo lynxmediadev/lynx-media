@@ -269,3 +269,11 @@ y visualizarlos con List Kit (misma estética/estructura que Users/Tracks/Reques
 - [x] + detalle por entidad.
 - [x] + edición mínima persistente.
 - [x] + documentación completa actualizada.
+
+## Nota de continuidad (integración 032)
+
+- El módulo `Playlist` de este plan fue extendido por 032 para cubrir catálogo público:
+  - campos `publicId`, `isMainCatalog`, `embedEnabled`, `isAutoAllTracks`
+  - ACL de compartidos con `PlaylistViewer`
+  - rutas públicas `/catalog` y `/playlist/[id]`
+- Este plan 030 sigue siendo base del CRUD/listado interno; 032 agrega capa de publicación/compartición.

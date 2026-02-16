@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PlaylistStatus, PlaylistVisibility, Prisma } from "@prisma/client";
+import { revalidatePath } from "next/cache";
+import { PlaylistStatus, PlaylistVisibility, Prisma, UserRole } from "@prisma/client";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { getRouteUser } from "@/lib/account-auth/route-guards";
+import {
+  canRoleManageAnyPlaylists,
+  canRoleManageOwnPlaylists,
+  generateUniquePlaylistPublicId,
+} from "@/lib/playlists/service";
 
-function canManageAdminModules(role: "ADMIN" | "STAFF" | "CREATOR") {
-  return role === "ADMIN" || role === "STAFF";
+function canManagePlaylists(role: UserRole) {
+  return canRoleManageAnyPlaylists(role) || canRoleManageOwnPlaylists(role);
 }
 
 function parseIntSafe(value: string | null, fallback: number, min: number, max: number) {
@@ -21,13 +27,15 @@ const createSchema = z.object({
   description: z.string().trim().max(2000).optional().nullable(),
   status: z.nativeEnum(PlaylistStatus).optional(),
   visibility: z.nativeEnum(PlaylistVisibility).optional(),
+  embedEnabled: z.boolean().optional(),
+  isMainCatalog: z.boolean().optional(),
   featured: z.boolean().optional(),
   sortOrder: z.number().int().min(-9999).max(9999).optional(),
 });
 
 export async function GET(req: NextRequest) {
   const user = await getRouteUser();
-  if (!user || !canManageAdminModules(user.role)) {
+  if (!user || !canManagePlaylists(user.role)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
@@ -56,6 +64,9 @@ export async function GET(req: NextRequest) {
   }
   if (status) whereAND.push({ status });
   if (visibility) whereAND.push({ visibility });
+  if (!canRoleManageAnyPlaylists(user.role)) {
+    whereAND.push({ ownerUserId: user.id });
+  }
 
   const where: Prisma.PlaylistWhereInput = whereAND.length ? { AND: whereAND } : {};
   const skip = (page - 1) * per;
@@ -101,7 +112,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const user = await getRouteUser();
-  if (!user || !canManageAdminModules(user.role)) {
+  if (!user || !canManagePlaylists(user.role)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
@@ -111,29 +122,58 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const playlist = await prisma.playlist.create({
-    data: {
-      name: parsed.data.name,
-      slug: parsed.data.slug,
-      description: parsed.data.description || null,
-      status: parsed.data.status ?? "DRAFT",
-      visibility: parsed.data.visibility ?? "INTERNAL",
-      featured: parsed.data.featured ?? false,
-      sortOrder: parsed.data.sortOrder ?? 0,
-      ownerUserId: user.id,
-    },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      status: true,
-      visibility: true,
-      featured: true,
-      sortOrder: true,
-      createdAt: true,
-      updatedAt: true,
-    },
+  const canSetMainCatalog = user.role === "ADMIN" && parsed.data.isMainCatalog === true;
+  const playlist = await prisma.$transaction(async (tx) => {
+    const created = await tx.playlist.create({
+      data: {
+        name: parsed.data.name,
+        slug: parsed.data.slug,
+        publicId: await generateUniquePlaylistPublicId(tx),
+        description: parsed.data.description || null,
+        status: parsed.data.status ?? "DRAFT",
+        visibility: parsed.data.visibility ?? "INTERNAL",
+        embedEnabled: parsed.data.embedEnabled ?? true,
+        isMainCatalog: canSetMainCatalog,
+        featured: parsed.data.featured ?? false,
+        sortOrder: parsed.data.sortOrder ?? 0,
+        ownerUserId: user.id,
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        publicId: true,
+        status: true,
+        visibility: true,
+        embedEnabled: true,
+        isMainCatalog: true,
+        featured: true,
+        sortOrder: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    if (canSetMainCatalog) {
+      await tx.playlist.updateMany({
+        where: { isMainCatalog: true, NOT: { id: created.id } },
+        data: { isMainCatalog: false },
+      });
+      await tx.playlist.update({
+        where: { id: created.id },
+        data: { isMainCatalog: true },
+      });
+    }
+    return created;
   });
+
+  revalidatePath("/admin/playlists");
+  revalidatePath(`/admin/playlists/${playlist.id}`);
+  revalidatePath("/creator/playlists");
+  revalidatePath(`/creator/playlists/${playlist.id}`);
+  revalidatePath(`/playlist/${playlist.publicId}`);
+  if (canSetMainCatalog) {
+    revalidatePath("/catalog");
+  }
 
   return NextResponse.json({ ok: true, item: playlist }, { status: 201 });
 }

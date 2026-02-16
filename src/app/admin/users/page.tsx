@@ -13,7 +13,14 @@ function firstValue(value: string | string[] | undefined) {
 }
 
 function parseRole(value: string): UserRole | undefined {
-  if (value === "ADMIN" || value === "STAFF" || value === "CREATOR") return value;
+  if (
+    value === "ADMIN" ||
+    value === "STAFF" ||
+    value === "CREATOR" ||
+    value === "CLIENT"
+  ) {
+    return value;
+  }
   return undefined;
 }
 

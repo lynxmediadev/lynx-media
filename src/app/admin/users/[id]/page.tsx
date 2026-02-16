@@ -23,6 +23,7 @@ function formatDate(value: Date | null | undefined) {
 function toRoleLabel(role: UserRole) {
   if (role === "ADMIN") return "Admin";
   if (role === "STAFF") return "Staff";
+  if (role === "CLIENT") return "Client";
   return "Creator";
 }
 
@@ -237,6 +238,7 @@ export default async function UserDetailPage({ params, searchParams }: UserDetai
                 <option value="ADMIN">ADMIN</option>
                 <option value="STAFF">STAFF</option>
                 <option value="CREATOR">CREATOR</option>
+                <option value="CLIENT">CLIENT</option>
               </select>
               <button className="w-full rounded-md border border-border px-3 py-2 text-xs transition-colors hover:bg-muted/45">
                 Guardar rol

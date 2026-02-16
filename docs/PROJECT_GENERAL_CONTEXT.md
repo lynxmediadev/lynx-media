@@ -57,11 +57,37 @@ Checklist mínimo a validar en staging antes de producción:
 Regla para el asistente (futuro):
 
 - Cuando se cumplan estos gatillos:
-  1) auth/email/roles sin bugs bloqueantes por al menos 1 ciclo de smoke,
-  2) UI principal de admin estable,
-  3) se inicie preparación de release,
-  debes emitir una alerta explícita en el chat con este formato:
-  `🚨 ALERTA STAGING: es momento de levantar staging antes de producción.`
+  1. auth/email/roles sin bugs bloqueantes por al menos 1 ciclo de smoke,
+  2. UI principal de admin estable,
+  3. se inicie preparación de release,
+     debes emitir una alerta explícita en el chat con este formato:
+     `🚨 ALERTA STAGING: es momento de levantar staging antes de producción.`
+
+## COMANDOS
+
+### RESET DE DB
+
+> Objetivo: tener un inventario único de comandos para reset/reconstrucción de datos en local.
+> Regla práctica: ejecutar solo en desarrollo y confirmar antes si necesitas conservar data.
+
+| Comando | Tipo | Qué hace |
+| --- | --- | --- |
+| `npm run db:seed:reset` | Reset completo | Borra y repuebla base local con dataset de seed (`RESET_CONFIRM=YES`). |
+| `npm run db:catalog:reset-main-tracks` | Reset parcial | Limpia y recarga tracks en la playlist `isMainCatalog=true` (catálogo principal). |
+| `npm run db:backfill:playlists` | Backfill | Crea/arregla playlists por defecto (`All Tracks`), `publicId` y main catalog si falta. |
+| `npm run db:seed:bulk` | Poblado masivo | Inserta datos dummy masivos para pruebas de listas/performance. |
+| `npm run db:seed:modules` | Poblado módulos | Carga datos dummy de módulos operativos (playlists/sound kits/services/contracts). |
+| `npm run db:seed:tickets` | Poblado tickets | Inserta tickets dummy para pruebas del módulo Tickets. |
+| `npx prisma migrate reset` | Reset Prisma (manual) | Drop/recreate DB + aplica migraciones + seed (si está configurado). Uso manual/avanzado. |
+
+### Otros comandos DB útiles (no reset)
+
+| Comando | Qué hace |
+| --- | --- |
+| `npm run db:push` | Sincroniza esquema Prisma a DB (sin migración versionada). |
+| `npm run db:migrate` | Aplica migraciones pendientes (`prisma migrate deploy`). |
+| `npm run db:generate` | Crea/aplica migración en dev (`prisma migrate dev`). |
+| `npm run db:studio` | Abre Prisma Studio para inspección/edición de datos. |
 
 ## Inventario de componentes reutilizables (proyecto)
 
@@ -196,34 +222,35 @@ Regla para el asistente (futuro):
 
 ### 9) Dashboard reusable (`src/components/dashboard`)
 
-| Componente             | Ruta                                                | Uso principal                                                     | Estado |
-| ---------------------- | --------------------------------------------------- | ----------------------------------------------------------------- | ------ |
-| DashboardShell         | `src/components/dashboard/DashboardShell.tsx`       | Shell reusable con sidebar/topbar/content y versión mobile drawer | Activo |
-| DashboardSidebar       | `src/components/dashboard/DashboardSidebar.tsx`     | Sidebar desktop + navegación activa por pathname                  | Activo |
-| DashboardMobileSidebar | `src/components/dashboard/DashboardSidebar.tsx`     | Navegación mobile dentro de `Sheet`                               | Activo |
-| DashboardTopbar        | `src/components/dashboard/DashboardTopbar.tsx`      | Topbar con título contextual, breadcrumbs y acciones              | Activo |
-| DashboardBreadcrumbs   | `src/components/dashboard/DashboardBreadcrumbs.tsx` | Breadcrumb reusable para rutas dashboard                          | Activo |
+| Componente                      | Ruta                                                | Uso principal                                                     | Estado |
+| ------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------- | ------ |
+| DashboardShell                  | `src/components/dashboard/DashboardShell.tsx`       | Shell reusable con sidebar/topbar/content y versión mobile drawer | Activo |
+| DashboardSidebar                | `src/components/dashboard/DashboardSidebar.tsx`     | Sidebar desktop + navegación activa por pathname                  | Activo |
+| DashboardMobileSidebar          | `src/components/dashboard/DashboardSidebar.tsx`     | Navegación mobile dentro de `Sheet`                               | Activo |
+| DashboardTopbar                 | `src/components/dashboard/DashboardTopbar.tsx`      | Topbar con título contextual, breadcrumbs y acciones              | Activo |
+| DashboardBreadcrumbs            | `src/components/dashboard/DashboardBreadcrumbs.tsx` | Breadcrumb reusable para rutas dashboard                          | Activo |
 | DashboardContent (Main Content) | `src/components/dashboard/DashboardContent.tsx`     | Wrapper de ancho/spacing para contenido dashboard                 | Activo |
-| adminDashboardSections | `src/components/dashboard/nav-config.admin.ts`      | Config centralizada de navegación admin                           | Activo |
-| Tipos de contrato nav  | `src/components/dashboard/types.ts`                 | `DashboardNavItem` y `DashboardSection` para escalabilidad        | Activo |
+| adminDashboardSections          | `src/components/dashboard/nav-config.admin.ts`      | Config centralizada de navegación admin                           | Activo |
+| Tipos de contrato nav           | `src/components/dashboard/types.ts`                 | `DashboardNavItem` y `DashboardSection` para escalabilidad        | Activo |
 
 ### 10) Admin List Kit reusable (`src/components/admin/list-kit`)
 
-| Componente          | Ruta                                                         | Uso principal                                                      | Estado |
-| ------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------ | ------ |
-| AdminListShell      | `src/components/admin/list-kit/AdminListShell.tsx`           | Contenedor base de listas admin (borde/fondo/sombra)              | Activo |
-| AdminListHeader     | `src/components/admin/list-kit/AdminListHeader.tsx`          | Header estándar (título/subtítulo/contador/acciones)              | Activo |
-| AdminListPanel      | `src/components/admin/list-kit/AdminListPanel.tsx`           | Panel interno reutilizable para filtros/bulk/secciones auxiliares  | Activo |
-| AdminControlsRow    | `src/components/admin/list-kit/AdminControlsRow.tsx`         | Fila horizontal reutilizable de controles con alineación al bottom | Activo |
-| AdminFilterPanel    | `src/components/admin/list-kit/AdminFilterPanel.tsx`         | Estructura de filtros con título, estado y acciones               | Activo |
-| AdminBulkPanel      | `src/components/admin/list-kit/AdminBulkPanel.tsx`           | Estructura de acciones masivas con estado de selección            | Activo |
-| AdminDataTable      | `src/components/admin/list-kit/AdminDataTable.tsx`           | Tabla tipada por columnas (`AdminColumnDef<T>`)                   | Activo |
-| AdminStatusBadge    | `src/components/admin/list-kit/AdminStatusBadge.tsx`         | Badge de estado unificado (`neutral/success/warning/danger`)      | Activo |
-| AdminIconBadge      | `src/components/admin/list-kit/AdminStatusBadge.tsx`         | Badge compacto con ícono + texto + tono (`neutral/success/warning/danger`) | Activo |
-| AdminRoleBadge      | `src/components/admin/list-kit/AdminStatusBadge.tsx`         | Badge compacto de rol con ícono + texto (`ADMIN/STAFF/CREATOR`)   | Activo |
-| AdminListEmptyState | `src/components/admin/list-kit/AdminListEmptyState.tsx`      | Estado vacío estandarizado                                         | Activo |
-| AdminTableRowActions| `src/components/admin/list-kit/AdminTableRowActions.tsx`     | Acciones por fila reutilizables (link/acción local)               | Activo |
-| Tipos list-kit      | `src/components/admin/list-kit/types.ts`                     | `AdminColumnDef`, `AdminRowAction`, `AdminFilterSchema`, `AdminBulkActionSchema` | Activo |
+| Componente           | Ruta                                                     | Uso principal                                                                    | Estado |
+| -------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------- | ------ |
+| AdminListShell       | `src/components/admin/list-kit/AdminListShell.tsx`       | Contenedor base de listas admin (borde/fondo/sombra)                             | Activo |
+| AdminListHeader      | `src/components/admin/list-kit/AdminListHeader.tsx`      | Header estándar (título/subtítulo/contador/acciones)                             | Activo |
+| AdminListPanel       | `src/components/admin/list-kit/AdminListPanel.tsx`       | Panel interno reutilizable para filtros/bulk/secciones auxiliares                | Activo |
+| AdminControlsRow     | `src/components/admin/list-kit/AdminControlsRow.tsx`     | Fila horizontal reutilizable de controles con alineación al bottom               | Activo |
+| AdminFilterPanel     | `src/components/admin/list-kit/AdminFilterPanel.tsx`     | Estructura de filtros con título, estado y acciones                              | Activo |
+| AdminBulkPanel       | `src/components/admin/list-kit/AdminBulkPanel.tsx`       | Estructura de acciones masivas con estado de selección                           | Activo |
+| AdminDataTable       | `src/components/admin/list-kit/AdminDataTable.tsx`       | Tabla tipada por columnas (`AdminColumnDef<T>`)                                  | Activo |
+| AdminListButton      | `src/components/admin/list-kit/AdminListButton.tsx`      | Botón unificado de listas (hover/tonos/tamaños row/control/pill)                 | Activo |
+| AdminStatusBadge     | `src/components/admin/list-kit/AdminStatusBadge.tsx`     | Badge de estado unificado (`neutral/success/warning/danger`)                     | Activo |
+| AdminIconBadge       | `src/components/admin/list-kit/AdminStatusBadge.tsx`     | Badge compacto con ícono + texto + tono (`neutral/success/warning/danger`)       | Activo |
+| AdminRoleBadge       | `src/components/admin/list-kit/AdminStatusBadge.tsx`     | Badge compacto de rol con ícono + texto (`ADMIN/STAFF/CREATOR`)                  | Activo |
+| AdminListEmptyState  | `src/components/admin/list-kit/AdminListEmptyState.tsx`  | Estado vacío estandarizado                                                       | Activo |
+| AdminTableRowActions | `src/components/admin/list-kit/AdminTableRowActions.tsx` | Acciones por fila reutilizables (link/acción local)                              | Activo |
+| Tipos list-kit       | `src/components/admin/list-kit/types.ts`                 | `AdminColumnDef`, `AdminRowAction`, `AdminFilterSchema`, `AdminBulkActionSchema` | Activo |
 
 Guía rápida: crear una nueva lista admin con List Kit
 
@@ -238,12 +265,40 @@ Guía rápida: crear una nueva lista admin con List Kit
 9. Registrar acciones por fila con `AdminTableRowActions` o botón local.
 10. Cerrar con smoke desktop/mobile y validar `typecheck`.
 
+Definición operativa (para evitar ambigüedad):
+
+- Desde ahora, **“List Kit” = vista de lista completa reutilizable**, no solo la tabla.
+- Una lista “List Kit compliant” incluye como mínimo:
+  1. `AdminListShell`
+  2. `AdminListHeader`
+  3. `AdminFilterPanel` + `AdminControlsRow`
+  4. `AdminBulkPanel` + `AdminControlsRow` (si hay selección masiva)
+  5. `AdminDataTable` (desktop) + cards mobile equivalentes
+  6. `AdminListButton` + `AdminStatusBadge`/`AdminIconBadge` para interacción y estados
+
 Regla UX/UI obligatoria (List Kit y módulos admin):
 
 - No usar scrollers horizontales por defecto (desktop ni mobile), salvo requerimiento explícito del usuario.
 - Los controles deben reflow (wrap) dentro del contenedor antes de forzar overflow.
 - En mobile, priorizar cards/stack vertical en vez de tablas con scroll horizontal.
 - Mantener legibilidad/accesibilidad: evitar recortes de información y evitar que acciones clave queden fuera de viewport.
+
+Registro vigente de lugares donde usamos listas:
+
+- Listas admin **con List Kit**:
+  - `/admin/users` → `src/components/admin/users/UsersTableClient.tsx` (**base visual/fuente de verdad**)
+  - `/admin/tracks` → `src/app/admin/tracks/page.tsx` + `src/components/admin/tracks/TracksTableClient.tsx`
+  - `/admin/playlists` → `src/app/admin/playlists/page.tsx` + `src/components/admin/playlists/PlaylistsTableClient.tsx`
+  - `/admin/sound-kits` → `src/app/admin/sound-kits/page.tsx` + `src/components/admin/sound-kits/SoundKitsTableClient.tsx`
+  - `/admin/services` → `src/app/admin/services/page.tsx` + `src/components/admin/services/ServicesTableClient.tsx`
+  - `/admin/contracts` → `src/app/admin/contracts/page.tsx` + `src/components/admin/contracts/ContractsTableClient.tsx`
+  - `/admin/requests` → `src/app/admin/requests/page.tsx` + `src/app/admin/requests/_client.tsx`
+  - `/admin/tickets` → `src/app/admin/tickets/page.tsx` + `src/components/admin/tickets/TicketsTableClient.tsx`
+  - `/admin/licensing` → `src/app/admin/licensing/page.tsx` + `src/app/admin/licensing/_client.tsx`
+
+- Listas/table-like **fuera de List Kit** (legacy o secundarias):
+  - bloque “Invitaciones activas” dentro de `/admin/users` (`src/app/admin/users/page.tsx`)
+  - tablas internas de edición por módulo (rights, deliverables, etc.) en `/admin/tracks/[id]/edit/*`
 
 ### 11) Módulos operativos nuevos (Playlists / Sound Kits / Services / Contracts)
 
@@ -258,6 +313,13 @@ Rutas admin activas:
 - `src/app/admin/contracts/page.tsx` (lista)
 - `src/app/admin/contracts/[id]/page.tsx` (detalle + edición rápida)
 
+Rutas playlist-as-catalog activas:
+
+- `src/app/catalog/page.tsx` (catálogo principal desde playlist main)
+- `src/app/playlist/[id]/page.tsx` (vista pública por `publicId`/`slug`/`id`, soporte `?embed=1`)
+- `src/app/creator/playlists/page.tsx` (lista creator)
+- `src/app/creator/playlists/[id]/page.tsx` (detalle creator)
+
 Clientes List Kit por módulo:
 
 - `src/components/admin/playlists/PlaylistsTableClient.tsx`
@@ -268,6 +330,8 @@ Clientes List Kit por módulo:
 Editores rápidos por módulo:
 
 - `src/components/admin/playlists/PlaylistDetailEditor.tsx`
+- `src/components/admin/playlists/PlaylistTrackManager.tsx`
+- `src/components/admin/playlists/PlaylistShareManager.tsx`
 - `src/components/admin/sound-kits/SoundKitDetailEditor.tsx`
 - `src/components/admin/services/ServiceDetailEditor.tsx`
 - `src/components/admin/contracts/ContractDetailEditor.tsx`
@@ -275,13 +339,15 @@ Editores rápidos por módulo:
 APIs admin (CRUD/bulk):
 
 - `/api/admin/playlists`, `/api/admin/playlists/[id]`, `/api/admin/playlists/bulk`
+- `/api/admin/playlists/[id]/tracks` (asignar/quitar/reordenar tracks)
+- `/api/admin/playlists/[id]/share` (compartir por email + revocar)
 - `/api/admin/sound-kits`, `/api/admin/sound-kits/[id]`, `/api/admin/sound-kits/bulk`
 - `/api/admin/services`, `/api/admin/services/[id]`, `/api/admin/services/bulk`
 - `/api/admin/contracts`, `/api/admin/contracts/[id]`, `/api/admin/contracts/bulk`
 
 Modelos Prisma agregados para estos módulos:
 
-- `Playlist` + pivote `PlaylistTrack`
+- `Playlist` + pivote `PlaylistTrack` + ACL `PlaylistViewer`
 - `SoundKit`
 - `ServiceOffer`
 - `ContractRecord`
@@ -292,6 +358,13 @@ Enums Prisma agregados:
 - `SoundKitStatus`
 - `ServiceOfferStatus`, `ServiceCategory`
 - `ContractStatus`
+
+Contrato playlist-as-catalog (vigente):
+
+- `/catalog` renderiza la playlist marcada como main (`isMainCatalog=true`).
+- Existe fallback temporal legacy en `/catalog` con flag `CATALOG_USE_LEGACY=1`.
+- `PUBLIC + PUBLISHED` expone playlist públicamente.
+- `INTERNAL/PRIVATE` requiere sesión/autorización (owner, admin/staff o compartido por `PlaylistViewer`).
 
 ## Inventario operativo actualizado (vigente)
 

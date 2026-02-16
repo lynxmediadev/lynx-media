@@ -658,8 +658,14 @@ export default function RequestsAdminClient(props: {
 
   return (
     <div className="space-y-4">
-      <AdminListShell className="bg-card/80 rounded-[2px]">
+      <AdminListShell>
         <AdminListHeader
+          icon={
+            <FileText
+              className="text-muted-foreground h-4 w-4"
+              aria-hidden="true"
+            />
+          }
           title="Solicitudes"
           subtitle="Bandeja única"
           count={<AdminStatusBadge>Total {props.total}</AdminStatusBadge>}
@@ -672,12 +678,9 @@ export default function RequestsAdminClient(props: {
           }
           actionSlot={
             <div className="flex flex-wrap gap-2">
-              <Link
-                href="/admin/requests/mix"
-                className="border-border bg-card hover:bg-muted/45 inline-flex h-8 items-center rounded-md border px-2.5 text-xs transition-colors"
-              >
-                Ver solo Mix/Master
-              </Link>
+              <AdminListButton asChild size="row" surface="background">
+                <Link href="/admin/requests/mix">Ver solo Mix/Master</Link>
+              </AdminListButton>
               <AdminListButton
                 type="button"
                 disabled={isCreatingDummy}

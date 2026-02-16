@@ -7,5 +7,7 @@ Alcance:
 - Sin lógica de dominio de negocio.
 
 Estado:
-- Carpeta creada en Fase 1.
-- Extracción de componentes pendiente (Fase 2).
+- Baseline inicial creado en Fase 2:
+  - `BrandPanel`
+  - `BrandButton`
+  - estilos base en `src/styles.css`

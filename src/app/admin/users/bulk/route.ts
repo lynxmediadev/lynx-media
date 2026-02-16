@@ -22,7 +22,14 @@ function parseBulkAction(value: string) {
 
 function parseRole(value: string): UserRole | null {
   const role = value.trim().toUpperCase();
-  if (role === "ADMIN" || role === "STAFF" || role === "CREATOR") return role;
+  if (
+    role === "ADMIN" ||
+    role === "STAFF" ||
+    role === "CREATOR" ||
+    role === "CLIENT"
+  ) {
+    return role;
+  }
   return null;
 }
 

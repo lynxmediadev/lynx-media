@@ -6,13 +6,20 @@ import { verifyTurnstile } from "@/lib/account-auth/turnstile";
 import { ENV } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 
-function getSafeRedirectByRole(role: "ADMIN" | "STAFF" | "CREATOR", requestedNext: string | null) {
+function getSafeRedirectByRole(
+  role: "ADMIN" | "STAFF" | "CREATOR" | "CLIENT",
+  requestedNext: string | null,
+) {
   if (requestedNext && requestedNext.startsWith("/")) {
     if (role === "CREATOR" && requestedNext.startsWith("/creator")) return requestedNext;
     if ((role === "ADMIN" || role === "STAFF") && requestedNext.startsWith("/admin")) return requestedNext;
+    if (role === "CLIENT" && !requestedNext.startsWith("/admin") && !requestedNext.startsWith("/creator")) {
+      return requestedNext;
+    }
   }
 
   if (role === "CREATOR") return "/creator/tracks";
+  if (role === "CLIENT") return "/";
   return "/admin/tracks";
 }
 

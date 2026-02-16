@@ -8,7 +8,7 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-function canManageAdminModules(role: "ADMIN" | "STAFF" | "CREATOR") {
+function canManageAdminModules(role: string) {
   return role === "ADMIN" || role === "STAFF";
 }
 

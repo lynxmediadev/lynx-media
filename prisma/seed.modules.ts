@@ -31,6 +31,10 @@ function randInt(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+function randomPublicId(prefix = "pl") {
+  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function addDays(base: Date, days: number) {
   const next = new Date(base);
   next.setDate(next.getDate() + days);
@@ -127,6 +131,7 @@ async function seedPlaylists(trackIds: string[]) {
       create: {
         name,
         slug,
+        publicId: randomPublicId(),
         description: `${name} · selección curada para administración.`,
         status: statusPool[i % statusPool.length]!,
         visibility: visibilityPool[i % visibilityPool.length]!,

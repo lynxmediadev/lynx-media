@@ -54,6 +54,7 @@ export function UsersInviteDialog({ returnTo }: { returnTo: string }) {
                 defaultValue="CREATOR"
                 className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
               >
+                <option value="CLIENT">CLIENT</option>
                 <option value="CREATOR">CREATOR</option>
                 <option value="STAFF">STAFF</option>
                 <option value="ADMIN">ADMIN</option>

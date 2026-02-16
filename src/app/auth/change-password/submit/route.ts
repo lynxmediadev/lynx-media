@@ -18,8 +18,9 @@ function redirectUrl(req: NextRequest, path: string) {
   return url;
 }
 
-function accountPathByRole(role: "ADMIN" | "STAFF" | "CREATOR") {
+function accountPathByRole(role: "ADMIN" | "STAFF" | "CREATOR" | "CLIENT") {
   if (role === "CREATOR") return "/creator/account";
+  if (role === "CLIENT") return "/";
   return "/admin/account";
 }
 

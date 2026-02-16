@@ -6,7 +6,14 @@ import { requireRouteAdmin, safeRouteRedirect } from "@/lib/account-auth/route-g
 
 function parseRole(value: string) {
   const normalized = value.trim().toUpperCase();
-  if (normalized === "ADMIN" || normalized === "STAFF" || normalized === "CREATOR") return normalized;
+  if (
+    normalized === "ADMIN" ||
+    normalized === "STAFF" ||
+    normalized === "CREATOR" ||
+    normalized === "CLIENT"
+  ) {
+    return normalized;
+  }
   return "CREATOR";
 }
 

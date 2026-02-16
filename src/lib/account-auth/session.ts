@@ -105,7 +105,12 @@ export async function clearSessionCookie() {
 export function normalizeViewAsRole(raw: string | undefined): UserRole | null {
   if (!raw) return null;
   const role = raw.trim().toUpperCase();
-  if (role === "ADMIN" || role === "STAFF" || role === "CREATOR") {
+  if (
+    role === "ADMIN" ||
+    role === "STAFF" ||
+    role === "CREATOR" ||
+    role === "CLIENT"
+  ) {
     return role;
   }
   return null;

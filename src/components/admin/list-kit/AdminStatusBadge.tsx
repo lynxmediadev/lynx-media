@@ -2,7 +2,12 @@ import type { ReactNode } from "react";
 import { ShieldCheck, UserRound, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type AdminBadgeTone = "neutral" | "success" | "warning" | "danger";
+export type AdminBadgeTone =
+  | "neutral"
+  | "success"
+  | "warning"
+  | "danger"
+  | "info";
 
 type AdminStatusBadgeProps = {
   children: ReactNode;
@@ -14,6 +19,7 @@ function toneClass(tone: AdminBadgeTone) {
   if (tone === "success") return "admin-badge-success";
   if (tone === "warning") return "admin-badge-warning";
   if (tone === "danger") return "admin-badge-danger";
+  if (tone === "info") return "admin-badge-info";
   return "border-border bg-background text-muted-foreground";
 }
 
@@ -21,6 +27,7 @@ function iconToneClass(tone: AdminBadgeTone) {
   if (tone === "success") return "admin-badge-success";
   if (tone === "warning") return "admin-badge-warning";
   if (tone === "danger") return "admin-badge-danger";
+  if (tone === "info") return "admin-badge-info";
   return "border-border bg-background text-muted-foreground";
 }
 
@@ -61,20 +68,22 @@ export function AdminIconBadge({ label, icon, tone = "neutral", className }: Adm
 }
 
 type AdminRoleBadgeProps = {
-  role: "ADMIN" | "STAFF" | "CREATOR";
+  role: "ADMIN" | "STAFF" | "CREATOR" | "CLIENT";
   label?: ReactNode;
   className?: string;
 };
 
-function roleToneClass(role: "ADMIN" | "STAFF" | "CREATOR") {
+function roleToneClass(role: "ADMIN" | "STAFF" | "CREATOR" | "CLIENT") {
   if (role === "ADMIN") return "admin-badge-role-admin";
   if (role === "STAFF") return "admin-badge-role-staff";
+  if (role === "CLIENT") return "border-border bg-muted/35 text-foreground";
   return "admin-badge-role-creator";
 }
 
-function roleIcon(role: "ADMIN" | "STAFF" | "CREATOR") {
+function roleIcon(role: "ADMIN" | "STAFF" | "CREATOR" | "CLIENT") {
   if (role === "ADMIN") return <ShieldCheck aria-hidden="true" />;
   if (role === "STAFF") return <Wrench aria-hidden="true" />;
+  if (role === "CLIENT") return <UserRound aria-hidden="true" />;
   return <UserRound aria-hidden="true" />;
 }
 

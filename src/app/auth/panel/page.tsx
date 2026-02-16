@@ -12,6 +12,9 @@ export default async function AuthPanelRedirectPage() {
   if (user.role === "CREATOR") {
     redirect("/creator");
   }
+  if (user.role === "CLIENT") {
+    redirect("/");
+  }
 
   redirect("/admin");
 }

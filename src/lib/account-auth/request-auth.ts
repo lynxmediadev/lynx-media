@@ -5,7 +5,7 @@ import { APP_SESSION_COOKIE, getSessionUserFromCookie } from "@/lib/account-auth
 import { prisma } from "@/lib/prisma";
 
 type AuthRequestUser =
-  | { id: string; role: "ADMIN" | "STAFF" | "CREATOR"; source: "session" }
+  | { id: string; role: "ADMIN" | "STAFF" | "CREATOR" | "CLIENT"; source: "session" }
   | { id: string | null; role: "ADMIN"; source: "legacy" };
 
 export async function getRequestAuthUser(req: NextRequest): Promise<AuthRequestUser | null> {
@@ -43,4 +43,3 @@ export async function canAccessTrackByRole(
   if (!track) return false;
   return track.ownerUserId === user.id;
 }
-

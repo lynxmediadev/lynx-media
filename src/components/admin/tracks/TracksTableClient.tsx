@@ -20,12 +20,12 @@ import {
   allSelected as computeAllSelected,
   AdminBulkPanel,
   AdminControlsRow,
-  AdminDataTable,
   AdminFilterPanel,
   AdminIconBadge,
   AdminListButton,
   AdminListEmptyState,
   AdminStatusBadge,
+  ListKitTableComposer,
   countActiveFilters,
   selectAllOrNone,
   toggleSelection,
@@ -405,341 +405,324 @@ export function TracksTableClient({ tracks, filters }: TracksTableClientProps) {
     },
   ];
 
-  return (
-    <>
-      <div className="border-border border-b px-3 py-2 sm:px-4">
-        <div className="grid gap-2 xl:grid-cols-2">
-          <form
-            method="GET"
-            action="/admin/tracks"
-            className="min-w-0"
-            onSubmit={(event) => event.preventDefault()}
+  const filterPanel = (
+    <form
+      method="GET"
+      action="/admin/tracks"
+      className="min-w-0"
+      onSubmit={(event) => event.preventDefault()}
+    >
+      <AdminFilterPanel
+        title={
+          <>
+            <Filter className="h-3.5 w-3.5" />
+            Filtros de lista
+          </>
+        }
+        statusSlot={
+          <>
+            <span className="text-muted-foreground text-[11px]">·</span>
+            <AdminStatusBadge className="capitalize">
+              {filterStateLabel}
+            </AdminStatusBadge>
+          </>
+        }
+        actionSlot={
+          <AdminListButton
+            type="button"
+            onClick={() => void handleCopyFilter()}
+            size="pill"
+            surface="background"
+            className={cn(
+              filterCopyState === "copied"
+                ? "border-emerald-500/50 text-emerald-300"
+                : "",
+              filterCopyState === "error"
+                ? "border-destructive/60 text-destructive"
+                : "",
+            )}
           >
-            <AdminFilterPanel
-              title={
-                <>
-                  <Filter className="h-3.5 w-3.5" />
-                  Filtros de lista
-                </>
-              }
-              statusSlot={
-                <>
-                  <span className="text-muted-foreground text-[11px]">·</span>
-                  <AdminStatusBadge className="capitalize">
-                    {filterStateLabel}
-                  </AdminStatusBadge>
-                </>
-              }
-              actionSlot={
-                <AdminListButton
-                  type="button"
-                  onClick={() => void handleCopyFilter()}
-                  size="pill"
-                  surface="background"
-                  className={cn(
-                    filterCopyState === "copied"
-                      ? "border-emerald-500/50 text-emerald-300"
-                      : "",
-                    filterCopyState === "error"
-                      ? "border-destructive/60 text-destructive"
-                      : "",
-                  )}
-                >
-                  {filterCopyState === "copied"
-                    ? "Copiado"
-                    : filterCopyState === "error"
-                      ? "Error"
-                      : "Copiar filtro"}
-                </AdminListButton>
+            {filterCopyState === "copied"
+              ? "Copiado"
+              : filterCopyState === "error"
+                ? "Error"
+                : "Copiar filtro"}
+          </AdminListButton>
+        }
+      >
+        <AdminControlsRow innerClassName="w-full xl:flex-nowrap">
+          <div className="grid min-w-0 flex-[1_1_220px] gap-1">
+            <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
+              Campo
+            </span>
+            <div className="relative w-full">
+              <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+              <input
+                id="filter-tracks-q"
+                type="text"
+                name="q"
+                value={localQuery}
+                onChange={(event) => setLocalQuery(event.target.value)}
+                placeholder="Buscar título o artista"
+                className="border-border bg-background h-9 w-full rounded-md border pr-3 pl-9 text-sm"
+                autoComplete="off"
+              />
+            </div>
+          </div>
+
+          <div className="grid w-[132px] gap-1">
+            <span className="text-muted-foreground text-center text-[10px] font-semibold tracking-wide uppercase">
+              ESTADO
+            </span>
+            <select
+              id="filter-tracks-status"
+              name="analysis"
+              value={localAnalysis}
+              onChange={(event) => setLocalAnalysis(event.target.value)}
+              className="border-border bg-background h-9 w-full rounded-md border px-3 pr-8 text-sm"
+            >
+              <option value="">TODOS</option>
+              <option value="analyzed">ANALIZADO</option>
+              <option value="pending">SIN ANÁLISIS</option>
+              <option value="no_audio">SIN AUDIO</option>
+            </select>
+          </div>
+
+          <div className="grid w-[104px] gap-1">
+            <span className="text-muted-foreground text-center text-[10px] font-semibold tracking-wide uppercase">
+              POR PÁGINA
+            </span>
+            <select
+              id="filter-tracks-per"
+              name="per"
+              value={localPer}
+              onChange={(event) => setLocalPer(event.target.value)}
+              className="border-border bg-background h-9 w-full rounded-md border px-3 pr-8 text-sm"
+            >
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+
+          <div className="grid w-[42px] gap-1">
+            <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
+              Acción
+            </span>
+            <AdminListButton
+              id="tracks-limpiar-filtros"
+              type="button"
+              title="Limpiar"
+              aria-label="Limpiar"
+              onClick={() => {
+                setLocalQuery("");
+                setLocalAnalysis("");
+                setLocalPer("50");
+              }}
+              size="controlIcon"
+              className="w-full"
+            >
+              <RefreshCcw className="h-4 w-4" />
+            </AdminListButton>
+          </div>
+        </AdminControlsRow>
+      </AdminFilterPanel>
+    </form>
+  );
+
+  const bulkPanel = (
+    <AdminBulkPanel
+      title={
+        <>
+          <Check className="h-3.5 w-3.5" />
+          Acciones masivas
+        </>
+      }
+      statusSlot={
+        <div className="inline-flex items-center gap-1.5">
+          <AdminStatusBadge className="capitalize">
+            {selectionStateLabel}
+          </AdminStatusBadge>
+          {analyzeState.type !== "idle" ? (
+            <AdminStatusBadge
+              tone={
+                analyzeState.type === "success"
+                  ? "success"
+                  : analyzeState.type === "error"
+                    ? "danger"
+                    : "warning"
               }
             >
-              <AdminControlsRow innerClassName="w-full xl:flex-nowrap">
-                <div className="grid min-w-0 flex-[1_1_220px] gap-1">
-                  <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
-                    Campo
-                  </span>
-                  <div className="relative w-full">
-                    <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-                    <input
-                      id="filter-tracks-q"
-                      type="text"
-                      name="q"
-                      value={localQuery}
-                      onChange={(event) => setLocalQuery(event.target.value)}
-                      placeholder="Buscar título o artista"
-                      className="border-border bg-background h-9 w-full rounded-md border pr-3 pl-9 text-sm"
-                      autoComplete="off"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid w-[132px] gap-1">
-                  <span className="text-muted-foreground text-center text-[10px] font-semibold tracking-wide uppercase">
-                    ESTADO
-                  </span>
-                  <select
-                    id="filter-tracks-status"
-                    name="analysis"
-                    value={localAnalysis}
-                    onChange={(event) => setLocalAnalysis(event.target.value)}
-                    className="border-border bg-background h-9 w-full rounded-md border px-3 pr-8 text-sm"
-                  >
-                    <option value="">TODOS</option>
-                    <option value="analyzed">ANALIZADO</option>
-                    <option value="pending">SIN ANÁLISIS</option>
-                    <option value="no_audio">SIN AUDIO</option>
-                  </select>
-                </div>
-
-                <div className="grid w-[104px] gap-1">
-                  <span className="text-muted-foreground text-center text-[10px] font-semibold tracking-wide uppercase">
-                    POR PÁGINA
-                  </span>
-                  <select
-                    id="filter-tracks-per"
-                    name="per"
-                    value={localPer}
-                    onChange={(event) => setLocalPer(event.target.value)}
-                    className="border-border bg-background h-9 w-full rounded-md border px-3 pr-8 text-sm"
-                  >
-                    <option value="10">10</option>
-                    <option value="20">20</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                  </select>
-                </div>
-
-                <div className="grid w-[42px] gap-1">
-                  <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
-                    Acción
-                  </span>
-                  <AdminListButton
-                    id="tracks-limpiar-filtros"
-                    type="button"
-                    title="Limpiar"
-                    aria-label="Limpiar"
-                    onClick={() => {
-                      setLocalQuery("");
-                      setLocalAnalysis("");
-                      setLocalPer("50");
-                    }}
-                    size="controlIcon"
-                    className="w-full"
-                  >
-                    <RefreshCcw className="h-4 w-4" />
-                  </AdminListButton>
-                </div>
-              </AdminControlsRow>
-            </AdminFilterPanel>
-          </form>
-
-          <AdminBulkPanel
-            title={
-              <>
-                <Check className="h-3.5 w-3.5" />
-                Acciones masivas
-              </>
-            }
-            statusSlot={
-              <div className="inline-flex items-center gap-1.5">
-                <AdminStatusBadge className="capitalize">
-                  {selectionStateLabel}
-                </AdminStatusBadge>
-                {analyzeState.type !== "idle" ? (
-                  <AdminStatusBadge
-                    tone={
-                      analyzeState.type === "success"
-                        ? "success"
-                        : analyzeState.type === "error"
-                          ? "danger"
-                          : "warning"
-                    }
-                  >
-                    {analyzeState.message}
-                  </AdminStatusBadge>
-                ) : null}
-              </div>
-            }
-            className="bg-background/30"
-          >
-            <AdminControlsRow>
-              <div className="grid gap-1">
-                <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
-                  Campo
-                </span>
-                <label className="border-border inline-flex h-8 items-center gap-2 rounded-md border px-2 py-1 text-xs">
-                  <input
-                    type="checkbox"
-                    checked={allSelected}
-                    onChange={(event) =>
-                      setSelectedIds(
-                        selectAllOrNone(selectableIds, event.target.checked),
-                      )
-                    }
-                    className="border-border bg-background h-4 w-4 rounded"
-                  />
-                  Todo
-                </label>
-              </div>
-
-              <div className="grid gap-1">
-                <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
-                  Campo
-                </span>
-                <AdminListButton
-                  type="button"
-                  onClick={() => {
-                    void handleAnalyzeSelected();
-                  }}
-                  disabled={
-                    selectedIds.length === 0 || analyzeState.type === "running"
-                  }
-                  size="row"
-                  className="gap-1"
-                >
-                  {analyzeState.type === "running" ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                  )}
-                  Analizar
-                </AdminListButton>
-              </div>
-
-              <div className="grid gap-1">
-                <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
-                  Campo
-                </span>
-                <AdminListButton
-                  type="button"
-                  onClick={() => {
-                    void handleCopySelected();
-                  }}
-                  disabled={selectedIds.length === 0}
-                  className={cn(
-                    "gap-1",
-                    idCopyState === "copied"
-                      ? "border-emerald-500/50 text-emerald-300"
-                      : "",
-                    idCopyState === "error"
-                      ? "border-destructive/60 text-destructive"
-                      : "",
-                  )}
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                  {idCopyState === "copied"
-                    ? "Copiado"
-                    : idCopyState === "error"
-                      ? "Error"
-                      : "Copiar IDs"}
-                </AdminListButton>
-              </div>
-
-              <div className="grid gap-1">
-                <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
-                  Campo
-                </span>
-                <AdminListButton
-                  type="button"
-                  onClick={() => setSelectedIds([])}
-                  disabled={selectedIds.length === 0}
-                  size="rowIcon"
-                  title="Limpiar selección"
-                  aria-label="Limpiar selección"
-                >
-                  <RefreshCcw className="h-4 w-4" />
-                </AdminListButton>
-              </div>
-            </AdminControlsRow>
-          </AdminBulkPanel>
+              {analyzeState.message}
+            </AdminStatusBadge>
+          ) : null}
         </div>
-      </div>
+      }
+      className="bg-background/30"
+    >
+      <AdminControlsRow>
+        <div className="grid gap-1">
+          <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
+            Campo
+          </span>
+          <label className="border-border inline-flex h-8 items-center gap-2 rounded-md border px-2 py-1 text-xs">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={(event) =>
+                setSelectedIds(
+                  selectAllOrNone(selectableIds, event.target.checked),
+                )
+              }
+              className="border-border bg-background h-4 w-4 rounded"
+            />
+            Todo
+          </label>
+        </div>
 
-      <div className="space-y-3 p-3 md:hidden">
-        {rows.length === 0 ? (
-          <AdminListEmptyState message="Sin resultados para los filtros actuales." />
-        ) : (
-          rows.map((track) => (
-            <article
-              key={track.id}
-              className={cn(
-                "border-border/70 bg-card space-y-3 rounded-lg border p-3 transition-colors",
-                selectedSet.has(track.id) ? "bg-accent/20" : "",
-              )}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex min-w-0 items-start gap-2">
-                  <input
-                    type="checkbox"
-                    checked={selectedSet.has(track.id)}
-                    onChange={() =>
-                      setSelectedIds((current) =>
-                        toggleSelection(current, track.id),
-                      )
-                    }
-                    className="border-border bg-background mt-0.5 h-4 w-4 rounded"
-                    aria-label={`Seleccionar track ${track.title ?? track.id}`}
-                  />
-                  <div className="min-w-0">
-                    <Link
-                      href={`/admin/tracks/${track.id}/edit`}
-                      className="text-foreground block truncate text-sm font-semibold hover:underline"
-                    >
-                      {track.title || "(sin título)"}
-                    </Link>
-                    <p className="text-muted-foreground truncate text-xs">
-                      {track.artist || "(sin artista)"}
-                    </p>
-                    <p className="text-muted-foreground mt-1 font-mono text-[10px] break-all">
-                      ID: {track.id}
-                    </p>
-                  </div>
-                </div>
+        <div className="grid gap-1">
+          <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
+            Campo
+          </span>
+          <AdminListButton
+            type="button"
+            onClick={() => {
+              void handleAnalyzeSelected();
+            }}
+            disabled={selectedIds.length === 0 || analyzeState.type === "running"}
+            size="row"
+            className="gap-1"
+          >
+            {analyzeState.type === "running" ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <ShieldCheck className="h-3.5 w-3.5" />
+            )}
+            Analizar
+          </AdminListButton>
+        </div>
 
-                <div className="shrink-0">{statusBadge(track)}</div>
+        <div className="grid gap-1">
+          <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
+            Campo
+          </span>
+          <AdminListButton
+            type="button"
+            onClick={() => {
+              void handleCopySelected();
+            }}
+            disabled={selectedIds.length === 0}
+            className={cn(
+              "gap-1",
+              idCopyState === "copied" ? "border-emerald-500/50 text-emerald-300" : "",
+              idCopyState === "error" ? "border-destructive/60 text-destructive" : "",
+            )}
+          >
+            <Copy className="h-3.5 w-3.5" />
+            {idCopyState === "copied"
+              ? "Copiado"
+              : idCopyState === "error"
+                ? "Error"
+                : "Copiar IDs"}
+          </AdminListButton>
+        </div>
+
+        <div className="grid gap-1">
+          <span className="text-[10px] font-semibold tracking-wide text-transparent uppercase select-none">
+            Campo
+          </span>
+          <AdminListButton
+            type="button"
+            onClick={() => setSelectedIds([])}
+            disabled={selectedIds.length === 0}
+            size="rowIcon"
+            title="Limpiar selección"
+            aria-label="Limpiar selección"
+          >
+            <RefreshCcw className="h-4 w-4" />
+          </AdminListButton>
+        </div>
+      </AdminControlsRow>
+    </AdminBulkPanel>
+  );
+
+  const emptyState = (
+    <AdminListEmptyState message="Sin resultados para los filtros actuales." />
+  );
+
+  return (
+    <ListKitTableComposer
+      rows={rows}
+      columns={desktopColumns}
+      rowKey={(track) => track.id}
+      rowClassName={(track) =>
+        cn(
+          "border-t border-border/70 hover:bg-muted/60",
+          selectedSet.has(track.id) && "bg-accent/20 hover:bg-accent/25",
+        )
+      }
+      tableClassName="w-full table-fixed"
+      headerClassName="bg-muted/60"
+      filterPanel={filterPanel}
+      bulkPanel={bulkPanel}
+      emptyState={emptyState}
+      renderMobileRow={(track) => (
+        <article
+          key={track.id}
+          className={cn(
+            "border-border/70 bg-card space-y-3 rounded-lg border p-3 transition-colors",
+            selectedSet.has(track.id) ? "bg-accent/20" : "",
+          )}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex min-w-0 items-start gap-2">
+              <input
+                type="checkbox"
+                checked={selectedSet.has(track.id)}
+                onChange={() =>
+                  setSelectedIds((current) => toggleSelection(current, track.id))
+                }
+                className="border-border bg-background mt-0.5 h-4 w-4 rounded"
+                aria-label={`Seleccionar track ${track.title ?? track.id}`}
+              />
+              <div className="min-w-0">
+                <Link
+                  href={`/admin/tracks/${track.id}/edit`}
+                  className="text-foreground block truncate text-sm font-semibold hover:underline"
+                >
+                  {track.title || "(sin título)"}
+                </Link>
+                <p className="text-muted-foreground truncate text-xs">
+                  {track.artist || "(sin artista)"}
+                </p>
+                <p className="text-muted-foreground mt-1 font-mono text-[10px] break-all">
+                  ID: {track.id}
+                </p>
               </div>
+            </div>
 
-              <div className="border-border/60 space-y-2 border-t pt-2">
-                <MetadataSummary row={track} />
-                <AudioInfo row={track} />
-              </div>
+            <div className="shrink-0">{statusBadge(track)}</div>
+          </div>
 
-              <div className="border-border/60 border-t pt-2">
-                {analysisBadge(track)}
-              </div>
+          <div className="border-border/60 space-y-2 border-t pt-2">
+            <MetadataSummary row={track} />
+            <AudioInfo row={track} />
+          </div>
 
-              <div className="border-border/60 border-t pt-2">
-                <AnalyzeActions
-                  id={track.id}
-                  audioUrl={track.audioUrl}
-                  iconOnly
-                  className="w-full justify-start"
-                />
-              </div>
-            </article>
-          ))
-        )}
-      </div>
+          <div className="border-border/60 border-t pt-2">{analysisBadge(track)}</div>
 
-      <div className="hidden overflow-hidden md:block">
-        <AdminDataTable
-          rows={rows}
-          columns={desktopColumns}
-          rowKey={(track) => track.id}
-          rowClassName={(track) =>
-            cn(
-              "border-t border-border/70 hover:bg-muted/60",
-              selectedSet.has(track.id) && "bg-accent/20 hover:bg-accent/25",
-            )
-          }
-          tableClassName="w-full table-fixed"
-          headerClassName="bg-muted/60"
-          emptyState={
-            <AdminListEmptyState message="Sin resultados para los filtros actuales." />
-          }
-        />
-      </div>
-    </>
+          <div className="border-border/60 border-t pt-2">
+            <AnalyzeActions
+              id={track.id}
+              audioUrl={track.audioUrl}
+              iconOnly
+              className="w-full justify-start"
+            />
+          </div>
+        </article>
+      )}
+    />
   );
 }
 

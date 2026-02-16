@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PlaylistStatus, PlaylistVisibility, Prisma } from "@prisma/client";
+import { PlaylistStatus, PlaylistVisibility, Prisma, UserRole } from "@prisma/client";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { getRouteUser } from "@/lib/account-auth/route-guards";
+import { canRoleManageAnyPlaylists } from "@/lib/playlists/service";
 
-function canManageAdminModules(role: "ADMIN" | "STAFF" | "CREATOR") {
-  return role === "ADMIN" || role === "STAFF";
+function canManageBulk(role: UserRole) {
+  return canRoleManageAnyPlaylists(role);
 }
 
 const schema = z
@@ -38,7 +39,7 @@ const schema = z
 
 export async function POST(req: NextRequest) {
   const user = await getRouteUser();
-  if (!user || !canManageAdminModules(user.role)) {
+  if (!user || !canManageBulk(user.role)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 

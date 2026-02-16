@@ -43,7 +43,7 @@ type UserRow = {
   id: string;
   email: string;
   name: string | null;
-  role: "ADMIN" | "STAFF" | "CREATOR";
+  role: "ADMIN" | "STAFF" | "CREATOR" | "CLIENT";
   status: "ACTIVE" | "INVITED" | "SUSPENDED";
   createdAtIso: string;
   lastLoginAtIso: string | null;
@@ -77,6 +77,7 @@ function formatDate(value: string | null) {
 function roleIconClass(role: UserRow["role"]) {
   if (role === "ADMIN") return "text-emerald-300";
   if (role === "STAFF") return "text-sky-300";
+  if (role === "CLIENT") return "text-amber-300";
   return "text-zinc-300";
 }
 
@@ -100,6 +101,11 @@ function RoleIcon({
       <Wrench className={`${size} ${roleIconClass(role)}`} aria-hidden="true" />
     );
   }
+  if (role === "CLIENT") {
+    return (
+      <Eye className={`${size} ${roleIconClass(role)}`} aria-hidden="true" />
+    );
+  }
   return (
     <UserRound
       className={`${size} ${roleIconClass(role)}`}
@@ -111,6 +117,7 @@ function RoleIcon({
 function roleLabel(role: UserRow["role"]) {
   if (role === "ADMIN") return "Admin";
   if (role === "STAFF") return "Staff";
+  if (role === "CLIENT") return "Client";
   return "Creator";
 }
 
@@ -130,7 +137,7 @@ export function UsersTableClient({
 }: UsersTableClientProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [actionType, setActionType] = useState<BulkActionType>("set_status");
-  const [role, setRole] = useState<UserRow["role"]>("CREATOR");
+  const [role, setRole] = useState<UserRow["role"]>("CLIENT");
   const [status, setStatus] = useState<UserRow["status"]>("ACTIVE");
   const [localQuery, setLocalQuery] = useState(filters.q);
   const [localRoleFilter, setLocalRoleFilter] = useState(filters.roleParam);
@@ -564,6 +571,7 @@ export function UsersTableClient({
                     { value: "ADMIN", label: "ADMIN" },
                     { value: "STAFF", label: "STAFF" },
                     { value: "CREATOR", label: "CREATOR" },
+                    { value: "CLIENT", label: "CLIENT" },
                   ]}
                 />
 
@@ -677,6 +685,7 @@ export function UsersTableClient({
                       { value: "ADMIN", label: "ADMIN" },
                       { value: "STAFF", label: "STAFF" },
                       { value: "CREATOR", label: "CREATOR" },
+                      { value: "CLIENT", label: "CLIENT" },
                     ]}
                   />
                 ) : actionType === "set_status" ? (

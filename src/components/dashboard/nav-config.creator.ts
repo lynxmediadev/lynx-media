@@ -1,6 +1,7 @@
 import {
   ClipboardList,
   Home,
+  Library,
   Music2,
   UserCircle2,
 } from "lucide-react";
@@ -38,6 +39,13 @@ export const creatorDashboardSections: DashboardSection[] = [
         label: "Tracks",
         href: "/creator/tracks",
         icon: Music2,
+        section: "workspace",
+      },
+      {
+        id: "creator-playlists",
+        label: "Playlists",
+        href: "/creator/playlists",
+        icon: Library,
         section: "workspace",
       },
       {

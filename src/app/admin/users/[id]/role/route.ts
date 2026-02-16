@@ -14,7 +14,14 @@ function safeReturnTo(value: string | null) {
 
 function parseRole(value: string): UserRole | null {
   const role = value.trim().toUpperCase();
-  if (role === "ADMIN" || role === "STAFF" || role === "CREATOR") return role;
+  if (
+    role === "ADMIN" ||
+    role === "STAFF" ||
+    role === "CREATOR" ||
+    role === "CLIENT"
+  ) {
+    return role;
+  }
   return null;
 }
 
@@ -79,4 +86,3 @@ export async function POST(req: NextRequest, context: RouteContext) {
     { status: 303 },
   );
 }
-

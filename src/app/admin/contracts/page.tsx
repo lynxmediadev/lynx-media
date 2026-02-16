@@ -2,7 +2,13 @@ import Link from "next/link";
 import { FileCheck2 } from "lucide-react";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
-import { AdminListHeader, AdminListShell, AdminStatusBadge, countActiveFilters } from "@/components/admin/list-kit";
+import {
+  AdminListButton,
+  AdminListHeader,
+  AdminListShell,
+  AdminStatusBadge,
+  countActiveFilters,
+} from "@/components/admin/list-kit";
 import { ContractsTableClient } from "@/components/admin/contracts/ContractsTableClient";
 
 export const dynamic = "force-dynamic";
@@ -13,12 +19,17 @@ function first(v?: string | string[]) {
   return Array.isArray(v) ? v[0] : v;
 }
 
-export default async function Page(props: { searchParams: Promise<SearchDict> }) {
+export default async function Page(props: {
+  searchParams: Promise<SearchDict>;
+}) {
   const sp = await props.searchParams;
   const q = (first(sp.q) ?? "").trim();
   const status = (first(sp.status) ?? "").trim().toUpperCase();
   const page = Math.max(1, Number.parseInt(first(sp.page) ?? "1", 10) || 1);
-  const per = Math.min(100, Math.max(10, Number.parseInt(first(sp.per) ?? "20", 10) || 20));
+  const per = Math.min(
+    100,
+    Math.max(10, Number.parseInt(first(sp.per) ?? "20", 10) || 20),
+  );
   const skip = (page - 1) * per;
 
   const whereAND: Prisma.ContractRecordWhereInput[] = [];
@@ -43,7 +54,9 @@ export default async function Page(props: { searchParams: Promise<SearchDict> })
     whereAND.push({ status });
   }
 
-  const where: Prisma.ContractRecordWhereInput = whereAND.length ? { AND: whereAND } : {};
+  const where: Prisma.ContractRecordWhereInput = whereAND.length
+    ? { AND: whereAND }
+    : {};
 
   const [rows, total] = await Promise.all([
     prisma.contractRecord.findMany({
@@ -85,32 +98,40 @@ export default async function Page(props: { searchParams: Promise<SearchDict> })
 
   return (
     <section>
-      <AdminListShell className="relative bg-muted/30 backdrop-blur">
+      <AdminListShell>
         <AdminListHeader
-          icon={<FileCheck2 className="h-4 w-4 text-muted-foreground" aria-hidden="true" />}
+          icon={
+            <FileCheck2
+              className="text-muted-foreground h-4 w-4"
+              aria-hidden="true"
+            />
+          }
           title="Contracts"
           subtitle="Seguimiento legal y comercial"
           count={
             <AdminStatusBadge>
-              Página {page} de {totalPages} · {total} contrato{total === 1 ? "" : "s"}
+              Página {page} de {totalPages} · {total} contrato
+              {total === 1 ? "" : "s"}
             </AdminStatusBadge>
           }
           actionSlot={
             <div className="flex items-center gap-2">
-              <Link
-                href={buildHref(Math.max(1, page - 1))}
-                className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/45"
-                aria-disabled={page <= 1}
-              >
-                ← Anterior
-              </Link>
-              <Link
-                href={buildHref(Math.min(totalPages, page + 1))}
-                className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/45"
-                aria-disabled={page >= totalPages}
-              >
-                Siguiente →
-              </Link>
+              <AdminListButton asChild size="pill" surface="background">
+                <Link
+                  href={buildHref(Math.max(1, page - 1))}
+                  aria-disabled={page <= 1}
+                >
+                  ← Anterior
+                </Link>
+              </AdminListButton>
+              <AdminListButton asChild size="pill" surface="background">
+                <Link
+                  href={buildHref(Math.min(totalPages, page + 1))}
+                  aria-disabled={page >= totalPages}
+                >
+                  Siguiente →
+                </Link>
+              </AdminListButton>
             </div>
           }
         />

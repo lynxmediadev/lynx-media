@@ -12,11 +12,17 @@ export async function POST(req: NextRequest) {
 
   const body = (await req.json().catch(() => ({}))) as {
     email?: string;
-    role?: "ADMIN" | "STAFF" | "CREATOR";
+    role?: "ADMIN" | "STAFF" | "CREATOR" | "CLIENT";
     expiresDays?: number;
   };
 
-  const role = body.role === "ADMIN" || body.role === "STAFF" || body.role === "CREATOR" ? body.role : "CREATOR";
+  const role =
+    body.role === "ADMIN" ||
+    body.role === "STAFF" ||
+    body.role === "CREATOR" ||
+    body.role === "CLIENT"
+      ? body.role
+      : "CREATOR";
   let invite;
   try {
     invite = await createInvite({

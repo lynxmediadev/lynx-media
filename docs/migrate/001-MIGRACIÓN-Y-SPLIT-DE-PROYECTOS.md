@@ -1,6 +1,6 @@
 # 001 · MIGRACIÓN Y SPLIT DE PROYECTOS (Lynx Media Landing + Plataforma)
 
-Estado: **Planificación cerrada + implementación inicial en curso (Fase 0/Fase 1)**  
+Estado: **Planificación cerrada + implementación avanzada. Landing casi lista V1 (pendiente cierre final y deploy).**  
 Ruta oficial: `docs/migrate/001-MIGRACIÓN-Y-SPLIT-DE-PROYECTOS.md`
 
 ---
@@ -157,34 +157,57 @@ Peras y manzanas: se prepara la mudanza sin botar la casa donde ya vives.
   - `packages/brand-tokens`
 - [x] `apps/landing` inicializada con shell Next (layout/page/globals).
 - [x] `package.json` raíz actualizado con `workspaces` y scripts `*:landing`.
+- [x] Baseline visual extraído a paquetes compartidos:
+  - `packages/brand-tokens/src/tokens.css`
+  - `packages/brand-ui/src/*` (panel + button + styles)
+- [x] `apps/landing` conectado a `@lynx/brand-tokens` y `@lynx/brand-ui`.
+- [x] Infra de datos Landing inicializada:
+  - `apps/landing/prisma/schema.prisma` con `ContactLead`
+  - scripts DB de Landing (`landing:db:*`)
+  - `apps/landing/.env.example` con `LANDING_DATABASE_URL`
+- [x] Fase 4 baseline implementada:
+  - `POST /api/contact` (JSON + form submit)
+  - validación + honeypot + rate-limit
+  - persistencia en `ContactLead`
+  - notificación en modo consola + proveedor Brevo opcional por env
+  - auto-reply opcional al usuario (feature flag por env)
+  - bridge `POST /api/contact-request` para compatibilidad con HomeSnap compartido
+- [x] Landing alineado con homepage de Platform:
+  - `HomeSnap` + `FrontendShell` reutilizados desde `src/`
+  - tema, header y estructura visual unificados
+- [x] Preparación Fase 5 (deploy separado):
+  - `scripts/landing-preflight.mjs`
+  - `docs/migrate/002-VERCEL-ENV-MATRIX.md`
+  - `docs/migrate/003-VERCEL-DEPLOY-RUNBOOK.md`
+  - plantillas `.env.production.example` para Landing/Platform
 
 ## Fase 2 · Extracción visual reutilizable
-- [ ] Mover colores, tipografía y spacing a `brand-tokens`.
-- [ ] Mover componentes UI neutros a `brand-ui`.
+- [x] Mover colores, tipografía y spacing a `brand-tokens` (baseline inicial).
+- [x] Mover componentes UI neutros a `brand-ui` (baseline inicial).
 - [ ] Verificar que Plataforma no cambie visualmente por accidente.
 
 Peras y manzanas: se comparte el uniforme, no el cerebro del negocio.
 
 ## Fase 3 · Infra y datos separados
-- [ ] Crear Supabase Landing.
-- [ ] Mantener Supabase Plataforma separado.
-- [ ] Definir esquema Landing mínimo:
-  - [ ] `ContactLead` (name, email, company?, message, source, status, createdAt).
+- [x] Crear Supabase Landing (`lynx-landing-dev`).
+- [x] Mantener Supabase Plataforma separado (separación explícita de env y schema Landing).
+- [x] Definir esquema Landing mínimo:
+  - [x] `ContactLead` (name, email, company?, message, source, status, createdAt).
 
 Peras y manzanas: si separas datos bien, los problemas de uno no contaminan al otro.
 
 ## Fase 4 · Contacto Landing
-- [ ] Implementar `POST /api/contact`.
-- [ ] Validación server + anti-spam + rate limit.
-- [ ] Persistencia en DB Landing.
-- [ ] Notificación por email.
+- [x] Implementar `POST /api/contact`.
+- [x] Validación server + anti-spam + rate limit.
+- [x] Persistencia en DB Landing.
+- [x] Notificación por email (console + Brevo configurable por env).
 
 Peras y manzanas: formulario útil = guardar + proteger + avisar.
 
 ## Fase 5 · Deploy separado
 - [ ] Crear proyecto Vercel para Landing.
 - [ ] Crear proyecto Vercel para Plataforma.
-- [ ] Configurar dominios y env vars por app.
+- [~] Configurar dominios y env vars por app (plantillas y runbook listos; falta ejecución en Vercel).
 
 Peras y manzanas: dos apps, dos paneles de control.
 

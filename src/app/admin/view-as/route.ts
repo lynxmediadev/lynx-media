@@ -18,7 +18,12 @@ function redirectUrl(req: NextRequest, path: string) {
 
 function resolveRole(raw: string): UserRole | null {
   const role = raw.trim().toUpperCase();
-  if (role === "ADMIN" || role === "STAFF" || role === "CREATOR") {
+  if (
+    role === "ADMIN" ||
+    role === "STAFF" ||
+    role === "CREATOR" ||
+    role === "CLIENT"
+  ) {
     return role;
   }
   return null;
@@ -26,6 +31,7 @@ function resolveRole(raw: string): UserRole | null {
 
 function destinationByRole(role: UserRole) {
   if (role === "CREATOR") return "/creator";
+  if (role === "CLIENT") return "/";
   return "/admin";
 }
 

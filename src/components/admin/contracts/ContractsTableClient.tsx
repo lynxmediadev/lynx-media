@@ -7,7 +7,6 @@ import {
   Ban,
   Check,
   Clock3,
-  Copy,
   Filter,
   FileCheck2,
   FilePenLine,
@@ -450,16 +449,11 @@ export function ContractsTableClient({
                       : "",
                   )}
                 >
-                  {filterCopyState === "copied" ? (
-                    <>
-                      <Copy className="h-3 w-3" />
-                      Copiado
-                    </>
-                  ) : filterCopyState === "error" ? (
-                    "Error"
-                  ) : (
-                    "Copiar filtro"
-                  )}
+                  {filterCopyState === "copied"
+                    ? "Copiado"
+                    : filterCopyState === "error"
+                      ? "Error"
+                      : "Copiar filtro"}
                 </AdminListButton>
               }
             >

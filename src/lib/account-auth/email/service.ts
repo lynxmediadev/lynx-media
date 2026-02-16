@@ -7,7 +7,7 @@ import { sendAuthEmail } from "@/lib/account-auth/email";
 export async function sendInviteEmail(input: {
   to: string;
   registerUrl: string;
-  role: "ADMIN" | "STAFF" | "CREATOR";
+  role: "ADMIN" | "STAFF" | "CREATOR" | "CLIENT";
   expiresAt: Date;
 }) {
   const template = buildInviteEmail({
@@ -78,4 +78,3 @@ export async function sendVerifyEmail(input: {
   });
   return result;
 }
-

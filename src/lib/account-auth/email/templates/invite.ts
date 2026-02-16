@@ -2,7 +2,7 @@ import { formatExpiry, shellTemplate } from "@/lib/account-auth/email/templates/
 
 type BuildInviteEmailInput = {
   registerUrl: string;
-  role: "ADMIN" | "STAFF" | "CREATOR";
+  role: "ADMIN" | "STAFF" | "CREATOR" | "CLIENT";
   expiresAt: Date;
 };
 
@@ -37,4 +37,3 @@ export function buildInviteEmail(input: BuildInviteEmailInput) {
 
   return { subject, html, text };
 }
-

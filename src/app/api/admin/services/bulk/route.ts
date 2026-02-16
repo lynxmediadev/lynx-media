@@ -4,7 +4,7 @@ import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { getRouteUser } from "@/lib/account-auth/route-guards";
 
-function canManageAdminModules(role: "ADMIN" | "STAFF" | "CREATOR") {
+function canManageAdminModules(role: string) {
   return role === "ADMIN" || role === "STAFF";
 }
 

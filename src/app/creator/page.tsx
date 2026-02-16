@@ -7,9 +7,10 @@ export default async function CreatorOverviewPage() {
   const user = await requireRole(["CREATOR"], { redirectTo: "/auth/login?next=/creator" });
   if (!user) return null;
 
-  const [tracksCount, requestsCount, lastTrackUpdate] = await Promise.all([
+  const [tracksCount, requestsCount, playlistsCount, lastTrackUpdate] = await Promise.all([
     prisma.track.count({ where: { ownerUserId: user.id } }),
     prisma.licensingRequest.count({ where: { ownerUserId: user.id } }),
+    prisma.playlist.count({ where: { ownerUserId: user.id } }),
     prisma.track.findFirst({
       where: { ownerUserId: user.id },
       orderBy: { updatedAt: "desc" },
@@ -38,6 +39,11 @@ export default async function CreatorOverviewPage() {
         </article>
 
         <article className="rounded-xl border border-border p-4">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Playlists</p>
+          <p className="mt-2 text-2xl font-semibold">{playlistsCount}</p>
+        </article>
+
+        <article className="rounded-xl border border-border p-4">
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Última actualización</p>
           <p className="mt-2 text-sm font-medium">
             {lastTrackUpdate?.updatedAt
@@ -53,6 +59,12 @@ export default async function CreatorOverviewPage() {
           className="rounded-md border border-border px-3 py-2 text-sm hover:bg-accent"
         >
           Ver tracks
+        </Link>
+        <Link
+          href="/creator/playlists"
+          className="rounded-md border border-border px-3 py-2 text-sm hover:bg-accent"
+        >
+          Ver playlists
         </Link>
         <Link
           href="/creator/requests"

@@ -8,25 +8,38 @@ type PlaylistDetailEditorProps = {
   item: {
     id: string;
     name: string;
+    publicId: string;
     slug: string;
     description: string | null;
     status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
     visibility: "PRIVATE" | "INTERNAL" | "PUBLIC";
+    embedEnabled: boolean;
+    isMainCatalog: boolean;
+    isAutoAllTracks: boolean;
     featured: boolean;
     sortOrder: number;
   };
+  allowMainCatalogToggle?: boolean;
 };
 
-export function PlaylistDetailEditor({ item }: PlaylistDetailEditorProps) {
+export function PlaylistDetailEditor({
+  item,
+  allowMainCatalogToggle = true,
+}: PlaylistDetailEditorProps) {
   const [name, setName] = useState(item.name);
   const [slug, setSlug] = useState(item.slug);
   const [description, setDescription] = useState(item.description ?? "");
   const [status, setStatus] = useState(item.status);
   const [visibility, setVisibility] = useState(item.visibility);
+  const [embedEnabled, setEmbedEnabled] = useState(item.embedEnabled);
+  const [isMainCatalog, setIsMainCatalog] = useState(item.isMainCatalog);
   const [featured, setFeatured] = useState(item.featured);
   const [sortOrder, setSortOrder] = useState(String(item.sortOrder));
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [error, setError] = useState<string>("");
+  const publicUrl = `/playlist/${item.publicId}`;
+  const embedCode = `<iframe src="${publicUrl}?embed=1" width="100%" height="720" style="border:0;" loading="lazy"></iframe>`;
 
   async function onSave() {
     setSaveState("saving");
@@ -43,6 +56,8 @@ export function PlaylistDetailEditor({ item }: PlaylistDetailEditorProps) {
           description: description.trim() ? description.trim() : null,
           status,
           visibility,
+          embedEnabled,
+          ...(allowMainCatalogToggle ? { isMainCatalog } : {}),
           featured,
           sortOrder: Number.isFinite(parsedSortOrder) ? parsedSortOrder : 0,
         }),
@@ -57,6 +72,16 @@ export function PlaylistDetailEditor({ item }: PlaylistDetailEditorProps) {
       setError(err instanceof Error ? err.message : "Error inesperado");
       setSaveState("error");
     }
+  }
+
+  async function onCopyUrl() {
+    try {
+      await navigator.clipboard.writeText(window.location.origin + publicUrl);
+      setCopyState("copied");
+    } catch {
+      setCopyState("error");
+    }
+    setTimeout(() => setCopyState("idle"), 1600);
   }
 
   return (
@@ -134,6 +159,32 @@ export function PlaylistDetailEditor({ item }: PlaylistDetailEditorProps) {
             Featured
           </label>
         </div>
+        <div className="space-y-1">
+          <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Embed</label>
+          <label className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-background px-3 text-sm">
+            <input
+              type="checkbox"
+              checked={embedEnabled}
+              onChange={(event) => setEmbedEnabled(event.target.checked)}
+              className="h-4 w-4 rounded border-border"
+            />
+            Habilitado
+          </label>
+        </div>
+        {allowMainCatalogToggle ? (
+          <div className="space-y-1">
+            <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Main catalog</label>
+            <label className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-background px-3 text-sm">
+              <input
+                type="checkbox"
+                checked={isMainCatalog}
+                onChange={(event) => setIsMainCatalog(event.target.checked)}
+                className="h-4 w-4 rounded border-border"
+              />
+              Principal
+            </label>
+          </div>
+        ) : null}
       </div>
 
       <div className="mt-3 space-y-1">
@@ -144,6 +195,26 @@ export function PlaylistDetailEditor({ item }: PlaylistDetailEditorProps) {
           rows={4}
           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
         />
+      </div>
+
+      <div className="mt-3 grid gap-2 md:grid-cols-2">
+        <div className="space-y-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">URL pública</p>
+          <div className="flex items-center gap-2">
+            <code className="block min-h-9 flex-1 rounded-md border border-border bg-background px-3 py-2 text-xs break-all">
+              {publicUrl}
+            </code>
+            <Button type="button" size="sm" variant="outline" onClick={() => void onCopyUrl()}>
+              {copyState === "copied" ? "Copiado" : copyState === "error" ? "Error" : "Copiar"}
+            </Button>
+          </div>
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Embed iframe</p>
+          <code className="block min-h-9 rounded-md border border-border bg-background px-3 py-2 text-[11px] break-all">
+            {embedCode}
+          </code>
+        </div>
       </div>
 
       <div className="mt-3 flex items-center justify-between gap-2">

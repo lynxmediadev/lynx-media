@@ -8,3 +8,10 @@ Estado actual:
 
 Objetivo:
 - Concentrar dominio de negocio: tracks, playlists, users, requests, contracts, etc.
+
+DB:
+- La plataforma mantiene su datasource actual (`DATABASE_URL`) en la raíz.
+- La landing usa schema/env independiente (`LANDING_DATABASE_URL`).
+
+Referencia de env de producción:
+- `apps/platform/.env.production.example`

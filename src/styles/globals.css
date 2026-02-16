@@ -294,6 +294,11 @@ body {
   background-color: rgb(244 63 94 / 0.12);
   color: rgb(251 113 133);
 }
+.admin-badge-info {
+  border-color: rgb(56 189 248 / 0.5);
+  background-color: rgb(56 189 248 / 0.16);
+  color: rgb(186 230 253);
+}
 .admin-badge-role-admin {
   border-color: rgb(16 185 129 / 0.4);
   background-color: rgb(16 185 129 / 0.12);
@@ -318,6 +323,9 @@ html.light .admin-badge-warning {
 }
 html.light .admin-badge-danger {
   color: rgb(153 27 27);
+}
+html.light .admin-badge-info {
+  color: rgb(3 105 161);
 }
 html.light .admin-badge-role-admin {
   color: rgb(6 95 70);

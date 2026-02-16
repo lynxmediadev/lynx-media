@@ -12,6 +12,7 @@ export {
 } from "./AdminStatusBadge";
 export { AdminListEmptyState } from "./AdminListEmptyState";
 export { AdminDataTable } from "./AdminDataTable";
+export { ListKitTableComposer } from "./ListKitTableComposer";
 export { AdminTableRowActions } from "./AdminTableRowActions";
 export type {
   AdminColumnAlign,

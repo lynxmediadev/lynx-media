@@ -7,5 +7,6 @@ Objetivo:
 - Compartir identidad visual entre Landing y Plataforma sin acoplar negocio.
 
 Estado:
-- Carpeta creada en Fase 1.
-- Extracción de tokens pendiente (Fase 2).
+- Baseline inicial creado en Fase 2:
+  - `src/tokens.css`
+  - variables de color, tipografía, radios y spacing.

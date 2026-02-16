@@ -73,6 +73,9 @@
   - Selección global, selectores de acción, acción aplicar/limpiar.
 - [x] `AdminDataTable<T>`
   - Tabla genérica por configuración de columnas.
+- [x] `ListKitTableComposer<T>`
+  - Orquesta el bloque completo reusable de listas: `FilterPanel` + `BulkPanel` + layout mobile/desktop + `AdminDataTable`.
+  - Evita duplicación estructural entre rutas y deja cada módulo enfocarse en su dominio (columnas, acciones y estados).
 - [x] `AdminTableRowActions`
   - Menú/acciones por fila (ver, editar, eliminar, etc.).
 - [x] `AdminStatusBadge` / `AdminRoleBadge`
@@ -218,6 +221,28 @@
 - [ ] Sin errores críticos en typecheck/lint + smoke manual completo.
 
 ---
+
+## Fase 8 · Composer de alto nivel (reducción de duplicación)
+- [x] Crear `ListKitTableComposer<T>` en `src/components/admin/list-kit/`.
+- [x] Exportar composer en `src/components/admin/list-kit/index.ts`.
+- [x] Migrar `PlaylistsTableClient` al composer.
+- [x] Migrar `TracksTableClient` al composer.
+- [ ] Migrar `UsersTableClient` al composer.
+- [ ] Migrar `Requests`, `Tickets`, `Sound Kits`, `Services` y `Contracts` al composer.
+
+### Criterio de cierre F8
+- [ ] Todas las listas List Kit usan el mismo armazón estructural (top toolbar + body responsive) sin duplicación de bloques.
+
+---
+
+## Nota de integración con plan 032 (playlist-as-catalog)
+
+- El módulo `playlists` del List Kit quedó como fuente de gestión para catálogo público.
+- Nuevos puntos relacionados que se validan junto a listas:
+  - `/playlist/[id]` (pública, con `?embed=1`)
+  - `/catalog` basado en playlist principal (`isMainCatalog`)
+  - compartidos por playlist (`PlaylistViewer`) desde detalle admin/creator
+- Cualquier ajuste visual de `playlists` debe validar también consistencia con estas rutas públicas.
 
 ## Fase 7 · Documentación y cierre
 - [x] Actualizar `docs/PROJECT_GENERAL_CONTEXT.md`:

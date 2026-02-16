@@ -10,8 +10,9 @@ function redirectUrl(req: NextRequest, path: string) {
   return url;
 }
 
-function postVerifyDestination(role: "ADMIN" | "STAFF" | "CREATOR") {
+function postVerifyDestination(role: "ADMIN" | "STAFF" | "CREATOR" | "CLIENT") {
   if (role === "CREATOR") return "/creator";
+  if (role === "CLIENT") return "/";
   return "/admin";
 }
 

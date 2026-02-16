@@ -6,36 +6,42 @@ const matrix = [
     admin: "Si",
     staff: "Si",
     creator: "No",
+    client: "No",
   },
   {
     permission: "Crear/editar tracks globales",
     admin: "Si",
     staff: "Si",
     creator: "No (solo propios en /creator)",
+    client: "No",
   },
   {
     permission: "Borrar tracks",
     admin: "Si",
     staff: "Si",
     creator: "Solo propios (v1 creator panel)",
+    client: "No",
   },
   {
     permission: "Ver requests globales",
     admin: "Si",
     staff: "Si",
     creator: "No",
+    client: "No",
   },
   {
     permission: "Ver requests de su material",
     admin: "Si",
     staff: "Si",
     creator: "Si (/creator/requests)",
+    client: "No",
   },
   {
     permission: "Gestionar usuarios/roles",
     admin: "Si",
     staff: "No",
     creator: "No",
+    client: "No",
   },
 ];
 
@@ -48,7 +54,7 @@ export default async function RoleMatrixPage() {
       <div>
         <h1 className="text-xl font-semibold">Matriz de atribuciones por rol</h1>
         <p className="text-sm text-muted-foreground">
-          Referencia v1 para validar permisos de ADMIN, STAFF y CREATOR.
+          Referencia v1 para validar permisos de ADMIN, STAFF, CREATOR y CLIENT.
         </p>
       </div>
 
@@ -60,6 +66,7 @@ export default async function RoleMatrixPage() {
               <th className="px-2.5 py-1.5 text-left font-semibold">ADMIN</th>
               <th className="px-2.5 py-1.5 text-left font-semibold">STAFF</th>
               <th className="px-2.5 py-1.5 text-left font-semibold">CREATOR</th>
+              <th className="px-2.5 py-1.5 text-left font-semibold">CLIENT</th>
             </tr>
           </thead>
           <tbody>
@@ -69,6 +76,7 @@ export default async function RoleMatrixPage() {
                 <td className="px-2.5 py-1.5 align-top">{row.admin}</td>
                 <td className="px-2.5 py-1.5 align-top">{row.staff}</td>
                 <td className="px-2.5 py-1.5 align-top">{row.creator}</td>
+                <td className="px-2.5 py-1.5 align-top">{row.client}</td>
               </tr>
             ))}
           </tbody>

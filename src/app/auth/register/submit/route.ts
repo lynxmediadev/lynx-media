@@ -8,6 +8,7 @@ import { consumeRateLimit } from "@/lib/account-auth/rate-limit";
 import { createUserSession } from "@/lib/account-auth/session";
 import { verifyTurnstile } from "@/lib/account-auth/turnstile";
 import { createEmailVerificationTokenForUser } from "@/lib/account-auth/verify-email";
+import { ensureDefaultAllTracksPlaylistForUser } from "@/lib/playlists/service";
 import { prisma } from "@/lib/prisma";
 
 function hashToken(rawToken: string) {
@@ -41,8 +42,9 @@ function redirectUrl(req: NextRequest, path: string) {
   return url;
 }
 
-function postRegisterDestination(role: "ADMIN" | "STAFF" | "CREATOR") {
+function postRegisterDestination(role: "ADMIN" | "STAFF" | "CREATOR" | "CLIENT") {
   if (role === "CREATOR") return "/creator/tracks";
+  if (role === "CLIENT") return "/";
   return "/admin/tracks";
 }
 
@@ -132,6 +134,12 @@ export async function POST(req: NextRequest) {
   await prisma.inviteToken.update({
     where: { id: invite.id },
     data: { usedAt: new Date() },
+  });
+
+  await ensureDefaultAllTracksPlaylistForUser({
+    userId: user.id,
+    role: user.role,
+    userName: name,
   });
 
   await createUserSession({
