@@ -118,6 +118,11 @@ export default function LandingHero() {
   }
 
   function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && activeInfo) {
+      setActiveInfo(null);
+      return;
+    }
+
     setOpen(nextOpen);
     if (!nextOpen) {
       setActiveInfo(null);
@@ -128,6 +133,15 @@ export default function LandingHero() {
       setSubmitMessage("");
     }
   }
+
+  useEffect(() => {
+    if (!activeInfo) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setActiveInfo(null);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [activeInfo]);
 
   async function handleAudioToggle() {
     const nextMuted = !isMuted;
@@ -267,11 +281,23 @@ export default function LandingHero() {
 
           <DialogContent
             className={[
-              "left-0 top-0 h-[100dvh] max-h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0",
+              "fixed left-0 top-0 h-[100dvh] max-h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0",
               "overflow-hidden rounded-none border-0 p-0",
               "sm:left-[50%] sm:top-[50%] sm:h-auto sm:max-h-[85vh] sm:w-full sm:max-w-3xl sm:-translate-x-1/2 sm:-translate-y-1/2",
               "sm:overflow-y-auto sm:rounded-2xl sm:border sm:p-6",
             ].join(" ")}
+            onInteractOutside={(event) => {
+              if (activeInfo) {
+                event.preventDefault();
+                setActiveInfo(null);
+              }
+            }}
+            onEscapeKeyDown={(event) => {
+              if (activeInfo) {
+                event.preventDefault();
+                setActiveInfo(null);
+              }
+            }}
           >
             <div className="flex h-full min-h-0 flex-col">
               <DialogHeader className="shrink-0 px-4 pt-[calc(env(safe-area-inset-top)+0.25rem)] sm:px-0 sm:pt-0">
@@ -518,7 +544,7 @@ export default function LandingHero() {
 
               {activeInfo ? (
                 <div
-                  className="fixed inset-0 z-[80] bg-background/85 px-4 backdrop-blur-sm"
+                  className="absolute inset-0 z-[70] bg-background/85 px-4 backdrop-blur-sm"
                   onClick={() => setActiveInfo(null)}
                 >
                   <div className="flex min-h-full items-center justify-center py-10">
