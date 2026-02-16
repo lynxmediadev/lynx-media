@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Mail, Volume1, Volume2, VolumeX } from "lucide-react";
+import { CalendarDays, Mail, Volume1, Volume2, VolumeX } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,8 +31,36 @@ function dbToLinear(db: number) {
   return Math.min(1, Math.max(0, Math.pow(10, db / 20)));
 }
 
+function FieldInfo({ text }: { text: string }) {
+  return (
+    <details className="relative inline-flex">
+      <summary
+        className={[
+          "inline-flex h-[18px] w-[18px] cursor-pointer list-none items-center justify-center rounded-full",
+          "border border-foreground/45 bg-background/65 text-[10px] font-bold text-foreground/90",
+          "transition-colors hover:border-foreground/70 hover:bg-background/85",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+          "[&::-webkit-details-marker]:hidden",
+        ].join(" ")}
+        aria-label="Ver ayuda"
+      >
+        i
+      </summary>
+      <div
+        className={[
+          "absolute left-0 top-full z-30 mt-2 w-[min(18rem,calc(100vw-3rem))] rounded-lg",
+          "border border-border/70 bg-popover/95 p-3 text-xs leading-relaxed text-popover-foreground shadow-xl backdrop-blur",
+        ].join(" ")}
+      >
+        {text}
+      </div>
+    </details>
+  );
+}
+
 export default function LandingHero() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const deadlineInputRef = useRef<HTMLInputElement | null>(null);
   const [isMuted, setIsMuted] = useState(true);
   const [volumeDb, setVolumeDb] = useState(DEFAULT_VOLUME_DB);
   const [open, setOpen] = useState(false);
@@ -140,6 +169,13 @@ export default function LandingHero() {
     }
   }
 
+  function openDeadlinePicker() {
+    const input = deadlineInputRef.current;
+    if (!input) return;
+    input.focus();
+    (input as HTMLInputElement & { showPicker?: () => void }).showPicker?.();
+  }
+
   return (
     <section className="landing-hero">
       <video
@@ -152,13 +188,12 @@ export default function LandingHero() {
         preload="metadata"
         aria-hidden="true"
       >
-        <source src="/vid/ARMADO.mp4" type="video/mp4" />
+        <source src="/vid/ARMADO_2.mp4" type="video/mp4" />
       </video>
       <div className="landing-hero-overlay" aria-hidden="true" />
       <div
         className={[
-          "fixed left-4 top-4 z-20 flex items-center gap-2",
-          "md:left-auto md:bottom-4 md:right-4 md:top-auto",
+          "landing-audio-controls fixed z-20 flex items-center gap-2",
         ].join(" ")}
       >
         <button
@@ -197,6 +232,21 @@ export default function LandingHero() {
         </button>
       </div>
 
+      <div
+        className={[
+          "landing-logo-badge fixed z-20 pointer-events-none select-none",
+        ].join(" ")}
+        aria-hidden="true"
+      >
+        <Image
+          src="/images/logo/lynx-logo.svg"
+          alt="Lynx Media"
+          width={1124}
+          height={328}
+          className="h-auto w-15 object-contain md:w-[60px] md:mb-5 mb-0"
+        />
+      </div>
+
       <div className="landing-hero-content">
         <h1 className="text-balance text-3xl font-semibold tracking-tight md:text-5xl">
           Creamos identidad sonora para tus proyectos audiovisuales.
@@ -216,16 +266,30 @@ export default function LandingHero() {
             </Button>
           </DialogTrigger>
 
-          <DialogContent className="max-h-[85vh] overflow-y-auto rounded-2xl sm:max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>Formulario de contacto</DialogTitle>
-              <DialogDescription>
-                Completa los datos para entender el alcance y el timing del
-                proyecto. Te respondemos con los proximos pasos.
-              </DialogDescription>
-            </DialogHeader>
+          <DialogContent
+            className={[
+              "left-0 top-0 h-[100dvh] max-h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0",
+              "overflow-hidden rounded-none border-0 p-0",
+              "sm:left-[50%] sm:top-[50%] sm:h-auto sm:max-h-[85vh] sm:w-full sm:max-w-3xl sm:-translate-x-1/2 sm:-translate-y-1/2",
+              "sm:overflow-y-auto sm:rounded-2xl sm:border sm:p-6",
+            ].join(" ")}
+          >
+            <div className="flex h-full min-h-0 flex-col">
+              <DialogHeader className="shrink-0 px-4 pt-[calc(env(safe-area-inset-top)+0.25rem)] sm:px-0 sm:pt-0">
+                <DialogTitle>Formulario de contacto</DialogTitle>
+                <DialogDescription>
+                  Completa los datos para entender el alcance y el timing del
+                  proyecto. Te respondemos con los proximos pasos.
+                </DialogDescription>
+              </DialogHeader>
 
-            <form className="grid gap-6" onSubmit={handleSubmit}>
+              <form
+                className={[
+                  "landing-form-scroll grid min-h-0 flex-1 content-start gap-6 overflow-y-auto overscroll-y-contain px-4",
+                  "pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4 sm:px-0 sm:pb-0 sm:pt-6",
+                ].join(" ")}
+                onSubmit={handleSubmit}
+              >
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="contact-name">Nombre</Label>
@@ -257,7 +321,10 @@ export default function LandingHero() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="grid gap-2">
-                  <Label htmlFor="contact-service">Tipo de servicio</Label>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="contact-service">Tipo de servicio</Label>
+                    <FieldInfo text="Selecciona el servicio principal que más se parezca a tu necesidad actual." />
+                  </div>
                   <Select value={serviceType} onValueChange={setServiceType}>
                     <SelectTrigger
                       id="contact-service"
@@ -289,22 +356,44 @@ export default function LandingHero() {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="contact-deadline">
-                    Plazo estimado de entrega
-                  </Label>
-                  <Input
-                    id="contact-deadline"
-                    name="deadline"
-                    type="date"
-                    value={deadline}
-                    onChange={(event) => setDeadline(event.target.value)}
-                    className="focus-visible:border-foreground focus-visible:ring-foreground/40"
-                  />
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="contact-deadline">
+                      Plazo estimado de entrega
+                    </Label>
+                    <FieldInfo text="Indica una fecha tentativa. Si no tienes fecha definida, puedes dejar este campo vacío." />
+                  </div>
+                  <div className="relative">
+                    <Input
+                      ref={deadlineInputRef}
+                      id="contact-deadline"
+                      name="deadline"
+                      type="date"
+                      value={deadline}
+                      onChange={(event) => setDeadline(event.target.value)}
+                      className="landing-date-input pr-11 focus-visible:border-foreground focus-visible:ring-foreground/40"
+                    />
+                    <button
+                      type="button"
+                      onClick={openDeadlinePicker}
+                      className={[
+                        "absolute right-1.5 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md",
+                        "text-muted-foreground transition-colors hover:text-foreground",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                      ].join(" ")}
+                      aria-label="Abrir calendario"
+                      title="Abrir calendario"
+                    >
+                      <CalendarDays className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="contact-details">Explicacion del proyecto</Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="contact-details">Explicacion del proyecto</Label>
+                  <FieldInfo text="Describe el objetivo, referencias, formato y entregables esperados. Mientras más contexto, mejor propuesta." />
+                </div>
                 <Textarea
                   id="contact-details"
                   name="details"
@@ -317,12 +406,15 @@ export default function LandingHero() {
 
               <div className="grid gap-3">
                 <div className="flex items-center justify-between text-sm">
-                  <Label
-                    htmlFor="contact-urgency"
-                    className="text-xs uppercase tracking-[0.2em]"
-                  >
-                    Urgencia
-                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Label
+                      htmlFor="contact-urgency"
+                      className="text-xs uppercase tracking-[0.2em]"
+                    >
+                      Urgencia
+                    </Label>
+                    <FieldInfo text="Marca qué tan ajustado está tu timing. Esto nos ayuda a priorizar y planificar tiempos de respuesta." />
+                  </div>
                   <span className="text-muted-foreground">
                     {urgencyLabels[urgencyValue - 1]}
                   </span>
@@ -377,7 +469,8 @@ export default function LandingHero() {
                   {submitMessage}
                 </p>
               </div>
-            </form>
+              </form>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
