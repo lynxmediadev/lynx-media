@@ -1,7 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { CalendarDays, Info, Mail, Volume1, Volume2, VolumeX } from "lucide-react";
+import {
+  CalendarDays,
+  Check,
+  ChevronDown,
+  Disc3,
+  Film,
+  Info,
+  Mail,
+  MicVocal,
+  Music2,
+  SlidersHorizontal,
+  Volume1,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,9 +40,55 @@ import { Textarea } from "@/components/ui/textarea";
 
 const VOLUME_PRESETS_DB = [-20, -12, -5, 0] as const;
 const DEFAULT_VOLUME_DB = -5;
+const SERVICE_OPTIONS = [
+  {
+    value: "music-original",
+    label: "Música Original para Audiovisual",
+    icon: Music2,
+  },
+  {
+    value: "music-production",
+    label: "Producción Musical (Mix & Master)",
+    icon: SlidersHorizontal,
+  },
+  {
+    value: "post-audio",
+    label: "Diseño Sonoro Audiovisual",
+    icon: Film,
+  },
+  {
+    value: "location-sound",
+    label: "Sonido Directo y Registro en Terreno",
+    icon: MicVocal,
+  },
+  {
+    value: "beat",
+    label: "Beat Personalizado para Producción Musical",
+    icon: Disc3,
+  },
+  {
+    value: "live-sound",
+    label: "Amplificación y Soporte Técnico",
+    icon: Volume2,
+  },
+] as const;
 
 function dbToLinear(db: number) {
   return Math.min(1, Math.max(0, Math.pow(10, db / 20)));
+}
+
+function getTodayIsoDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatDateForLabel(value: string) {
+  const [year, month, day] = value.split("-");
+  if (!year || !month || !day) return value;
+  return `${day}/${month}/${year}`;
 }
 
 function FieldInfo({ onOpen }: { onOpen: () => void }) {
@@ -51,7 +111,8 @@ function FieldInfo({ onOpen }: { onOpen: () => void }) {
 
 export default function LandingHero() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const deadlineInputRef = useRef<HTMLInputElement | null>(null);
+  const deadlineDesktopInputRef = useRef<HTMLInputElement | null>(null);
+  const deadlineMobileInputRef = useRef<HTMLInputElement | null>(null);
   const [isMuted, setIsMuted] = useState(true);
   const [volumeDb, setVolumeDb] = useState(DEFAULT_VOLUME_DB);
   const [open, setOpen] = useState(false);
@@ -69,6 +130,7 @@ export default function LandingHero() {
     title: string;
     text: string;
   } | null>(null);
+  const [mobileServicePickerOpen, setMobileServicePickerOpen] = useState(false);
   const urgencyValue = urgency[0] ?? 3;
   const urgencyLabels = [
     "Muy flexible",
@@ -77,6 +139,8 @@ export default function LandingHero() {
     "Urgente",
     "Muy urgente",
   ];
+  const minDeadlineDate = getTodayIsoDate();
+  const selectedServiceOption = SERVICE_OPTIONS.find((option) => option.value === serviceType);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -122,10 +186,15 @@ export default function LandingHero() {
       setActiveInfo(null);
       return;
     }
+    if (!nextOpen && mobileServicePickerOpen) {
+      setMobileServicePickerOpen(false);
+      return;
+    }
 
     setOpen(nextOpen);
     if (!nextOpen) {
       setActiveInfo(null);
+      setMobileServicePickerOpen(false);
       return;
     }
     if (nextOpen) {
@@ -135,13 +204,18 @@ export default function LandingHero() {
   }
 
   useEffect(() => {
-    if (!activeInfo) return;
+    if (!activeInfo && !mobileServicePickerOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setActiveInfo(null);
+      if (event.key !== "Escape") return;
+      if (activeInfo) {
+        setActiveInfo(null);
+        return;
+      }
+      if (mobileServicePickerOpen) setMobileServicePickerOpen(false);
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [activeInfo]);
+  }, [activeInfo, mobileServicePickerOpen]);
 
   async function handleAudioToggle() {
     const nextMuted = !isMuted;
@@ -182,11 +256,18 @@ export default function LandingHero() {
     }
   }
 
-  function openDeadlinePicker() {
-    const input = deadlineInputRef.current;
+  function openDeadlinePicker(target: "desktop" | "mobile") {
+    const input = target === "mobile"
+      ? deadlineMobileInputRef.current
+      : deadlineDesktopInputRef.current;
     if (!input) return;
     input.focus();
-    (input as HTMLInputElement & { showPicker?: () => void }).showPicker?.();
+    const pickerInput = input as HTMLInputElement & { showPicker?: () => void };
+    if (pickerInput.showPicker) {
+      pickerInput.showPicker();
+      return;
+    }
+    input.click();
   }
 
   return (
@@ -287,15 +368,23 @@ export default function LandingHero() {
               "sm:overflow-y-auto sm:rounded-2xl sm:border sm:p-6",
             ].join(" ")}
             onInteractOutside={(event) => {
-              if (activeInfo) {
+              if (activeInfo || mobileServicePickerOpen) {
                 event.preventDefault();
-                setActiveInfo(null);
+                if (activeInfo) {
+                  setActiveInfo(null);
+                  return;
+                }
+                setMobileServicePickerOpen(false);
               }
             }}
             onEscapeKeyDown={(event) => {
-              if (activeInfo) {
+              if (activeInfo || mobileServicePickerOpen) {
                 event.preventDefault();
-                setActiveInfo(null);
+                if (activeInfo) {
+                  setActiveInfo(null);
+                  return;
+                }
+                setMobileServicePickerOpen(false);
               }
             }}
           >
@@ -366,34 +455,50 @@ export default function LandingHero() {
                   <p className="text-xs text-muted-foreground">
                     Elige la categoría que mejor describa tu requerimiento.
                   </p>
-                  <Select value={serviceType} onValueChange={setServiceType}>
-                    <SelectTrigger
-                      id="contact-service"
-                      className="w-full focus-visible:border-foreground focus-visible:ring-foreground/40"
+                  <div className="hidden sm:block">
+                    <Select value={serviceType} onValueChange={setServiceType}>
+                      <SelectTrigger
+                        id="contact-service"
+                        className="w-full focus-visible:border-foreground focus-visible:ring-foreground/40"
+                      >
+                        <SelectValue placeholder="Selecciona un servicio" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SERVICE_OPTIONS.map(({ value, label, icon: Icon }) => (
+                          <SelectItem key={value} value={value} textValue={label}>
+                            <span className="inline-flex items-center gap-2">
+                              <Icon className="h-4 w-4" />
+                              <span>{label}</span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="sm:hidden">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setActiveInfo(null);
+                        setMobileServicePickerOpen(true);
+                      }}
+                      className="h-9 w-full justify-between border-input bg-transparent px-3 text-sm font-normal text-foreground hover:bg-secondary/80"
                     >
-                      <SelectValue placeholder="Selecciona un servicio" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="music-original">
-                        Musica original para audiovisual
-                      </SelectItem>
-                      <SelectItem value="music-production">
-                        Produccion, mix & master musical
-                      </SelectItem>
-                      <SelectItem value="post-audio">
-                        Post-produccion de audio audiovisual
-                      </SelectItem>
-                      <SelectItem value="location-sound">
-                        Sonido directo y registro en terreno
-                      </SelectItem>
-                      <SelectItem value="beat">
-                        Beat personalizado para producir musica
-                      </SelectItem>
-                      <SelectItem value="live-sound">
-                        Amplificacion y soporte tecnico
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                      <span className="inline-flex items-center gap-2 truncate">
+                        {selectedServiceOption ? (
+                          <selectedServiceOption.icon className="h-4 w-4 shrink-0" />
+                        ) : (
+                          <SlidersHorizontal className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        )}
+                        <span className={selectedServiceOption ? "truncate" : "truncate text-muted-foreground"}>
+                          {selectedServiceOption?.label ?? "Selecciona un servicio"}
+                        </span>
+                      </span>
+                      <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="grid gap-2">
@@ -413,29 +518,71 @@ export default function LandingHero() {
                   <p className="text-xs text-muted-foreground">
                     Fecha tentativa para organizar tiempos y prioridad.
                   </p>
-                  <div className="relative">
-                    <Input
-                      ref={deadlineInputRef}
-                      id="contact-deadline"
-                      name="deadline"
-                      type="date"
-                      value={deadline}
-                      onChange={(event) => setDeadline(event.target.value)}
-                      className="landing-date-input pr-12 focus-visible:border-foreground focus-visible:ring-foreground/40"
-                    />
-                    <button
-                      type="button"
-                      onClick={openDeadlinePicker}
-                      className={[
-                        "absolute right-3 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md",
-                        "text-muted-foreground transition-colors hover:text-foreground",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                      ].join(" ")}
-                      aria-label="Abrir calendario"
-                      title="Abrir calendario"
-                    >
-                      <CalendarDays className="h-4 w-4" />
-                    </button>
+                  <div className="grid gap-2">
+                    <div className="hidden sm:grid sm:grid-cols-2 sm:gap-2">
+                      <div className="relative">
+                        <Input
+                          ref={deadlineDesktopInputRef}
+                          id="contact-deadline"
+                          name="deadline"
+                          type="date"
+                          min={minDeadlineDate}
+                          value={deadline}
+                          onChange={(event) => setDeadline(event.target.value)}
+                          className="landing-date-input pr-10 focus-visible:border-foreground focus-visible:ring-foreground/40"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => openDeadlinePicker("desktop")}
+                          className={[
+                            "absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md",
+                            "text-muted-foreground transition-colors hover:text-foreground",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                          ].join(" ")}
+                          aria-label="Abrir calendario"
+                          title="Abrir calendario"
+                        >
+                          <CalendarDays className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => openDeadlinePicker("desktop")}
+                        className="h-9 w-full border-border bg-background text-foreground hover:bg-secondary hover:text-foreground"
+                      >
+                        Ver calendario
+                      </Button>
+                    </div>
+
+                    <div className="sm:hidden">
+                      <div className="relative">
+                        <Input
+                          ref={deadlineMobileInputRef}
+                          id="contact-deadline-mobile"
+                          type="date"
+                          min={minDeadlineDate}
+                          value={deadline}
+                          onChange={(event) => setDeadline(event.target.value)}
+                          className="landing-date-input absolute inset-0 z-10 h-9 w-full cursor-pointer opacity-0"
+                          aria-label="Elegir fecha de entrega"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => openDeadlinePicker("mobile")}
+                          className="h-9 w-full border-border bg-background text-foreground hover:bg-secondary hover:text-foreground"
+                        >
+                          <CalendarDays className="h-4 w-4" />
+                          Elegir fecha
+                        </Button>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {deadline
+                          ? `Fecha seleccionada: ${formatDateForLabel(deadline)}`
+                          : "Sin fecha seleccionada"}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -541,6 +688,69 @@ export default function LandingHero() {
                 </p>
               </div>
               </form>
+
+              {mobileServicePickerOpen ? (
+                <div
+                  className="absolute inset-0 z-[65] bg-background/85 px-4 backdrop-blur-sm sm:hidden"
+                  onClick={() => setMobileServicePickerOpen(false)}
+                >
+                  <div className="flex min-h-full items-center justify-center py-8">
+                    <div
+                      role="dialog"
+                      aria-modal="true"
+                      aria-label="Selecciona tipo de servicio"
+                      className="w-full max-w-sm rounded-xl border border-border/90 bg-background p-4 text-left shadow-2xl"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <h4 className="text-sm font-semibold text-foreground">Tipo de servicio</h4>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                        Elige la opción que mejor represente tu proyecto.
+                      </p>
+                      <div className="mt-4 grid gap-2">
+                        {SERVICE_OPTIONS.map(({ value, label, icon: Icon }) => {
+                          const isSelected = serviceType === value;
+                          return (
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() => {
+                                setServiceType(value);
+                                setMobileServicePickerOpen(false);
+                              }}
+                              className={[
+                                "inline-flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition-colors",
+                                isSelected
+                                  ? "border-foreground/60 bg-secondary text-foreground"
+                                  : "border-border bg-background text-foreground hover:bg-secondary/70",
+                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                              ].join(" ")}
+                            >
+                              <span className="inline-flex min-w-0 items-center gap-2">
+                                <Icon className="h-4 w-4 shrink-0" />
+                                <span className="truncate">{label}</span>
+                              </span>
+                              {isSelected ? <Check className="h-4 w-4 shrink-0" /> : null}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="mt-4 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setMobileServicePickerOpen(false)}
+                          className={[
+                            "inline-flex items-center rounded-md border border-border px-2.5 py-1.5 text-[11px] font-medium",
+                            "bg-secondary text-foreground transition-colors hover:bg-secondary/80",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                          ].join(" ")}
+                        >
+                          Cerrar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
 
               {activeInfo ? (
                 <div
