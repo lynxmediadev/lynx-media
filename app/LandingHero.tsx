@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 import {
   CalendarDays,
   Check,
@@ -23,6 +24,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -167,6 +169,7 @@ export default function LandingHero() {
   } | null>(null);
   const [mobileServicePickerOpen, setMobileServicePickerOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [overlayPortalRoot, setOverlayPortalRoot] = useState<HTMLElement | null>(null);
   const [calendarMonth, setCalendarMonth] = useState<Date>(startOfMonth(todayDate));
   const urgencyValue = urgency[0] ?? 3;
   const urgencyLabels = [
@@ -261,6 +264,81 @@ export default function LandingHero() {
       setSubmitMessage("");
     }
   }
+
+  function closeTransientOverlays() {
+    setActiveInfo(null);
+    setMobileServicePickerOpen(false);
+    setCalendarOpen(false);
+  }
+
+  function isFromTransientOverlay(target: EventTarget | null) {
+    if (!(target instanceof Element)) return false;
+    return Boolean(target.closest("[data-landing-transient-overlay='true']"));
+  }
+
+  useEffect(() => {
+    if (!open || !isMobileViewport()) return;
+    const root = document.documentElement;
+    const body = document.body;
+    root.classList.add("landing-no-overscroll");
+    body.classList.add("landing-no-overscroll");
+    return () => {
+      root.classList.remove("landing-no-overscroll");
+      body.classList.remove("landing-no-overscroll");
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !isMobileViewport()) return;
+    const dialogNode = document.querySelector<HTMLElement>("[data-landing-contact-dialog='true']");
+    if (!dialogNode) return;
+
+    if (hasTransientOverlayOpen) {
+      dialogNode.classList.add("landing-dialog-lock-scroll");
+      return () => {
+        dialogNode.classList.remove("landing-dialog-lock-scroll");
+      };
+    }
+    dialogNode.classList.remove("landing-dialog-lock-scroll");
+
+    let touchStartY = 0;
+    const onTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1) return;
+      touchStartY = event.touches[0]?.clientY ?? 0;
+    };
+
+    const onTouchMove = (event: TouchEvent) => {
+      if (event.touches.length !== 1) return;
+
+      const currentY = event.touches[0]?.clientY ?? 0;
+      const deltaY = currentY - touchStartY;
+      const maxScrollTop = dialogNode.scrollHeight - dialogNode.clientHeight;
+
+      if (maxScrollTop <= 0) {
+        event.preventDefault();
+        return;
+      }
+
+      const isAtTop = dialogNode.scrollTop <= 0;
+      const isAtBottom = dialogNode.scrollTop >= maxScrollTop - 1;
+      if ((isAtTop && deltaY > 0) || (isAtBottom && deltaY < 0)) {
+        event.preventDefault();
+      }
+    };
+
+    dialogNode.addEventListener("touchstart", onTouchStart, { passive: true });
+    dialogNode.addEventListener("touchmove", onTouchMove, { passive: false });
+    return () => {
+      dialogNode.classList.remove("landing-dialog-lock-scroll");
+      dialogNode.removeEventListener("touchstart", onTouchStart);
+      dialogNode.removeEventListener("touchmove", onTouchMove);
+    };
+  }, [open, hasTransientOverlayOpen]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    setOverlayPortalRoot(document.body);
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -513,7 +591,7 @@ export default function LandingHero() {
         </p>
 
         <div className="relative mx-auto mt-8 w-full sm:w-auto">
-          <Dialog open={open} onOpenChange={handleOpenChange}>
+          <Dialog open={open} onOpenChange={handleOpenChange} modal={false}>
             <DialogTrigger asChild>
               <Button
                 size="lg"
@@ -525,25 +603,41 @@ export default function LandingHero() {
             </DialogTrigger>
 
             <DialogContent
+              data-landing-contact-dialog="true"
               className={[
-                "fixed left-0 top-0 h-[100dvh] max-h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0",
-                "overflow-hidden rounded-none border-0 p-0",
-                "sm:left-[50%] sm:top-[50%] sm:h-auto sm:max-h-[85vh] sm:w-full sm:max-w-3xl sm:-translate-x-1/2 sm:-translate-y-1/2",
-                "sm:overflow-y-auto sm:rounded-2xl sm:border sm:p-6",
+                "landing-dialog-scroll !left-0 !top-0 !h-[100svh] !max-h-[100svh] !w-screen !max-w-none !translate-x-0 !translate-y-0",
+                "!transform-none overflow-y-auto !rounded-none !border-0 !p-0 data-[state=open]:!animate-none data-[state=closed]:!animate-none",
+                "[&>[data-slot='dialog-close']]:hidden sm:[&>[data-slot='dialog-close']]:inline-flex",
+                "sm:!left-[50%] sm:!top-[50%] sm:!h-auto sm:!max-h-[85vh] sm:!w-full sm:!max-w-3xl sm:!-translate-x-1/2 sm:!-translate-y-1/2",
+                "sm:overflow-y-auto sm:!rounded-2xl sm:!border sm:!p-6",
               ].join(" ")}
-              onInteractOutside={(event) => {
-                if (activeInfo || mobileServicePickerOpen || calendarOpen) {
+              onPointerDownOutside={(event) => {
+                if (isFromTransientOverlay(event.detail.originalEvent.target)) {
                   event.preventDefault();
-                  if (activeInfo) {
-                    setActiveInfo(null);
-                    return;
-                  }
-                  if (mobileServicePickerOpen) {
-                    setMobileServicePickerOpen(false);
-                    return;
-                  }
-                  setCalendarOpen(false);
+                  return;
                 }
+                if (!hasTransientOverlayOpen) return;
+                event.preventDefault();
+                closeTransientOverlays();
+              }}
+              onFocusOutside={(event) => {
+                if (isFromTransientOverlay(event.target)) {
+                  event.preventDefault();
+                  return;
+                }
+                if (!hasTransientOverlayOpen) return;
+                event.preventDefault();
+                closeTransientOverlays();
+              }}
+              onInteractOutside={(event) => {
+                if (isFromTransientOverlay(event.target)) {
+                  event.preventDefault();
+                  return;
+                }
+                if (!hasTransientOverlayOpen) return;
+                // Si hay un popup activo, cerrar solo ese popup y no el formulario base.
+                event.preventDefault();
+                closeTransientOverlays();
               }}
               onEscapeKeyDown={(event) => {
                 if (activeInfo || mobileServicePickerOpen || calendarOpen) {
@@ -560,25 +654,60 @@ export default function LandingHero() {
                 }
               }}
             >
-            <div className="flex h-full min-h-0 flex-col">
-              <DialogHeader className="shrink-0 px-4 pt-[calc(env(safe-area-inset-top)+0.25rem)] sm:px-0 sm:pt-0">
-                <DialogTitle>Formulario de contacto</DialogTitle>
-                <DialogDescription>
-                  Completa los datos para entender el alcance y el timing del
-                  proyecto. Te respondemos con los proximos pasos.
-                </DialogDescription>
+            <div className="flex flex-col">
+              <DialogHeader className="px-4 pt-[calc(env(safe-area-inset-top)+0.9rem)] text-left sm:px-0 sm:pt-0">
+                <div className="mb-3 flex justify-center">
+                  <Image
+                    src="/images/logo/lynx-logo.svg"
+                    alt="Lynx Media"
+                    width={1124}
+                    height={328}
+                    className="h-auto w-15 object-contain md:w-[60px]"
+                  />
+                </div>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <DialogTitle className="inline-flex items-center gap-2 uppercase">
+                      <Mail
+                        className="h-[18px] w-[18px] text-muted-foreground"
+                        strokeWidth={2.35}
+                        aria-hidden="true"
+                      />
+                      <span>Formulario de contacto</span>
+                    </DialogTitle>
+                    <DialogDescription className="mt-0 pt-0">
+                      Completa los datos para entender el alcance y el timing del
+                      proyecto. Te respondemos con los proximos pasos.
+                    </DialogDescription>
+                  </div>
+                  <DialogClose asChild>
+                    <button
+                      type="button"
+                      className={[
+                        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors sm:hidden",
+                        "hover:bg-secondary hover:text-foreground",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                      ].join(" ")}
+                      aria-label="Cerrar formulario"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </DialogClose>
+                </div>
               </DialogHeader>
 
               <form
                 className={[
-                  "landing-form-scroll grid min-h-0 flex-1 content-start gap-6 overflow-y-auto overscroll-y-contain px-4",
+                  "landing-form-scroll grid content-start gap-6 px-4",
                   "pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4 sm:px-0 sm:pb-0 sm:pt-6",
                 ].join(" ")}
                 onSubmit={handleSubmit}
               >
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="grid gap-2">
-                  <Label htmlFor="contact-name">Nombre</Label>
+                <div className="landing-form-section grid gap-1.5">
+                  <Label htmlFor="contact-name" className="uppercase">
+                    Nombre
+                  </Label>
                   <p className="text-xs text-muted-foreground">
                     Nombre de contacto para dirigir la propuesta.
                   </p>
@@ -593,8 +722,10 @@ export default function LandingHero() {
                     required
                   />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="contact-email">Email</Label>
+                <div className="landing-form-section grid gap-1.5">
+                  <Label htmlFor="contact-email" className="uppercase">
+                    Email
+                  </Label>
                   <p className="text-xs text-muted-foreground">
                     Correo donde te enviaremos respuesta y seguimiento.
                   </p>
@@ -612,9 +743,11 @@ export default function LandingHero() {
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="grid gap-2">
+                <div className="landing-form-section grid gap-1.5">
                   <div className="flex items-center gap-[3px] sm:gap-2">
-                    <Label htmlFor="contact-service">Tipo de servicio</Label>
+                    <Label htmlFor="contact-service" className="uppercase">
+                      Tipo de servicio
+                    </Label>
                     <FieldInfo
                       onOpen={() =>
                         setActiveInfo({
@@ -674,9 +807,9 @@ export default function LandingHero() {
                   </div>
                 </div>
 
-                <div className="grid gap-2">
+                <div className="landing-form-section grid gap-1.5">
                   <div className="flex items-center gap-[3px] sm:gap-2">
-                    <Label htmlFor="contact-deadline">
+                    <Label htmlFor="contact-deadline" className="uppercase">
                       Plazo estimado de entrega
                     </Label>
                     <FieldInfo
@@ -718,9 +851,11 @@ export default function LandingHero() {
                 </div>
               </div>
 
-              <div className="grid gap-2">
+              <div className="landing-form-section grid gap-1.5">
                 <div className="flex items-center gap-[3px] sm:gap-2">
-                  <Label htmlFor="contact-details">Explicacion del proyecto</Label>
+                  <Label htmlFor="contact-details" className="uppercase">
+                    Explicacion del proyecto
+                  </Label>
                   <FieldInfo
                     onOpen={() =>
                       setActiveInfo({
@@ -739,11 +874,11 @@ export default function LandingHero() {
                   placeholder="Brief, referencias, duracion, formato, entregables, etc."
                   value={details}
                   onChange={(event) => setDetails(event.target.value)}
-                  className="min-h-[140px] focus-visible:border-foreground focus-visible:ring-foreground/40"
+                  className="landing-textarea-fixed h-[160px] min-h-[160px] max-h-[160px] resize-none overflow-y-auto [field-sizing:fixed] focus-visible:border-foreground focus-visible:ring-foreground/40"
                 />
               </div>
 
-              <div className="grid gap-3">
+              <div className="landing-form-section grid gap-2">
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-[3px] sm:gap-2">
                     <Label
@@ -818,17 +953,24 @@ export default function LandingHero() {
               </div>
               </form>
 
-              {calendarOpen ? (
-                <div
-                  className="absolute inset-0 z-[66] bg-background/85 px-4 backdrop-blur-sm"
-                  onClick={closeDeadlineCalendar}
-                >
-                  <div className="flex min-h-full items-center justify-center py-8">
+            </div>
+            </DialogContent>
+          </Dialog>
+
+          {overlayPortalRoot
+            ? createPortal(
+              <>
+                {calendarOpen ? (
+                  <div
+                    data-landing-transient-overlay="true"
+                    className="pointer-events-auto fixed inset-0 z-[66] flex items-center justify-center bg-background/85 px-4 py-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur-sm"
+                    onClick={closeDeadlineCalendar}
+                  >
                     <div
                       role="dialog"
                       aria-modal="true"
                       aria-label="Seleccionar fecha de entrega"
-                      className="w-full max-w-sm rounded-xl border border-border/90 bg-background p-4 text-left shadow-2xl"
+                      className="max-h-[86dvh] w-full max-w-sm overflow-y-auto rounded-xl border border-border/90 bg-background p-4 text-left shadow-2xl"
                       onClick={(event) => event.stopPropagation()}
                     >
                       <div className="flex items-center justify-between gap-2">
@@ -943,27 +1085,26 @@ export default function LandingHero() {
                       </div>
                     </div>
                   </div>
-                </div>
-              ) : null}
+                ) : null}
 
-              {mobileServicePickerOpen ? (
-                <div
-                  className="absolute inset-0 z-[65] bg-background/85 px-4 backdrop-blur-sm sm:hidden"
-                  onClick={() => setMobileServicePickerOpen(false)}
-                >
-                  <div className="flex min-h-full items-center justify-center py-8">
+                {mobileServicePickerOpen ? (
+                  <div
+                    data-landing-transient-overlay="true"
+                    className="pointer-events-auto fixed inset-0 z-[65] flex items-center justify-center bg-background/85 px-4 py-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur-sm sm:hidden"
+                    onClick={() => setMobileServicePickerOpen(false)}
+                  >
                     <div
                       role="dialog"
                       aria-modal="true"
                       aria-label="Selecciona tipo de servicio"
-                      className="w-full max-w-sm rounded-xl border border-border/90 bg-background p-4 text-left shadow-2xl"
+                      className="flex max-h-[86dvh] w-full max-w-sm flex-col rounded-xl border border-border/90 bg-background p-4 text-left shadow-2xl"
                       onClick={(event) => event.stopPropagation()}
                     >
                       <h4 className="text-sm font-semibold text-foreground">Tipo de servicio</h4>
                       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                         Elige la opción que mejor represente tu proyecto.
                       </p>
-                      <div className="mt-4 grid gap-2">
+                      <div className="mt-4 grid gap-2 overflow-y-auto pr-1">
                         {SERVICE_OPTIONS.map(({ value, label, icon: Icon }) => {
                           const isSelected = serviceType === value;
                           return (
@@ -1006,15 +1147,14 @@ export default function LandingHero() {
                       </div>
                     </div>
                   </div>
-                </div>
-              ) : null}
+                ) : null}
 
-              {activeInfo ? (
-                <div
-                  className="absolute inset-0 z-[70] bg-background/85 px-4 backdrop-blur-sm"
-                  onClick={() => setActiveInfo(null)}
-                >
-                  <div className="flex min-h-full items-center justify-center py-10">
+                {activeInfo ? (
+                  <div
+                    data-landing-transient-overlay="true"
+                    className="pointer-events-auto fixed inset-0 z-[70] flex items-center justify-center bg-background/85 px-4 py-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur-sm"
+                    onClick={() => setActiveInfo(null)}
+                  >
                     <div
                       role="dialog"
                       aria-modal="true"
@@ -1044,11 +1184,11 @@ export default function LandingHero() {
                       </div>
                     </div>
                   </div>
-                </div>
-              ) : null}
-            </div>
-            </DialogContent>
-          </Dialog>
+                ) : null}
+              </>,
+              overlayPortalRoot,
+            )
+            : null}
 
           {shouldShowSuccessToast ? (
             <div
