@@ -141,6 +141,9 @@ function FieldInfo({ onOpen }: { onOpen: () => void }) {
 
 export default function LandingHero() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const mobileDialogHistoryEntryActiveRef = useRef(false);
+  const mobileOverlayHistoryEntryActiveRef = useRef(false);
+  const suppressNextPopStateRef = useRef(false);
   const todayDate = useMemo(() => startOfDay(new Date()), []);
   const [isMuted, setIsMuted] = useState(true);
   const [volumeDb, setVolumeDb] = useState(DEFAULT_VOLUME_DB);
@@ -173,6 +176,12 @@ export default function LandingHero() {
   const selectedServiceOption = SERVICE_OPTIONS.find((option) => option.value === serviceType);
   const selectedDeadlineDate = useMemo(() => parseIsoDate(deadline), [deadline]);
   const todayIso = useMemo(() => toIsoDate(todayDate), [todayDate]);
+  const hasTransientOverlayOpen = Boolean(activeInfo || mobileServicePickerOpen || calendarOpen);
+
+  function isMobileViewport() {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(max-width: 639px)").matches;
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -226,6 +235,10 @@ export default function LandingHero() {
       setCalendarOpen(false);
       return;
     }
+    if (!nextOpen && mobileDialogHistoryEntryActiveRef.current) {
+      window.history.back();
+      return;
+    }
 
     setOpen(nextOpen);
     if (!nextOpen) {
@@ -239,6 +252,59 @@ export default function LandingHero() {
       setSubmitMessage("");
     }
   }
+
+  useEffect(() => {
+    if (!open) {
+      mobileDialogHistoryEntryActiveRef.current = false;
+      mobileOverlayHistoryEntryActiveRef.current = false;
+      return;
+    }
+    if (mobileDialogHistoryEntryActiveRef.current || !isMobileViewport()) return;
+    window.history.pushState({ __landingContactDialog: true }, "");
+    mobileDialogHistoryEntryActiveRef.current = true;
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !mobileDialogHistoryEntryActiveRef.current || !isMobileViewport()) return;
+
+    if (hasTransientOverlayOpen && !mobileOverlayHistoryEntryActiveRef.current) {
+      window.history.pushState({ __landingContactOverlay: true }, "");
+      mobileOverlayHistoryEntryActiveRef.current = true;
+      return;
+    }
+
+    if (!hasTransientOverlayOpen && mobileOverlayHistoryEntryActiveRef.current) {
+      mobileOverlayHistoryEntryActiveRef.current = false;
+      suppressNextPopStateRef.current = true;
+      window.history.back();
+    }
+  }, [open, hasTransientOverlayOpen]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (suppressNextPopStateRef.current) {
+        suppressNextPopStateRef.current = false;
+        return;
+      }
+      if (!mobileDialogHistoryEntryActiveRef.current) return;
+      if (mobileOverlayHistoryEntryActiveRef.current) {
+        mobileOverlayHistoryEntryActiveRef.current = false;
+        setActiveInfo(null);
+        setMobileServicePickerOpen(false);
+        setCalendarOpen(false);
+        return;
+      }
+
+      mobileDialogHistoryEntryActiveRef.current = false;
+      setActiveInfo(null);
+      setMobileServicePickerOpen(false);
+      setCalendarOpen(false);
+      setOpen(false);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   useEffect(() => {
     if (!activeInfo && !mobileServicePickerOpen && !calendarOpen) return;
