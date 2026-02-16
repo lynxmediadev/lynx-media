@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import {
   CalendarDays,
@@ -145,6 +145,8 @@ function FieldInfo({ onOpen }: { onOpen: () => void }) {
 
 export default function LandingHero() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
+  const detailsFocusTimersRef = useRef<number[]>([]);
   const mobileDialogHistoryEntryActiveRef = useRef(false);
   const mobileOverlayHistoryEntryActiveRef = useRef(false);
   const suppressNextPopStateRef = useRef(false);
@@ -169,6 +171,8 @@ export default function LandingHero() {
   } | null>(null);
   const [mobileServicePickerOpen, setMobileServicePickerOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [detailsFocused, setDetailsFocused] = useState(false);
+  const [mobileKeyboardInset, setMobileKeyboardInset] = useState(0);
   const [overlayPortalRoot, setOverlayPortalRoot] = useState<HTMLElement | null>(null);
   const [calendarMonth, setCalendarMonth] = useState<Date>(startOfMonth(todayDate));
   const urgencyValue = urgency[0] ?? 3;
@@ -188,6 +192,49 @@ export default function LandingHero() {
   function isMobileViewport() {
     if (typeof window === "undefined") return false;
     return window.matchMedia("(max-width: 639px)").matches;
+  }
+
+  function clearDetailsFocusTimers() {
+    if (typeof window === "undefined") return;
+    detailsFocusTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+    detailsFocusTimersRef.current = [];
+  }
+
+  function getMobileKeyboardInset() {
+    if (typeof window === "undefined") return 0;
+    const viewport = window.visualViewport;
+    if (!viewport) return 0;
+    return Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+  }
+
+  const updateMobileKeyboardInset = useCallback(() => {
+    setMobileKeyboardInset(getMobileKeyboardInset());
+  }, []);
+
+  const scrollDialogToBottom = useCallback(() => {
+    if (!open || !isMobileViewport() || hasTransientOverlayOpen) return;
+    const dialogNode = document.querySelector<HTMLElement>("[data-landing-contact-dialog='true']");
+    if (!dialogNode) return;
+    dialogNode.scrollTo({ top: dialogNode.scrollHeight, behavior: "auto" });
+  }, [open, hasTransientOverlayOpen]);
+
+  function handleDetailsFocus() {
+    if (!isMobileViewport()) return;
+    setDetailsFocused(true);
+    updateMobileKeyboardInset();
+    clearDetailsFocusTimers();
+    scrollDialogToBottom();
+    detailsFocusTimersRef.current = [
+      window.setTimeout(scrollDialogToBottom, 100),
+      window.setTimeout(scrollDialogToBottom, 260),
+      window.setTimeout(scrollDialogToBottom, 520),
+    ];
+  }
+
+  function handleDetailsBlur() {
+    setDetailsFocused(false);
+    setMobileKeyboardInset(0);
+    clearDetailsFocusTimers();
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -257,6 +304,9 @@ export default function LandingHero() {
       setActiveInfo(null);
       setMobileServicePickerOpen(false);
       setCalendarOpen(false);
+      setDetailsFocused(false);
+      setMobileKeyboardInset(0);
+      clearDetailsFocusTimers();
       return;
     }
     if (nextOpen) {
@@ -336,6 +386,22 @@ export default function LandingHero() {
   }, [open, hasTransientOverlayOpen]);
 
   useEffect(() => {
+    if (!open || !detailsFocused || !isMobileViewport()) return;
+    const viewport = window.visualViewport;
+    const handleViewportChange = () => {
+      updateMobileKeyboardInset();
+      scrollDialogToBottom();
+    };
+    handleViewportChange();
+    viewport?.addEventListener("resize", handleViewportChange);
+    viewport?.addEventListener("scroll", handleViewportChange);
+    return () => {
+      viewport?.removeEventListener("resize", handleViewportChange);
+      viewport?.removeEventListener("scroll", handleViewportChange);
+    };
+  }, [open, detailsFocused, hasTransientOverlayOpen, scrollDialogToBottom, updateMobileKeyboardInset]);
+
+  useEffect(() => {
     if (typeof document === "undefined") return;
     setOverlayPortalRoot(document.body);
   }, []);
@@ -386,11 +452,20 @@ export default function LandingHero() {
       setActiveInfo(null);
       setMobileServicePickerOpen(false);
       setCalendarOpen(false);
+      setDetailsFocused(false);
+      setMobileKeyboardInset(0);
+      clearDetailsFocusTimers();
       setOpen(false);
     };
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearDetailsFocusTimers();
+    };
   }, []);
 
   useEffect(() => {
@@ -697,6 +772,7 @@ export default function LandingHero() {
               </DialogHeader>
 
               <form
+                ref={formRef}
                 className={[
                   "landing-form-scroll grid content-start gap-6 px-4",
                   "pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4 sm:px-0 sm:pb-0 sm:pt-6",
@@ -874,11 +950,13 @@ export default function LandingHero() {
                   placeholder="Brief, referencias, duracion, formato, entregables, etc."
                   value={details}
                   onChange={(event) => setDetails(event.target.value)}
+                  onFocus={handleDetailsFocus}
+                  onBlur={handleDetailsBlur}
                   className="landing-textarea-fixed h-[160px] min-h-[160px] max-h-[160px] resize-none overflow-y-auto [field-sizing:fixed] focus-visible:border-foreground focus-visible:ring-foreground/40"
                 />
               </div>
 
-              <div className="landing-form-section grid gap-2">
+              <div className="hidden landing-form-section grid gap-2">
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-[3px] sm:gap-2">
                     <Label
@@ -1189,6 +1267,26 @@ export default function LandingHero() {
               overlayPortalRoot,
             )
             : null}
+
+          {open && detailsFocused && !hasTransientOverlayOpen ? (
+            <div
+              className="pointer-events-none fixed inset-x-0 z-[64] px-4 sm:hidden"
+              style={{
+                bottom: `calc(env(safe-area-inset-bottom) + ${mobileKeyboardInset}px + 0.5rem)`,
+              }}
+            >
+              <div className="mx-auto w-full max-w-3xl">
+                <Button
+                  type="button"
+                  onClick={() => formRef.current?.requestSubmit()}
+                  className="pointer-events-auto w-full border border-foreground/80 bg-foreground text-background shadow-xl hover:bg-foreground/90"
+                  disabled={submitStatus === "submitting"}
+                >
+                  {submitStatus === "submitting" ? "Enviando..." : "Enviar solicitud"}
+                </Button>
+              </div>
+            </div>
+          ) : null}
 
           {shouldShowSuccessToast ? (
             <div
