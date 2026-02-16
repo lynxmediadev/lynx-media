@@ -1,21 +1,49 @@
-:root {
-  color-scheme: dark;
+@import "../../../src/styles/globals.css";
+
+/* Tailwind v4: incluir clases usadas desde código compartido fuera de apps/landing */
+@source "../../../src/app/**/*.{ts,tsx,js,jsx,mdx}";
+@source "../../../src/components/**/*.{ts,tsx,js,jsx,mdx}";
+@source "../../../src/lib/**/*.{ts,tsx,js,jsx,mdx}";
+@source "./**/*.{ts,tsx,js,jsx,mdx}";
+
+.landing-hero {
+  position: relative;
+  display: flex;
+  min-height: 100dvh;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 1.5rem;
 }
 
-* {
-  box-sizing: border-box;
+.landing-hero-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-html,
-body {
-  margin: 0;
-  padding: 0;
-  background: #09090b;
-  color: #f4f4f5;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+.landing-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--background) 45%, transparent) 0%,
+      color-mix(in oklab, var(--background) 72%, transparent) 100%
+    ),
+    radial-gradient(
+      80% 60% at 50% 50%,
+      color-mix(in oklab, var(--background) 25%, transparent) 0%,
+      color-mix(in oklab, var(--background) 82%, transparent) 100%
+    );
 }
 
-a {
-  color: inherit;
+.landing-hero-content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 54rem;
+  text-align: center;
 }
-
