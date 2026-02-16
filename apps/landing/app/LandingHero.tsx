@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   CalendarDays,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Disc3,
   Film,
   Info,
@@ -77,11 +79,10 @@ function dbToLinear(db: number) {
   return Math.min(1, Math.max(0, Math.pow(10, db / 20)));
 }
 
-function getTodayIsoDate() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
+function toIsoDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
@@ -89,6 +90,35 @@ function formatDateForLabel(value: string) {
   const [year, month, day] = value.split("-");
   if (!year || !month || !day) return value;
   return `${day}/${month}/${year}`;
+}
+
+function parseIsoDate(value: string) {
+  const [yearRaw, monthRaw, dayRaw] = value.split("-");
+  const year = Number(yearRaw);
+  const month = Number(monthRaw);
+  const day = Number(dayRaw);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+}
+
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function startOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function isSameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+}
+
+function formatMonthYear(date: Date, locale = "es-CL") {
+  const month = new Intl.DateTimeFormat(locale, { month: "long" }).format(date);
+  const monthCapitalized = month.charAt(0).toUpperCase() + month.slice(1);
+  return `${monthCapitalized} ${date.getFullYear()}`;
 }
 
 function FieldInfo({ onOpen }: { onOpen: () => void }) {
@@ -111,8 +141,7 @@ function FieldInfo({ onOpen }: { onOpen: () => void }) {
 
 export default function LandingHero() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const deadlineDesktopInputRef = useRef<HTMLInputElement | null>(null);
-  const deadlineMobileInputRef = useRef<HTMLInputElement | null>(null);
+  const todayDate = useMemo(() => startOfDay(new Date()), []);
   const [isMuted, setIsMuted] = useState(true);
   const [volumeDb, setVolumeDb] = useState(DEFAULT_VOLUME_DB);
   const [open, setOpen] = useState(false);
@@ -131,6 +160,8 @@ export default function LandingHero() {
     text: string;
   } | null>(null);
   const [mobileServicePickerOpen, setMobileServicePickerOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState<Date>(startOfMonth(todayDate));
   const urgencyValue = urgency[0] ?? 3;
   const urgencyLabels = [
     "Muy flexible",
@@ -139,8 +170,9 @@ export default function LandingHero() {
     "Urgente",
     "Muy urgente",
   ];
-  const minDeadlineDate = getTodayIsoDate();
   const selectedServiceOption = SERVICE_OPTIONS.find((option) => option.value === serviceType);
+  const selectedDeadlineDate = useMemo(() => parseIsoDate(deadline), [deadline]);
+  const todayIso = useMemo(() => toIsoDate(todayDate), [todayDate]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -190,11 +222,16 @@ export default function LandingHero() {
       setMobileServicePickerOpen(false);
       return;
     }
+    if (!nextOpen && calendarOpen) {
+      setCalendarOpen(false);
+      return;
+    }
 
     setOpen(nextOpen);
     if (!nextOpen) {
       setActiveInfo(null);
       setMobileServicePickerOpen(false);
+      setCalendarOpen(false);
       return;
     }
     if (nextOpen) {
@@ -204,18 +241,22 @@ export default function LandingHero() {
   }
 
   useEffect(() => {
-    if (!activeInfo && !mobileServicePickerOpen) return;
+    if (!activeInfo && !mobileServicePickerOpen && !calendarOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       if (activeInfo) {
         setActiveInfo(null);
         return;
       }
-      if (mobileServicePickerOpen) setMobileServicePickerOpen(false);
+      if (mobileServicePickerOpen) {
+        setMobileServicePickerOpen(false);
+        return;
+      }
+      if (calendarOpen) setCalendarOpen(false);
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [activeInfo, mobileServicePickerOpen]);
+  }, [activeInfo, mobileServicePickerOpen, calendarOpen]);
 
   async function handleAudioToggle() {
     const nextMuted = !isMuted;
@@ -256,19 +297,57 @@ export default function LandingHero() {
     }
   }
 
-  function openDeadlinePicker(target: "desktop" | "mobile") {
-    const input = target === "mobile"
-      ? deadlineMobileInputRef.current
-      : deadlineDesktopInputRef.current;
-    if (!input) return;
-    input.focus();
-    const pickerInput = input as HTMLInputElement & { showPicker?: () => void };
-    if (pickerInput.showPicker) {
-      pickerInput.showPicker();
-      return;
-    }
-    input.click();
+  function openDeadlineCalendar() {
+    setActiveInfo(null);
+    setMobileServicePickerOpen(false);
+    const baseDate = selectedDeadlineDate && selectedDeadlineDate >= todayDate
+      ? selectedDeadlineDate
+      : todayDate;
+    setCalendarMonth(startOfMonth(baseDate));
+    setCalendarOpen(true);
   }
+
+  function closeDeadlineCalendar() {
+    setCalendarOpen(false);
+  }
+
+  function selectDeadlineDate(date: Date) {
+    if (date < todayDate) return;
+    setDeadline(toIsoDate(date));
+    closeDeadlineCalendar();
+  }
+
+  function goToPreviousMonth() {
+    const previousMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1);
+    const minMonth = startOfMonth(todayDate);
+    if (previousMonth < minMonth) return;
+    setCalendarMonth(previousMonth);
+  }
+
+  function goToNextMonth() {
+    setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1));
+  }
+
+  const canGoToPreviousMonth = useMemo(() => {
+    const previousMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1);
+    return previousMonth >= startOfMonth(todayDate);
+  }, [calendarMonth, todayDate]);
+
+  const calendarLabel = useMemo(() => formatMonthYear(calendarMonth), [calendarMonth]);
+
+  const calendarDays = useMemo(() => {
+    const firstDayOfMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
+    const daysInMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0).getDate();
+    const firstWeekday = (firstDayOfMonth.getDay() + 6) % 7; // lunes = 0
+    const totalCells = 42;
+    return Array.from({ length: totalCells }, (_, index) => {
+      const dayNumber = index - firstWeekday + 1;
+      if (dayNumber < 1 || dayNumber > daysInMonth) return null;
+      return new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), dayNumber);
+    });
+  }, [calendarMonth]);
+
+  const weekdayLabels = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"];
 
   return (
     <section className="landing-hero">
@@ -368,23 +447,31 @@ export default function LandingHero() {
               "sm:overflow-y-auto sm:rounded-2xl sm:border sm:p-6",
             ].join(" ")}
             onInteractOutside={(event) => {
-              if (activeInfo || mobileServicePickerOpen) {
+              if (activeInfo || mobileServicePickerOpen || calendarOpen) {
                 event.preventDefault();
                 if (activeInfo) {
                   setActiveInfo(null);
                   return;
                 }
-                setMobileServicePickerOpen(false);
+                if (mobileServicePickerOpen) {
+                  setMobileServicePickerOpen(false);
+                  return;
+                }
+                setCalendarOpen(false);
               }
             }}
             onEscapeKeyDown={(event) => {
-              if (activeInfo || mobileServicePickerOpen) {
+              if (activeInfo || mobileServicePickerOpen || calendarOpen) {
                 event.preventDefault();
                 if (activeInfo) {
                   setActiveInfo(null);
                   return;
                 }
-                setMobileServicePickerOpen(false);
+                if (mobileServicePickerOpen) {
+                  setMobileServicePickerOpen(false);
+                  return;
+                }
+                setCalendarOpen(false);
               }
             }}
           >
@@ -482,6 +569,7 @@ export default function LandingHero() {
                       variant="outline"
                       onClick={() => {
                         setActiveInfo(null);
+                        setCalendarOpen(false);
                         setMobileServicePickerOpen(true);
                       }}
                       className="h-9 w-full justify-between border-input bg-transparent px-3 text-sm font-normal text-foreground hover:bg-secondary/80"
@@ -518,71 +606,29 @@ export default function LandingHero() {
                   <p className="text-xs text-muted-foreground">
                     Fecha tentativa para organizar tiempos y prioridad.
                   </p>
-                  <div className="grid gap-2">
-                    <div className="hidden sm:grid sm:grid-cols-2 sm:gap-2">
-                      <div className="relative">
-                        <Input
-                          ref={deadlineDesktopInputRef}
-                          id="contact-deadline"
-                          name="deadline"
-                          type="date"
-                          min={minDeadlineDate}
-                          value={deadline}
-                          onChange={(event) => setDeadline(event.target.value)}
-                          className="landing-date-input pr-10 focus-visible:border-foreground focus-visible:ring-foreground/40"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => openDeadlinePicker("desktop")}
-                          className={[
-                            "absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md",
-                            "text-muted-foreground transition-colors hover:text-foreground",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                          ].join(" ")}
-                          aria-label="Abrir calendario"
-                          title="Abrir calendario"
-                        >
-                          <CalendarDays className="h-4 w-4" />
-                        </button>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => openDeadlinePicker("desktop")}
-                        className="h-9 w-full border-border bg-background text-foreground hover:bg-secondary hover:text-foreground"
-                      >
-                        Ver calendario
-                      </Button>
-                    </div>
-
-                    <div className="sm:hidden">
-                      <div className="relative">
-                        <Input
-                          ref={deadlineMobileInputRef}
-                          id="contact-deadline-mobile"
-                          type="date"
-                          min={minDeadlineDate}
-                          value={deadline}
-                          onChange={(event) => setDeadline(event.target.value)}
-                          className="landing-date-input absolute inset-0 z-10 h-9 w-full cursor-pointer opacity-0"
-                          aria-label="Elegir fecha de entrega"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => openDeadlinePicker("mobile")}
-                          className="h-9 w-full border-border bg-background text-foreground hover:bg-secondary hover:text-foreground"
-                        >
-                          <CalendarDays className="h-4 w-4" />
-                          Elegir fecha
-                        </Button>
-                      </div>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {deadline
-                          ? `Fecha seleccionada: ${formatDateForLabel(deadline)}`
-                          : "Sin fecha seleccionada"}
-                      </p>
-                    </div>
+                  <div className="relative">
+                    <Input
+                      id="contact-deadline"
+                      type="text"
+                      readOnly
+                      value={deadline ? formatDateForLabel(deadline) : ""}
+                      placeholder="Selecciona una fecha"
+                      onClick={openDeadlineCalendar}
+                      className="pr-10 cursor-pointer focus-visible:border-foreground focus-visible:ring-foreground/40"
+                    />
+                    <button
+                      type="button"
+                      onClick={openDeadlineCalendar}
+                      className={[
+                        "absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md",
+                        "text-muted-foreground transition-colors hover:text-foreground",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                      ].join(" ")}
+                      aria-label="Abrir calendario"
+                      title="Abrir calendario"
+                    >
+                      <CalendarDays className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -688,6 +734,134 @@ export default function LandingHero() {
                 </p>
               </div>
               </form>
+
+              {calendarOpen ? (
+                <div
+                  className="absolute inset-0 z-[66] bg-background/85 px-4 backdrop-blur-sm"
+                  onClick={closeDeadlineCalendar}
+                >
+                  <div className="flex min-h-full items-center justify-center py-8">
+                    <div
+                      role="dialog"
+                      aria-modal="true"
+                      aria-label="Seleccionar fecha de entrega"
+                      className="w-full max-w-sm rounded-xl border border-border/90 bg-background p-4 text-left shadow-2xl"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={goToPreviousMonth}
+                          disabled={!canGoToPreviousMonth}
+                          className={[
+                            "inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-foreground transition-colors",
+                            "hover:bg-secondary disabled:opacity-40 disabled:hover:bg-background",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                          ].join(" ")}
+                          aria-label="Mes anterior"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </button>
+                        <p className="text-sm font-semibold text-foreground">{calendarLabel}</p>
+                        <button
+                          type="button"
+                          onClick={goToNextMonth}
+                          className={[
+                            "inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-foreground transition-colors",
+                            "hover:bg-secondary",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                          ].join(" ")}
+                          aria-label="Mes siguiente"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-7 justify-items-center gap-x-0 gap-y-1.5 text-[11px] font-medium text-muted-foreground">
+                        {weekdayLabels.map((weekday) => (
+                          <span key={weekday} className="inline-flex h-6 w-10 items-center justify-center">
+                            {weekday}
+                          </span>
+                        ))}
+                      </div>
+
+                      <div className="mt-1 grid grid-cols-7 justify-items-center gap-x-0 gap-y-1.5">
+                        {calendarDays.map((day, index) => {
+                          if (!day) return <div key={`empty-${index}`} className="h-10 w-10" aria-hidden="true" />;
+                          const isPast = day < todayDate;
+                          const isSelected = selectedDeadlineDate ? isSameDay(day, selectedDeadlineDate) : false;
+                          const isToday = isSameDay(day, todayDate);
+
+                          return (
+                            <button
+                              key={toIsoDate(day)}
+                              type="button"
+                              disabled={isPast}
+                              onClick={() => selectDeadlineDate(day)}
+                              className={[
+                                "inline-flex h-10 w-10 items-center justify-center rounded-none border text-sm transition-colors",
+                                isSelected
+                                  ? "border-foreground bg-foreground text-background"
+                                  : "border-border bg-background text-foreground hover:bg-secondary",
+                                isPast ? "cursor-not-allowed opacity-35 hover:bg-background" : "",
+                                isToday && !isSelected ? "border-foreground/60" : "",
+                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                              ].join(" ")}
+                              aria-label={day.toLocaleDateString("es-CL")}
+                            >
+                              {day.getDate()}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeadline(todayIso);
+                            closeDeadlineCalendar();
+                          }}
+                          className={[
+                            "inline-flex items-center rounded-md border border-border px-2.5 py-1.5 text-[11px] font-medium",
+                            "bg-secondary text-foreground transition-colors hover:bg-secondary/80",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                          ].join(" ")}
+                        >
+                          Hoy
+                        </button>
+
+                        <div className="flex items-center gap-2">
+                          {deadline ? (
+                            <button
+                              type="button"
+                              onClick={() => setDeadline("")}
+                              className={[
+                                "inline-flex items-center rounded-md border border-border px-2.5 py-1.5 text-[11px] font-medium",
+                                "bg-background text-foreground transition-colors hover:bg-secondary/50",
+                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                              ].join(" ")}
+                            >
+                              Limpiar
+                            </button>
+                          ) : null}
+                          <button
+                            type="button"
+                            onClick={closeDeadlineCalendar}
+                            className={[
+                              "inline-flex items-center rounded-md border border-border px-2.5 py-1.5 text-[11px] font-medium",
+                              "bg-secondary text-foreground transition-colors hover:bg-secondary/80",
+                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                            ].join(" ")}
+                          >
+                            Cerrar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
 
               {mobileServicePickerOpen ? (
                 <div
