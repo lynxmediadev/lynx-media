@@ -75,24 +75,3 @@
 .landing-form-scroll {
   -webkit-overflow-scrolling: touch;
 }
-
-.landing-date-input {
-  color-scheme: dark;
-}
-
-html.light .landing-date-input {
-  color-scheme: light;
-}
-
-.landing-date-input::-webkit-calendar-picker-indicator {
-  opacity: 0;
-}
-
-.landing-date-input::-webkit-datetime-edit,
-.landing-date-input::-webkit-datetime-edit-fields-wrapper,
-.landing-date-input::-webkit-datetime-edit-text,
-.landing-date-input::-webkit-datetime-edit-month-field,
-.landing-date-input::-webkit-datetime-edit-day-field,
-.landing-date-input::-webkit-datetime-edit-year-field {
-  color: var(--foreground);
-}
